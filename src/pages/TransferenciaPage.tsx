@@ -5,7 +5,8 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Table } from '../components/ui/Table';
 import { usePonds } from '../hooks/usePonds';
-import type { Pond } from '../types';
+import { useCreateTransfer, useTransfers } from '../hooks/useTransfers';
+import type { Pond, PondTransfer } from '../types';
 import { PondStatus } from '../types';
 
 function todayIsoDate() {
@@ -29,17 +30,6 @@ type TransferForm = {
   note: string;
 };
 
-type TransferRecord = {
-  id: string;
-  from: string;
-  to: string;
-  quantity: number;
-  transferDate: string;
-  responsible: string;
-  reason: string;
-  note: string;
-};
-
 function pondLabel(pond: Pond) {
   return `${pond.code} · ${pond.name}`;
 }
@@ -52,14 +42,11 @@ function statusLabel(status: PondStatus) {
   return 'Inativo';
 }
 
-function makeTransferId() {
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
 export function TransferenciaPage() {
   const { data: ponds = [], isLoading } = usePonds();
+  const { data: savedTransfers = [], isLoading: transfersLoading } = useTransfers();
+  const createTransfer = useCreateTransfer();
   const [error, setError] = useState<string | null>(null);
-  const [savedTransfers, setSavedTransfers] = useState<TransferRecord[]>([]);
   const [form, setForm] = useState<TransferForm>({
     fromPondId: '',
     toPondId: '',
@@ -105,25 +92,25 @@ export function TransferenciaPage() {
   const summary = {
     totalTransfers: savedTransfers.length,
     totalQuantity: savedTransfers.reduce((sum, item) => sum + item.quantity, 0),
-    uniqueRoutes: new Set(savedTransfers.map((item) => `${item.from} -> ${item.to}`)).size,
+    uniqueRoutes: new Set(savedTransfers.map((item) => `${item.fromPondId} -> ${item.toPondId}`)).size,
     activePonds: activePonds.length,
   };
 
   const columns = [
     {
-      key: 'transferDate',
+      key: 'transferredAt',
       header: 'Data',
-      render: (row: TransferRecord) => new Date(row.transferDate).toLocaleDateString('pt-BR'),
+      render: (row: PondTransfer) => new Date(row.transferredAt).toLocaleDateString('pt-BR'),
     },
     {
       key: 'route',
       header: 'Rota',
-      render: (row: TransferRecord) => (
+      render: (row: PondTransfer) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{row.from}</span>
+          <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{row.fromPond.code}</span>
           <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
             <CornerDownRight size={13} style={{ verticalAlign: 'middle', marginRight: 4 }} />
-            {row.to}
+            {row.toPond.code}
           </span>
         </div>
       ),
@@ -132,17 +119,17 @@ export function TransferenciaPage() {
       key: 'quantity',
       header: 'Quantidade',
       align: 'right' as const,
-      render: (row: TransferRecord) => `${fmt(row.quantity, 0)} un`,
+      render: (row: PondTransfer) => `${fmt(row.quantity, 0)} un`,
     },
     {
       key: 'responsible',
       header: 'Responsável',
-      render: (row: TransferRecord) => row.responsible,
+      render: (row: PondTransfer) => row.responsible,
     },
     {
       key: 'reason',
       header: 'Motivo',
-      render: (row: TransferRecord) => row.reason,
+      render: (row: PondTransfer) => row.reason ?? '—',
     },
   ];
 
@@ -171,19 +158,20 @@ export function TransferenciaPage() {
       return;
     }
 
-    setSavedTransfers((current) => [
-      {
-        id: makeTransferId(),
-        from: pondLabel(from),
-        to: pondLabel(to),
+    try {
+      await createTransfer.mutateAsync({
+        fromPondId: from.id,
+        toPondId: to.id,
         quantity,
-        transferDate: form.transferDate,
+        transferredAt: new Date(`${form.transferDate}T12:00:00`).toISOString(),
         responsible: form.responsible.trim(),
         reason: form.reason.trim() || 'Transferência operacional',
-        note: form.note.trim(),
-      },
-      ...current,
-    ]);
+        note: form.note.trim() || undefined,
+      });
+    } catch {
+      setError('Não foi possível salvar a transferência. Tente novamente.');
+      return;
+    }
 
     setForm((current) => ({
       ...current,
@@ -250,7 +238,7 @@ export function TransferenciaPage() {
               {' · '}
               {toPond ? `Destino: ${pondLabel(toPond)} (${statusLabel(toPond.status)})` : 'Destino não selecionado'}
             </div>
-            <Button icon={<ArrowRightLeft size={16} />} onClick={handleSubmit}>
+            <Button icon={<ArrowRightLeft size={16} />} onClick={handleSubmit} loading={createTransfer.isPending}>
               Registrar transferência
             </Button>
           </div>
@@ -264,13 +252,13 @@ export function TransferenciaPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
             <InfoCard title="Origem" value={fromPond ? pondLabel(fromPond) : 'Selecione um viveiro'} />
             <InfoCard title="Destino" value={toPond ? pondLabel(toPond) : 'Selecione um destino'} />
-            <InfoCard title="Resumo" value={`${summary.totalTransfers} lançamentos registrados localmente`} />
+            <InfoCard title="Resumo" value={`${summary.totalTransfers} transferências salvas`} />
           </div>
         </div>
 
         <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Transferências recentes</div>
-          <Table columns={columns} data={savedTransfers} rowKey={(row) => row.id} emptyMessage="Nenhuma transferência registrada ainda" />
+          <Table columns={columns} data={savedTransfers} rowKey={(row) => row.id} loading={transfersLoading} emptyMessage="Nenhuma transferência registrada ainda" />
         </div>
       </div>
 

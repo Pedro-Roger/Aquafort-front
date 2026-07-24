@@ -441,3 +441,18 @@ export interface ApiError {
   message: string;
   statusCode: number;
 }
+
+export interface PondTransfer {
+  id: string;
+  fromPondId: string;
+  toPondId: string;
+  quantity: number;
+  transferredAt: string;
+  responsible: string;
+  reason?: string | null;
+  note?: string | null;
+  createdBy?: string | null;
+  createdAt: string;
+  fromPond: Pick<Pond, 'id' | 'code' | 'name' | 'status'>;
+  toPond: Pick<Pond, 'id' | 'code' | 'name' | 'status'>;
+}
