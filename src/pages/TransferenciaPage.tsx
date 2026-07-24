@@ -197,7 +197,7 @@ export function TransferenciaPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div
         style={{
           borderRadius: 28,
@@ -233,8 +233,8 @@ export function TransferenciaPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(0, 1.05fr)', gap: 16, minHeight: 0, flex: 1 }}>
-        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', minHeight: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(0, 1.05fr)', gap: 16, alignItems: 'start' }}>
+        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <Select label="Origem" options={fromOptions} value={form.fromPondId} onChange={(e) => setForm((current) => ({ ...current, fromPondId: e.target.value }))} placeholder="Selecione a origem" />
             <Select label="Destino" options={toOptions} value={form.toPondId} onChange={(e) => setForm((current) => ({ ...current, toPondId: e.target.value }))} placeholder="Selecione o destino" />
@@ -268,17 +268,12 @@ export function TransferenciaPage() {
           </div>
         </div>
 
-        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Transferências recentes</div>
-          <div style={{ flex: 1, minHeight: 0 }}>
-            <Table columns={columns} data={savedTransfers} rowKey={(row) => row.id} emptyMessage="Nenhuma transferência registrada ainda" />
-          </div>
+          <Table columns={columns} data={savedTransfers} rowKey={(row) => row.id} emptyMessage="Nenhuma transferência registrada ainda" />
         </div>
       </div>
 
-      <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-        Você pode expandir esta tela depois para gravar no backend sem mudar a navegação.
-      </div>
     </div>
   );
 }
