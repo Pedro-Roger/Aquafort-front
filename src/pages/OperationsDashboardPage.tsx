@@ -139,7 +139,7 @@ export function OperationsDashboardPage() {
   ]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, minHeight: 0, height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <section
         style={{
           borderRadius: 28,
@@ -225,7 +225,7 @@ export function OperationsDashboardPage() {
         ))}
       </section>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: 0, flex: 1 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <section
           style={{
             backgroundColor: 'var(--bg-card)',
@@ -233,7 +233,6 @@ export function OperationsDashboardPage() {
             borderRadius: 24,
             padding: 18,
             boxShadow: '0 14px 32px rgba(15, 23, 42, 0.06)',
-            minHeight: 0,
             display: 'flex',
             flexDirection: 'column',
             gap: 14,
