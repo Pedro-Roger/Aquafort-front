@@ -223,18 +223,10 @@ export function NutritionPage() {
           boxShadow: '0 24px 60px rgba(15, 23, 42, 0.12)',
         }}
       >
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.08fr) minmax(330px, 0.92fr)', gap: 16, alignItems: 'start' }}>
-          <div style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.7 }}>Arraçoamento</div>
-            <h1 style={{ margin: '8px 0 0', fontSize: 28, lineHeight: 1.04, letterSpacing: '-0.05em', maxWidth: 720 }}>
-              Controle de oferta, ritmo de trato e leitura por viveiro.
-            </h1>
-            <p style={{ marginTop: 8, color: 'rgba(248,250,252,0.76)', maxWidth: 720 }}>
-              Painel orientado para decidir rapido: quem consumiu mais hoje, qual produto saiu por ultimo e como o trato esta se distribuindo entre os tanques ativos.
-            </p>
-          </div>
-          <div style={{ display: 'grid', gap: 10 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 170px auto', gap: 10, alignItems: 'end' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 280px) 170px auto', gap: 10, alignItems: 'end' }}>
               <div style={{ minWidth: 0 }}>
               <Select label="Filtro ciclo" options={cycleOptions} value={cycleFilter} onChange={(e) => setCycleFilter(e.target.value)} />
               </div>
@@ -452,11 +444,8 @@ export function NutritionPage() {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: 12, flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>Detalhamento</div>
-            <div style={{ marginTop: 6, fontSize: 22, fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
-              Tabela de arraçoamento
-            </div>
+          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
+            Tabela de arraçoamento
           </div>
           <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{table.data?.date ?? date}</div>
         </div>
