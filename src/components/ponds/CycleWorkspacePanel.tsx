@@ -26,7 +26,6 @@ interface Props {
   eyebrow: string;
   title: string;
   description: string;
-  cycleLabel: string;
   cycleOptions: { value: string; label: string }[];
   selectedCycleId: string;
   onCycleChange: (value: string) => void;
@@ -39,7 +38,6 @@ export function CycleWorkspacePanel({
   eyebrow,
   title,
   description,
-  cycleLabel,
   cycleOptions,
   selectedCycleId,
   onCycleChange,
@@ -54,27 +52,14 @@ export function CycleWorkspacePanel({
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.72 }}>{eyebrow}</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, marginTop: 6 }}>
-            <h2 style={{ margin: 0, fontSize: 20, lineHeight: 1.15, letterSpacing: '-0.02em' }}>{title}</h2>
-            <span
-              style={{
-                padding: '3px 10px',
-                borderRadius: 999,
-                fontSize: 12,
-                fontWeight: 700,
-                backgroundColor: 'rgba(255,255,255,0.12)',
-                border: '1px solid rgba(255,255,255,0.16)',
-              }}
-            >
-              {cycleLabel}
-            </span>
-          </div>
+          <h2 style={{ margin: '6px 0 0', fontSize: 20, lineHeight: 1.15, letterSpacing: '-0.02em' }}>{title}</h2>
           <p style={{ margin: '6px 0 0', fontSize: 13, color: 'rgba(238,243,255,0.72)', maxWidth: 620 }}>{description}</p>
         </div>
         <div style={{ minWidth: 260, flex: '0 1 320px' }}>
           <Select
             id={id}
             label="Ciclo ativo"
+            labelStyle={{ color: 'rgba(238,243,255,0.82)' }}
             options={cycleOptions}
             value={selectedCycleId}
             onChange={(event) => onCycleChange(event.target.value)}

@@ -237,7 +237,6 @@ export function BiometricsPage() {
             eyebrow="Ciclo ativo"
             title="Painel de leitura"
             description="O mesmo contexto acompanha a biometria, a curva e a transição para despesca."
-            cycleLabel={selectedCycleLabel}
             cycleOptions={cycleOptions}
             selectedCycleId={selectedCycleId}
             onCycleChange={(nextCycleId) => {

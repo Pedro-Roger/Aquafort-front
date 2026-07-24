@@ -213,7 +213,7 @@ export function NutritionPage() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div
         style={{
           borderRadius: 28,
@@ -440,32 +440,27 @@ export function NutritionPage() {
           background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(247,250,252,0.92))',
           border: '1px solid var(--border)',
           boxShadow: '0 14px 34px rgba(15, 23, 42, 0.05)',
-          minHeight: 0,
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: 12, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
           <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
             Tabela de arraçoamento
           </div>
           <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{table.data?.date ?? date}</div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 14, minHeight: 0, alignItems: 'start' }}>
-          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 14, alignItems: 'start' }}>
+          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Tabela principal</div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Consumo e acumulado por viveiro</div>
             </div>
-            <div style={{ flex: 1, minHeight: 0 }}>
-              <Table columns={columns} data={rows} rowKey={(row) => `${row.cycleId}:${row.pondId}`} loading={table.isLoading} emptyMessage="Sem tratos para ciclos ativos" />
-            </div>
+            <Table columns={columns} data={rows} rowKey={(row) => `${row.cycleId}:${row.pondId}`} loading={table.isLoading} emptyMessage="Sem tratos para ciclos ativos" />
           </div>
 
-          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Ultimos lancamentos</div>
-            <div style={{ flex: 1, minHeight: 0 }}>
-              <Table columns={historyColumns} data={history.data?.items ?? []} rowKey={(row) => row.id} loading={history.isLoading} emptyMessage="Nenhum lancamento ainda" />
-            </div>
+            <Table columns={historyColumns} data={history.data?.items ?? []} rowKey={(row) => row.id} loading={history.isLoading} emptyMessage="Nenhum lancamento ainda" />
           </div>
         </div>
       </section>
