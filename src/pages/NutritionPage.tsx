@@ -402,6 +402,49 @@ export function NutritionPage() {
           gap: 14,
           borderRadius: 24,
           padding: 18,
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(245,250,255,0.96))',
+          border: '1px solid var(--border)',
+          boxShadow: '0 14px 34px rgba(15, 23, 42, 0.05)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>Ração por dia</div>
+            <div style={{ marginTop: 6, fontSize: 22, fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
+              Acompanhamento por viveiro
+            </div>
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>
+            {table.data?.totals.dailyFeedKg === 0 ? 'Sem consumo registrado hoje' : `${fmt(table.data?.totals.dailyFeedKg ?? 0, 2)} kg hoje`}
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+          <div style={{ borderRadius: 16, padding: '16px 14px', background: 'rgba(226,232,240,0.5)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>Total do dia</div>
+            <div style={{ marginTop: 8, fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>{fmt(table.data?.totals.dailyFeedKg ?? 0, 1)} kg</div>
+          </div>
+          <div style={{ borderRadius: 16, padding: '16px 14px', background: 'rgba(226,232,240,0.5)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>Acumulado</div>
+            <div style={{ marginTop: 8, fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>{fmt(table.data?.totals.racaoAcumuladaKg ?? 0, 1)} kg</div>
+          </div>
+          <div style={{ borderRadius: 16, padding: '16px 14px', background: 'rgba(226,232,240,0.5)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>Sem trato hoje</div>
+            <div style={{ marginTop: 8, fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>
+              {rows.length - rows.filter((r) => r.dailyFeedKg > 0).length}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        style={{
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+          borderRadius: 24,
+          padding: 18,
           background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(247,250,252,0.92))',
           border: '1px solid var(--border)',
           boxShadow: '0 14px 34px rgba(15, 23, 42, 0.05)',
@@ -410,7 +453,7 @@ export function NutritionPage() {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>Acompanhamento por viveiro</div>
+            <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>Detalhamento</div>
             <div style={{ marginTop: 6, fontSize: 22, fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
               Tabela de arraçoamento
             </div>
