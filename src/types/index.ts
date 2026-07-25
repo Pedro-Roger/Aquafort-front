@@ -53,6 +53,8 @@ export interface Pond {
   volumeM3: number;
   /** Automatic feeders installed in this pond. */
   feederCount?: number;
+  /** Warehouse the feed is drawn from when a feeding is logged. */
+  feedLocationId?: string | null;
   activeCycleId?: string;
   farmId: string;
   createdAt: string;

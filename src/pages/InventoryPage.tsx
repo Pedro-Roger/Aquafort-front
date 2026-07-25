@@ -13,6 +13,8 @@ import { Input } from '../components/ui/Input'
 import { Modal } from '../components/ui/Modal'
 import { Table } from '../components/ui/Table'
 import { useFeedProducts } from '../hooks/useFeeding'
+import { usePonds, useUpdatePond } from '../hooks/usePonds'
+import { Select } from '../components/ui/Select'
 import {
   useCreateInventoryLocation,
   useCreateInventoryMovement,
@@ -23,7 +25,7 @@ import {
 } from '../hooks/useInventory'
 import { groupBalancesByLocation, formatMovementLabel } from './inventoryTransforms'
 import type { InventoryBalanceRow, InventoryLocationType, InventoryMovement, InventoryMovementType } from '../types'
-import { controlHeight, pageStack, radius, sectionTitle, space, workspaceCard, workspaceEyebrow, workspaceSurface, workspaceTile, workspaceTileLabel, workspaceTileValue } from '../components/ui/surfaces';
+import { controlHeight, pageStack, radius, sectionSubtitle, sectionTitle, space, workspaceCard, workspaceEyebrow, workspaceSurface, workspaceTile, workspaceTileLabel, workspaceTileValue } from '../components/ui/surfaces';
 
 // A few fields here need native <select> markup, so they cannot use the shared
 // Select component. Pin them to the same control tokens so a modal row of
@@ -76,6 +78,10 @@ export function InventoryPage() {
   const { data: movements = [], isLoading: movementsLoading } = useInventoryMovements()
   const { data: locations = [] } = useInventoryLocations()
   const createLocation = useCreateInventoryLocation()
+  const { data: ponds = [] } = usePonds()
+  const updatePond = useUpdatePond()
+  const [savingPondId, setSavingPondId] = useState<string | null>(null)
+  const [linkingAll, setLinkingAll] = useState(false)
   const createMovement = useCreateInventoryMovement()
 
   const [query, setQuery] = useState('')
@@ -241,6 +247,32 @@ export function InventoryPage() {
     },
   ]
 
+  const pondsWithoutLocation = ponds.filter((pond) => !pond.feedLocationId)
+
+  async function handleLinkPond(pondId: string, locationId: string) {
+    setSavingPondId(pondId)
+    try {
+      // Empty means "no warehouse": the pond records feeding without moving stock.
+      await updatePond.mutateAsync({ id: pondId, data: { feedLocationId: locationId || null } as never })
+    } finally {
+      setSavingPondId(null)
+    }
+  }
+
+  /** One-tap setup for a farm that keeps everything in a single warehouse. */
+  async function handleLinkAll() {
+    const location = locations[0]
+    if (!location) return
+    setLinkingAll(true)
+    try {
+      for (const pond of pondsWithoutLocation) {
+        await updatePond.mutateAsync({ id: pond.id, data: { feedLocationId: location.id } as never })
+      }
+    } finally {
+      setLinkingAll(false)
+    }
+  }
+
   const detailColumns = [
     {
       key: 'productName',
@@ -339,6 +371,61 @@ export function InventoryPage() {
           <div style={{ flex: 1, minHeight: 0 }}>
             <Table columns={movementColumns} data={filteredMovements} rowKey={(row) => row.id} loading={movementsLoading} emptyMessage="Sem movimentacoes ainda" />
           </div>
+        </div>
+      </div>
+
+      <div style={workspaceCard}>
+        <div>
+          <h2 style={sectionTitle}>Ração de cada viveiro</h2>
+          <p style={{ ...sectionSubtitle, marginTop: 4 }}>
+            De qual depósito sai a ração do viveiro. Sem esse vínculo, o trato é registrado mas não baixa do estoque.
+          </p>
+        </div>
+
+        {pondsWithoutLocation.length > 0 && (
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: space.inline,
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '12px 14px',
+              borderRadius: radius.tile,
+              backgroundColor: 'rgba(220,38,38,0.06)',
+              border: '1px solid rgba(220,38,38,0.2)',
+            }}
+          >
+            <span style={{ color: 'var(--danger)', fontSize: 13, fontWeight: 600 }}>
+              {pondsWithoutLocation.length} viveiro(s) sem depósito — o trato deles não move estoque.
+            </span>
+            {locations.length === 1 && (
+              <Button variant="secondary" loading={linkingAll} onClick={handleLinkAll}>
+                Usar {locations[0].code} em todos
+              </Button>
+            )}
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: space.tile }}>
+          {ponds.map((pond) => (
+            <div key={pond.id} style={{ ...workspaceTile, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div>
+                <div style={workspaceTileLabel}>Viveiro</div>
+                <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text-primary)', marginTop: 2 }}>{pond.code}</div>
+              </div>
+              <Select
+                label="Sai do depósito"
+                options={[{ value: '', label: 'Nenhum' }, ...locations.map((loc) => ({ value: loc.id, label: `${loc.code} · ${loc.name}` }))]}
+                value={pond.feedLocationId ?? ''}
+                disabled={savingPondId === pond.id}
+                onChange={(e) => handleLinkPond(pond.id, e.target.value)}
+              />
+            </div>
+          ))}
+          {!ponds.length && (
+            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Nenhum viveiro cadastrado.</div>
+          )}
         </div>
       </div>
 
