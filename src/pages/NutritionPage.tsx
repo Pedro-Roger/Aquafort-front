@@ -25,6 +25,7 @@ import { useBiometricKpis } from '../hooks/useBiometrics';
 import { useFarmBiometricsReference } from '../hooks/useFarmBiometricsReference';
 import { calculateDailyRation } from '../lib/biometricsReference';
 import { Button } from '../components/ui/Button';
+import { workspaceEyebrow, workspaceSurface, workspaceTile, workspaceTileLabel, workspaceTileValue } from '../components/ui/surfaces';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
@@ -228,16 +229,12 @@ export function NutritionPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div
         style={{
-          borderRadius: 28,
-          padding: 18,
-          color: '#f8fafc',
-          background: 'linear-gradient(135deg, rgba(15,23,42,0.96), rgba(8,102,163,0.94))',
-          boxShadow: '0 24px 60px rgba(15, 23, 42, 0.12)',
+          ...workspaceSurface,
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.7 }}>Arraçoamento</div>
+            <div style={workspaceEyebrow}>Arraçoamento</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 280px) 170px auto', gap: 10, alignItems: 'end' }}>
               <div style={{ minWidth: 0 }}>
               <Select label="Filtro ciclo" options={cycleOptions} value={cycleFilter} onChange={(e) => setCycleFilter(e.target.value)} />
@@ -249,7 +246,7 @@ export function NutritionPage() {
                 size="lg"
                 icon={<Plus size={16} />}
                 onClick={() => setLaunchOpen(true)}
-                style={{ backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)', boxShadow: 'none', whiteSpace: 'nowrap' }}
+                style={{ whiteSpace: 'nowrap' }}
               >
                 Lancar trato
               </Button>
@@ -262,9 +259,9 @@ export function NutritionPage() {
                   style={{
                     padding: '8px 12px',
                     borderRadius: 999,
-                    border: '1px solid rgba(255,255,255,0.14)',
-                    background: 'rgba(255,255,255,0.08)',
-                    color: '#fff',
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg-elevated)',
+                    color: 'var(--text-secondary)',
                     textDecoration: 'none',
                     fontSize: 13,
                     fontWeight: 600,
@@ -281,18 +278,13 @@ export function NutritionPage() {
           {metrics.map((metric) => (
             <div
               key={metric.label}
-              style={{
-                borderRadius: 16,
-                padding: '12px 14px',
-                background: 'linear-gradient(180deg, rgba(255,255,255,0.10), rgba(191,219,254,0.08))',
-                border: '1px solid rgba(191,219,254,0.18)',
-              }}
+              style={workspaceTile}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'rgba(248,250,252,0.74)' }}>
-                <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{metric.label}</span>
-                {metric.icon}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={workspaceTileLabel}>{metric.label}</span>
+                <span style={{ color: 'var(--accent)' }}>{metric.icon}</span>
               </div>
-              <div style={{ marginTop: 8, fontSize: 22, fontWeight: 800 }}>{metric.value}</div>
+              <div style={{ ...workspaceTileValue, fontSize: 22 }}>{metric.value}</div>
             </div>
           ))}
         </div>

@@ -74,10 +74,10 @@ export function OperationalReportsPage() {
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
-      <div style={{ background: 'linear-gradient(135deg, rgba(2,6,23,0.95), rgba(2,132,199,0.90))', color: '#eefbf8', borderRadius: 24, padding: 20 }}>
+      <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', borderRadius: 24, padding: 20 }}>
         <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.72 }}>Relatórios</div>
         <h1 style={{ margin: '8px 0 6px', fontSize: 30, lineHeight: 1.05 }}>Relatórios operacionais</h1>
-        <p style={{ margin: 0, color: 'rgba(238,251,248,0.78)' }}>Exportação Excel por fase, com ração e despescas consolidadas.</p>
+        <p style={{ margin: 0, color: 'var(--text-muted)' }}>Exportação Excel por fase, com ração e despescas consolidadas.</p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>

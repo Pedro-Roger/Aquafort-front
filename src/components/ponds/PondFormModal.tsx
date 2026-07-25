@@ -83,7 +83,7 @@ export function PondFormModal({ open, onClose }: Props) {
           <div style={{ padding: 30, color: '#f8fafc' }}>
             <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.68 }}>Cadastro simples</div>
             <h2 style={{ margin: '10px 0 0', fontSize: 34, lineHeight: 1.05, letterSpacing: '-0.05em' }}>Criar tanque novo em menos de 1 minuto.</h2>
-            <p style={{ marginTop: 12, color: 'rgba(248,250,252,0.78)', maxWidth: 420 }}>
+            <p style={{ marginTop: 12, color: 'var(--text-muted)', maxWidth: 420 }}>
               Fluxo reduzido para o operacional: codigo, area e tipo. O nome pode nascer automatico e depois voce ajusta no painel.
             </p>
 
@@ -99,9 +99,9 @@ export function PondFormModal({ open, onClose }: Props) {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                 <div>
-                  <div style={{ color: 'rgba(248,250,252,0.70)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Preview do tanque</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Preview do tanque</div>
                   <div style={{ marginTop: 10, fontSize: 24, fontWeight: 800 }}>{normalizedCode || 'VE-101'}</div>
-                  <div style={{ marginTop: 4, color: 'rgba(248,250,252,0.78)' }}>{suggestedName}</div>
+                  <div style={{ marginTop: 4, color: 'var(--text-muted)' }}>{suggestedName}</div>
                 </div>
                 <div style={{ padding: '7px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.12)', fontSize: 12, fontWeight: 700 }}>
                   {TYPE_LABELS[form.type]}

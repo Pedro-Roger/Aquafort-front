@@ -8,6 +8,7 @@ import { Table } from '../components/ui/Table';
 import { usePonds } from '../hooks/usePonds';
 import { useNurseryActivities, useCreateNurseryActivity } from '../hooks/useNursery';
 import { PondType } from '../types';
+import { workspaceSurface } from '../components/ui/surfaces';
 
 function fmt(value: number | null | undefined, digits = 2) {
   if (value === null || value === undefined || Number.isNaN(value)) return '-';
@@ -169,18 +170,14 @@ export function BercarioPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%' }}>
       <div
         style={{
-          borderRadius: 28,
-          padding: 24,
-          color: '#f8fafc',
-          background: 'linear-gradient(135deg, rgba(15,23,42,0.96), rgba(2,132,199,0.94))',
-          boxShadow: '0 28px 80px rgba(15, 23, 42, 0.14)',
+          ...workspaceSurface,
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <div>
             <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.7 }}>Berçário</div>
             <h1 style={{ margin: '8px 0 0', fontSize: 30, lineHeight: 1.05, letterSpacing: '-0.05em' }}>PL grama, insumos e manejo operacional.</h1>
-            <p style={{ marginTop: 10, color: 'rgba(248,250,252,0.78)', maxWidth: 760 }}>
+            <p style={{ marginTop: 10, color: 'var(--text-muted)', maxWidth: 760 }}>
               Registre somente tanques do tipo berçário, com biometria de PL grama e manejo de água opcional.
             </p>
           </div>
@@ -268,8 +265,8 @@ export function BercarioPage() {
 
 function StatCard({ label, value, icon }: { label: string; value: string | number; icon: ReactNode }) {
   return (
-    <div style={{ borderRadius: 18, padding: '14px 16px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'rgba(248,250,252,0.74)' }}>
+    <div style={{ borderRadius: 18, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)' }}>
         <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
         {icon}
       </div>

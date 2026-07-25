@@ -14,6 +14,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCycles } from '../hooks/useCycles';
 import { useHarvestProjection, useRecomputeHarvestProjection } from '../hooks/useHarvestProjection';
 import { KPICard } from '../components/ui/KPICard';
+import { workspaceSurface } from '../components/ui/surfaces';
 import { CycleWorkspacePanel, type CycleWorkspaceStatus } from '../components/ponds/CycleWorkspacePanel';
 import type { Cycle, HarvestProjectionPoint } from '../types';
 import { buildBiometriaPath } from './biometrias';
@@ -134,11 +135,7 @@ export function HarvestPlanningPage() {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 18, overflow: 'hidden' }}>
       <div
         style={{
-          borderRadius: 28,
-          padding: 22,
-          color: '#eefbf8',
-          background: 'linear-gradient(135deg, rgba(2,6,23,0.95), rgba(2,132,199,0.90))',
-          boxShadow: '0 28px 80px rgba(15, 23, 42, 0.14)',
+          ...workspaceSurface,
         }}
       >
         <div style={{ display: 'grid', gap: 16, alignItems: 'start' }}>

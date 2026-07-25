@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useFarmBiometricsReference } from '../hooks/useFarmBiometricsReference';
 import { BIOMETRIA_CONSUMPTION_REFERENCE } from './biometrias';
 import type { ConsumptionReferenceRow } from '../lib/biometricsReference';
+import { workspaceSurface } from '../components/ui/surfaces';
 
 function fmt(value: number, digits = 1) {
   return value.toLocaleString('pt-BR', {
@@ -46,27 +47,23 @@ export function SettingsPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, minHeight: '100%' }}>
       <section
         style={{
-          borderRadius: 28,
-          padding: 24,
-          color: '#f8fafc',
-          background: 'linear-gradient(135deg, rgba(15,23,42,0.96), rgba(2,132,199,0.94))',
-          boxShadow: '0 28px 80px rgba(15, 23, 42, 0.14)',
+          ...workspaceSurface,
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <div>
             <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.7 }}>Configurações da fazenda</div>
             <h1 style={{ margin: '8px 0 0', fontSize: 30, lineHeight: 1.05, letterSpacing: '-0.05em' }}>Tabela de consumo por peso da biometria.</h1>
-            <p style={{ marginTop: 10, color: 'rgba(248,250,252,0.78)', maxWidth: 820 }}>
+            <p style={{ marginTop: 10, color: 'var(--text-muted)', maxWidth: 820 }}>
               O gerente cadastra a referência de consumo da fazenda. Essa tabela alimenta a estimativa de biomassa atual e a sobrevivência calculada na biometria.
             </p>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'end', flexWrap: 'wrap' }}>
             <div style={{ minWidth: 260 }}>
-              <div style={{ color: 'rgba(248,250,252,0.72)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Responsável</div>
-              <div style={{ padding: '11px 14px', borderRadius: 16, background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.12)' }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Responsável</div>
+              <div style={{ padding: '11px 14px', borderRadius: 16, background: 'rgba(255,255,255,0.10)', border: '1px solid var(--border)' }}>
                 <div style={{ fontWeight: 800 }}>{user?.name ?? 'Sem usuário'}</div>
-                <div style={{ color: 'rgba(248,250,252,0.72)', fontSize: 12 }}>{canEdit ? 'Gerente com permissão de edição' : 'Somente leitura'}</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{canEdit ? 'Gerente com permissão de edição' : 'Somente leitura'}</div>
               </div>
             </div>
           </div>
@@ -159,8 +156,8 @@ export function SettingsPage() {
 
 function MiniStat({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
-    <div style={{ borderRadius: 18, padding: '14px 16px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(248,250,252,0.78)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+    <div style={{ borderRadius: 18, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
         {icon}
         {label}
       </div>

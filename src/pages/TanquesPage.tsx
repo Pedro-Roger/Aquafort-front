@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { ArrowRightLeft } from 'lucide-react';
 import { useCycles } from '../hooks/useCycles';
 import { usePonds } from '../hooks/usePonds';
+import { workspaceEyebrow, workspaceSurface, workspaceTile, workspaceTileLabel, workspaceTileValue } from '../components/ui/surfaces';
 import { PondStatus, PondType } from '../types';
 
 function fmt(value: number, digits = 0) {
@@ -52,21 +53,17 @@ export function TanquesPage() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div
         style={{
-          borderRadius: 28,
-          padding: 24,
-          color: '#f8fafc',
-          background: 'linear-gradient(135deg, rgba(15,23,42,0.96), rgba(11,84,92,0.94))',
-          boxShadow: '0 28px 80px rgba(15, 23, 42, 0.14)',
+          ...workspaceSurface,
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <div>
-            <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.7 }}>Tanques</div>
+            <div style={workspaceEyebrow}>Tanques</div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'rgba(248,250,252,0.86)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-secondary)' }}>
             <ArrowRightLeft size={18} />
             <span style={{ fontSize: 13 }}>Use o povoamento para distribuir o mesmo lote entre vários tanques.</span>
           </div>
@@ -74,9 +71,9 @@ export function TanquesPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, marginTop: 18 }}>
           {stats.map((item) => (
-            <div key={item.label} style={{ borderRadius: 18, padding: '14px 16px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)' }}>
-              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(248,250,252,0.68)' }}>{item.label}</div>
-              <div style={{ marginTop: 10, fontSize: 24, fontWeight: 800 }}>{fmt(item.value, 0)}</div>
+            <div key={item.label} style={workspaceTile}>
+              <div style={workspaceTileLabel}>{item.label}</div>
+              <div style={{ ...workspaceTileValue, fontSize: 24 }}>{fmt(item.value, 0)}</div>
             </div>
           ))}
         </div>

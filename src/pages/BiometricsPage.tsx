@@ -18,6 +18,7 @@ import { KPICard } from '../components/ui/KPICard';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Table } from '../components/ui/Table';
+import { workspaceLink, workspaceSurface } from '../components/ui/surfaces';
 import { CycleWorkspacePanel } from '../components/ponds/CycleWorkspacePanel';
 import { BiometricsPondsGrid } from '../components/biometrics/BiometricsPondsGrid';
 import { BiometricsModalForm } from '../components/biometrics/BiometricsModalForm';
@@ -225,11 +226,7 @@ export function BiometricsPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18, height: '100%' }}>
       <div
         style={{
-          borderRadius: 28,
-          padding: 22,
-          color: '#eefbf8',
-          background: 'linear-gradient(135deg, rgba(2,6,23,0.95), rgba(2,132,199,0.92))',
-          boxShadow: '0 28px 80px rgba(15, 23, 42, 0.14)',
+          ...workspaceSurface,
         }}
       >
         <div style={{ display: 'grid', gap: 16, alignItems: 'start' }}>
@@ -273,16 +270,7 @@ export function BiometricsPage() {
             <Link
               key={item.to}
               to={item.to}
-              style={{
-                padding: '8px 12px',
-                borderRadius: 999,
-                border: '1px solid rgba(255,255,255,0.14)',
-                background: 'rgba(255,255,255,0.08)',
-                color: '#fff',
-                textDecoration: 'none',
-                fontSize: 13,
-                fontWeight: 600,
-              }}
+              style={workspaceLink}
             >
               {item.label}
             </Link>

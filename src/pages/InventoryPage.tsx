@@ -22,6 +22,7 @@ import {
 } from '../hooks/useInventory'
 import { groupBalancesByLocation, formatMovementLabel } from './inventoryTransforms'
 import type { InventoryBalanceRow, InventoryLocationType, InventoryMovement, InventoryMovementType } from '../types'
+import { workspaceSurface } from '../components/ui/surfaces';
 
 function fmt(value: number, digits = 2) {
   return value.toLocaleString('pt-BR', {
@@ -266,11 +267,7 @@ export function InventoryPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%' }}>
       <div
         style={{
-          borderRadius: 28,
-          padding: 24,
-          color: '#f8fafc',
-          background: 'linear-gradient(135deg, rgba(15,23,42,0.96), rgba(2,132,199,0.94))',
-          boxShadow: '0 28px 80px rgba(15, 23, 42, 0.14)',
+          ...workspaceSurface,
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
@@ -294,11 +291,11 @@ export function InventoryPage() {
               style={{
                 borderRadius: 18,
                 padding: '14px 16px',
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.10)',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border)',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'rgba(248,250,252,0.74)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)' }}>
                 <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{card.label}</span>
                 {card.icon}
               </div>

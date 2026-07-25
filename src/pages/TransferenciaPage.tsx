@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ArrowRightLeft, CornerDownRight, Plus, RotateCw, ShieldAlert, Truck } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { workspaceEyebrow, workspaceSurface, workspaceTile, workspaceTileLabel, workspaceTileValue } from '../components/ui/surfaces';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Table } from '../components/ui/Table';
@@ -188,18 +189,14 @@ export function TransferenciaPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div
         style={{
-          borderRadius: 28,
-          padding: 24,
-          color: '#f8fafc',
-          background: 'linear-gradient(135deg, rgba(15,23,42,0.96), rgba(14,116,144,0.94))',
-          boxShadow: '0 28px 80px rgba(15, 23, 42, 0.14)',
+          ...workspaceSurface,
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <div>
-            <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.7 }}>Transferência</div>
+            <div style={workspaceEyebrow}>Transferência</div>
             <h1 style={{ margin: '8px 0 0', fontSize: 30, lineHeight: 1.05, letterSpacing: '-0.05em' }}>Movimente lotes entre viveiros sem cair no povoamento.</h1>
-            <p style={{ marginTop: 10, color: 'rgba(248,250,252,0.78)', maxWidth: 760 }}>
+            <p style={{ marginTop: 10, color: 'var(--text-muted)', maxWidth: 760 }}>
               Registre a saída de um viveiro e a entrada em outro com origem, destino, quantidade e responsável.
             </p>
           </div>
@@ -207,7 +204,7 @@ export function TransferenciaPage() {
             <div style={{ minWidth: 170 }}>
               <Input label="Data" type="date" value={form.transferDate} onChange={(e) => setForm((current) => ({ ...current, transferDate: e.target.value }))} />
             </div>
-            <Button size="lg" icon={<Plus size={16} />} onClick={handleSubmit} style={{ backgroundColor: '#fff', color: '#0f172a', boxShadow: 'none' }}>
+            <Button size="lg" icon={<Plus size={16} />} onClick={handleSubmit}>
               Registrar
             </Button>
           </div>
@@ -268,14 +265,14 @@ export function TransferenciaPage() {
 
 function StatCard({ label, value, icon }: { label: string; value: number | string; icon: ReactNode }) {
   return (
-    <div style={{ backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 18, padding: 16, minHeight: 96 }}>
+    <div style={{ ...workspaceTile, minHeight: 96 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-        <div style={{ color: 'rgba(248,250,252,0.72)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
-        <span style={{ width: 34, height: 34, borderRadius: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.12)' }}>
+        <div style={workspaceTileLabel}>{label}</div>
+        <span style={{ width: 34, height: 34, borderRadius: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--accent-soft)', color: 'var(--accent-dark)' }}>
           {icon}
         </span>
       </div>
-      <div style={{ marginTop: 12, fontSize: 24, fontWeight: 800, letterSpacing: '-0.04em' }}>{value}</div>
+      <div style={{ ...workspaceTileValue, marginTop: 12, fontSize: 24, letterSpacing: '-0.04em' }}>{value}</div>
     </div>
   );
 }

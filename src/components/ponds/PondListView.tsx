@@ -135,7 +135,7 @@ export function PondListView({ onOpenCanvas }: Props) {
                 backdropFilter: 'blur(10px)',
               }}
             >
-              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(248,250,252,0.68)' }}>{item.label}</div>
+              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>{item.label}</div>
               <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: '#fff' }}>{item.value}</div>
             </div>
           ))}
