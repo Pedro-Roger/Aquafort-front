@@ -125,4 +125,37 @@ describe('FeedersPage', () => {
 
     expect(screen.queryByText(/Viveiros de João/)).not.toBeInTheDocument();
   });
+
+  it('locks a pond that already answers to another feeder', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    // Maria has none; VE-01 belongs to João
+    await user.click(screen.getAllByRole('button', { name: 'Atribuir viveiros' })[1]);
+
+    const checkbox = screen.getByRole('checkbox', { name: /VE-01/ });
+    expect(checkbox).toBeDisabled();
+    expect(screen.getByText(/com João/)).toBeInTheDocument();
+  });
+
+  it('unlocks the pond only when the move is asked for', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getAllByRole('button', { name: 'Atribuir viveiros' })[1]);
+    await user.click(screen.getByRole('button', { name: 'Trocar' }));
+
+    expect(screen.getByRole('checkbox', { name: /VE-01/ })).toBeEnabled();
+  });
+
+  it('surfaces an error instead of closing when the assignment fails', async () => {
+    const user = userEvent.setup();
+    assignMutate.mockRejectedValueOnce(new Error('boom'));
+    renderPage();
+
+    await user.click(screen.getAllByRole('button', { name: 'Atribuir viveiros' })[0]);
+    await user.click(screen.getByRole('button', { name: 'Salvar atribuição' }));
+
+    expect(await screen.findByText(/Não foi possível salvar a atribuição/)).toBeInTheDocument();
+  });
 });

@@ -39,6 +39,8 @@ export function FeedersPage() {
   const [assigning, setAssigning] = useState<Feeder | null>(null);
   const [selectedPondIds, setSelectedPondIds] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
+  /** Ponds the user explicitly unlocked to take from another feeder. */
+  const [releasing, setReleasing] = useState<string[]>([]);
   const [form, setForm] = useState({ name: '', document: '', phone: '' });
   const [error, setError] = useState<string | null>(null);
 
@@ -70,11 +72,19 @@ export function FeedersPage() {
   function openAssign(feeder: Feeder) {
     setAssigning(feeder);
     setSelectedPondIds(feeder.ponds.map((pond) => pond.id));
+    setReleasing([]);
+    setError(null);
   }
 
   async function handleAssign() {
     if (!assigning) return;
-    await assignPonds.mutateAsync({ feederId: assigning.id, pondIds: selectedPondIds });
+    setError(null);
+    try {
+      await assignPonds.mutateAsync({ feederId: assigning.id, pondIds: selectedPondIds });
+    } catch {
+      setError('Não foi possível salvar a atribuição. Tente novamente.');
+      return;
+    }
     setAssigning(null);
   }
 
@@ -320,6 +330,7 @@ export function FeedersPage() {
                   <input
                     type="checkbox"
                     checked={checked}
+                    disabled={!!takenByOther && !releasing.includes(pond.id)}
                     onChange={(e) =>
                       setSelectedPondIds((current) =>
                         e.target.checked ? [...current, pond.id] : current.filter((id) => id !== pond.id),
@@ -331,12 +342,27 @@ export function FeedersPage() {
                     <span style={{ color: 'var(--text-muted)', fontSize: 12 }}> · {pond.name}</span>
                   </span>
                   {takenByOther && (
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>hoje com {owner}</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>com {owner}</span>
+                      {!releasing.includes(pond.id) && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            setReleasing((current) => [...current, pond.id]);
+                          }}
+                        >
+                          Trocar
+                        </Button>
+                      )}
+                    </span>
                   )}
                 </label>
               );
             })}
           </div>
+          {error && <div style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</div>}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 4 }}>
             <Button variant="ghost" onClick={() => setAssigning(null)}>Cancelar</Button>
             <Button loading={assignPonds.isPending} onClick={handleAssign}>Salvar atribuição</Button>

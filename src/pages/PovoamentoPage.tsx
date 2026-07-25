@@ -54,7 +54,7 @@ const STAGE_OPTIONS = [
 ];
 
 type PovoamentoForm = {
-  species: string;
+  geneticCode: string;
   supplier: string;
   lotCode: string;
   density: string;
@@ -93,9 +93,9 @@ export function PovoamentoPage() {
   const { data: ponds = [], isLoading } = usePonds();
   const createCycle = useCreateCycle();
   const [error, setError] = useState<string | null>(null);
-  const [savedLots, setSavedLots] = useState<Array<{ pond: string; quantity: number; species: string; supplier: string }>>([]);
+  const [savedLots, setSavedLots] = useState<Array<{ pond: string; quantity: number; geneticCode: string; supplier: string }>>([]);
   const [form, setForm] = useState<PovoamentoForm>({
-    species: 'Litopenaeus vannamei',
+    geneticCode: '',
     supplier: '',
     lotCode: '',
     density: '',
@@ -213,7 +213,8 @@ export function PovoamentoPage() {
             stockDate: form.stockDate,
             plCount: allocation.quantity,
             initialPhase: getCyclePhaseForPondType(pond.type),
-            larvaeSupplier: form.species.trim(),
+            larvaeSupplier: form.supplier.trim(),
+            geneticCode: form.geneticCode.trim() || undefined,
             larvaeLotCode: form.lotCode.trim() || undefined,
             larvaeStage: form.stage === 'PL_GRAMA' ? 'PL grama' : 'PL',
           });
@@ -226,7 +227,7 @@ export function PovoamentoPage() {
           return {
             pond: pond ? pondLabel(pond) : allocation.pondId,
             quantity: allocation.quantity,
-            species: form.species,
+            geneticCode: form.geneticCode,
             supplier: form.supplier,
           };
         }),
@@ -302,7 +303,12 @@ export function PovoamentoPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.92fr) minmax(0, 1.08fr)', gap: space.page, alignItems: 'start' }}>
         <div style={workspaceCard}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-            <Input label="Espécie" value={form.species} onChange={(e) => setForm((current) => ({ ...current, species: e.target.value }))} />
+            <Input
+              label="Código genético"
+              value={form.geneticCode}
+              onChange={(e) => setForm((current) => ({ ...current, geneticCode: e.target.value }))}
+              placeholder="Linhagem informada pela larvicultura"
+            />
             <Input label="Fornecedor" value={form.supplier} onChange={(e) => setForm((current) => ({ ...current, supplier: e.target.value }))} />
             <Input label="Lote / código" value={form.lotCode} onChange={(e) => setForm((current) => ({ ...current, lotCode: e.target.value }))} />
             <Input
@@ -454,7 +460,7 @@ export function PovoamentoPage() {
                 <div key={`${item.pond}-${index}`} style={{ ...workspaceTile, padding: 12 }}>
                   <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{item.pond}</div>
                   <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
-                    {item.species} · {item.supplier} · {fmt(item.quantity, 0)} PL
+                    {item.geneticCode || 'Sem código genético'} · {item.supplier} · {fmt(item.quantity, 0)} PL
                   </div>
                 </div>
               )) : (

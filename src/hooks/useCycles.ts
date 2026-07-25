@@ -43,6 +43,8 @@ interface CreateCycleDto {
   initialPhase: CyclePhase;
   larvaeSupplier?: string;
   larvaeLotCode?: string;
+  /** Genetic line of the batch, as the hatchery identifies it. */
+  geneticCode?: string;
   larvaeStage?: string;
 }
 
@@ -59,6 +61,7 @@ export function useCreateCycle() {
         ...(dto.larvaeSupplier ? { larvaeSupplier: dto.larvaeSupplier } : {}),
         ...(dto.larvaeLotCode ? { larvaeLotCode: dto.larvaeLotCode } : {}),
         ...(dto.larvaeStage ? { larvaeStage: dto.larvaeStage } : {}),
+        ...(dto.geneticCode ? { geneticCode: dto.geneticCode } : {}),
       };
       const { data } = await api.post('/v1/cycles', payload);
       return data;
