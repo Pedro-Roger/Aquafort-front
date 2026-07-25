@@ -53,10 +53,12 @@ describe('buildBiometriaCards', () => {
   });
 
   it('maps weight to the reference consumption percentage table', () => {
-    expect(BIOMETRIA_CONSUMPTION_REFERENCE).toHaveLength(18);
+    expect(BIOMETRIA_CONSUMPTION_REFERENCE.length).toBeGreaterThan(0);
+    expect(getConsumptionPctForWeight(0.1)).toBe(15);
     expect(getConsumptionPctForWeight(1)).toBe(10);
-    expect(getConsumptionPctForWeight(18)).toBe(1);
-    expect(getConsumptionPctForWeight(18.4)).toBe(1);
+    expect(getConsumptionPctForWeight(21)).toBe(2);
+    // between two rows the lighter row still applies
+    expect(getConsumptionPctForWeight(18.4)).toBe(2.6);
   });
 
   it('estimates biomass and survival from biometrics and feed consumption', () => {
@@ -66,9 +68,9 @@ describe('buildBiometriaCards', () => {
       plCount: 80000,
     });
 
-    expect(estimate.consumptionPct).toBe(1);
-    expect(estimate.biomassKg).toBe(12000);
-    expect(estimate.shrimpCount).toBe(666666.67);
-    expect(estimate.survivalPct).toBe(833.33);
+    expect(estimate.consumptionPct).toBe(2.6);
+    expect(estimate.biomassKg).toBe(4615.38);
+    expect(estimate.shrimpCount).toBe(256410.26);
+    expect(estimate.survivalPct).toBe(320.51);
   });
 });

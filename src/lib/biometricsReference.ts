@@ -28,20 +28,52 @@ function clampPct(pct: number) {
   return Math.max(0, pct);
 }
 
-export const DEFAULT_CONSUMPTION_REFERENCE: ConsumptionReferenceRow[] = Array.from({ length: 18 }, (_, index) => {
-  const weightG = index + 1;
-  return {
-    weightG,
-    consumptionPct: Math.max(1, 11 - weightG),
-  };
-});
+/**
+ * The table spans a whole cycle: post-larvae leaving the nursery around 0.1 g
+ * eat close to 15% of their own weight per day, and that share falls as they
+ * grow, down to 2% at harvest weight.
+ */
+export const DEFAULT_CONSUMPTION_REFERENCE: ConsumptionReferenceRow[] = [
+  { weightG: 0.1, consumptionPct: 15 },
+  { weightG: 0.5, consumptionPct: 12 },
+  { weightG: 1, consumptionPct: 10 },
+  { weightG: 2, consumptionPct: 8.5 },
+  { weightG: 3, consumptionPct: 7 },
+  { weightG: 4, consumptionPct: 6.2 },
+  { weightG: 5, consumptionPct: 5.5 },
+  { weightG: 6, consumptionPct: 5 },
+  { weightG: 7, consumptionPct: 4.7 },
+  { weightG: 8, consumptionPct: 4.5 },
+  { weightG: 9, consumptionPct: 4.2 },
+  { weightG: 10, consumptionPct: 4 },
+  { weightG: 11, consumptionPct: 3.8 },
+  { weightG: 12, consumptionPct: 3.5 },
+  { weightG: 13, consumptionPct: 3.3 },
+  { weightG: 14, consumptionPct: 3.2 },
+  { weightG: 15, consumptionPct: 3.1 },
+  { weightG: 16, consumptionPct: 3 },
+  { weightG: 17, consumptionPct: 2.8 },
+  { weightG: 18, consumptionPct: 2.6 },
+  { weightG: 19, consumptionPct: 2.4 },
+  { weightG: 20, consumptionPct: 2.2 },
+  { weightG: 21, consumptionPct: 2 },
+  { weightG: 22, consumptionPct: 2 },
+];
+
+const REFERENCE_WEIGHTS = DEFAULT_CONSUMPTION_REFERENCE.map((row) => row.weightG);
+const MIN_REFERENCE_WEIGHT = Math.min(...REFERENCE_WEIGHTS);
+const MAX_REFERENCE_WEIGHT = Math.max(...REFERENCE_WEIGHTS);
+
+function roundWeight(weightG: number) {
+  return Number(clampWeight(weightG).toFixed(1));
+}
 
 export function normalizeConsumptionReference(reference: ConsumptionReferenceRow[]): ConsumptionReferenceRow[] {
   const byWeight = new Map<number, ConsumptionReferenceRow>();
 
   reference.forEach((row) => {
-    const weightG = Math.round(clampWeight(row.weightG));
-    if (weightG < 1 || weightG > 18) return;
+    const weightG = roundWeight(row.weightG);
+    if (weightG < MIN_REFERENCE_WEIGHT || weightG > MAX_REFERENCE_WEIGHT) return;
 
     byWeight.set(weightG, {
       weightG,
@@ -49,27 +81,27 @@ export function normalizeConsumptionReference(reference: ConsumptionReferenceRow
     });
   });
 
-  return Array.from({ length: 18 }, (_, index) => {
-    const weightG = index + 1;
-    return byWeight.get(weightG) ?? DEFAULT_CONSUMPTION_REFERENCE[index];
-  });
+  return DEFAULT_CONSUMPTION_REFERENCE.map((fallback) => byWeight.get(fallback.weightG) ?? fallback);
 }
 
+/**
+ * Reads the table as a step: a shrimp uses the rate of the heaviest row it has
+ * already reached. Weights past either end clamp to the nearest row.
+ */
 export function getConsumptionPctForWeight(weightG: number, reference: ConsumptionReferenceRow[] = DEFAULT_CONSUMPTION_REFERENCE) {
   if (!reference.length) return null;
 
-  const normalizedWeight = Math.max(1, Math.min(18, Math.floor(clampWeight(weightG))));
-  const row = [...reference]
-    .map((item) => ({ weightG: Math.round(clampWeight(item.weightG)), consumptionPct: clampPct(item.consumptionPct) }))
-    .filter((item) => item.weightG >= 1 && item.weightG <= 18)
-    .sort((a, b) => a.weightG - b.weightG)
-    .find((item) => item.weightG === normalizedWeight)
-    ?? reference
-      .slice()
-      .sort((a, b) => a.weightG - b.weightG)
-      .reduce((acc, item) => (item.weightG <= normalizedWeight ? item : acc), reference[0]);
+  const rows = reference
+    .map((item) => ({ weightG: roundWeight(item.weightG), consumptionPct: clampPct(item.consumptionPct) }))
+    .sort((a, b) => a.weightG - b.weightG);
 
-  return row ? clampPct(row.consumptionPct) : null;
+  const target = clampWeight(weightG);
+  const row = rows.reduce<ConsumptionReferenceRow | null>(
+    (acc, item) => (item.weightG <= target ? item : acc),
+    null,
+  ) ?? rows[0];
+
+  return clampPct(row.consumptionPct);
 }
 
 export function calculateBiometricsOperationalEstimate({
