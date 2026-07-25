@@ -5,6 +5,7 @@ import { usePonds, usePondCanvas } from '../../hooks/usePonds';
 import { useCycles } from '../../hooks/useCycles';
 import { useFeedingTable } from '../../hooks/useFeeding';
 import { STATUS_META } from './pondInsights';
+import { workspaceEyebrow } from '../ui/surfaces';
 import type { Pond, PondStatus } from '../../types';
 
 interface Props {
@@ -53,7 +54,7 @@ export function PondListView({ onOpenCanvas }: Props) {
 
   const overview = [
     {
-      label: 'Tanques ativos',
+      label: 'Viveiros ativos',
       value: ponds.filter((pond) => pond.status === 'POVOADO' || pond.status === 'DESPESCANDO').length,
       tone: '#0284c7',
     },
@@ -69,7 +70,7 @@ export function PondListView({ onOpenCanvas }: Props) {
     },
     {
       label: 'Janela critica',
-      value: `${ponds.filter((pond) => pond.status === 'PREPARANDO' || pond.status === 'DESPESCANDO').length} tanques`,
+      value: `${ponds.filter((pond) => pond.status === 'PREPARANDO' || pond.status === 'DESPESCANDO').length} viveiros`,
       tone: '#7dd3fc',
     },
   ];
@@ -114,8 +115,8 @@ export function PondListView({ onOpenCanvas }: Props) {
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 18, alignItems: 'flex-start', marginBottom: 18, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.72, paddingTop: 8 }}>
-            Operacao de tanques
+          <div style={{ ...workspaceEyebrow, paddingTop: 8 }}>
+            Operação de viveiros
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             {toggleBtn('cards', 'Cards')}

@@ -25,7 +25,22 @@ import { useBiometricKpis } from '../hooks/useBiometrics';
 import { useFarmBiometricsReference } from '../hooks/useFarmBiometricsReference';
 import { calculateDailyRation } from '../lib/biometricsReference';
 import { Button } from '../components/ui/Button';
-import { workspaceEyebrow, workspaceSurface, workspaceTile, workspaceTileLabel, workspaceTileValue } from '../components/ui/surfaces';
+import {
+  metricGrid,
+  pageStack,
+  radius,
+  sectionSubtitle,
+  sectionTitle,
+  shadow,
+  space,
+  workspaceCard,
+  workspaceEyebrow,
+  workspaceLink,
+  workspaceSurface,
+  workspaceTile,
+  workspaceTileLabel,
+  workspaceTileValue,
+} from '../components/ui/surfaces';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
@@ -238,16 +253,12 @@ export function NutritionPage() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div
-        style={{
-          ...workspaceSurface,
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end', justifyContent: 'space-between' }}>
+    <div style={pageStack}>
+      <div style={workspaceSurface}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: space.section }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: space.section, alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <div style={workspaceEyebrow}>Arraçoamento</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 280px) 170px auto', gap: 10, alignItems: 'end' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 280px) 170px auto', gap: space.inline, alignItems: 'end' }}>
               <div style={{ minWidth: 0 }}>
               <Select label="Filtro ciclo" options={cycleOptions} value={cycleFilter} onChange={(e) => setCycleFilter(e.target.value)} />
               </div>
@@ -255,7 +266,6 @@ export function NutritionPage() {
                 <Input label="Data base" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
               </div>
               <Button
-                size="lg"
                 icon={<Plus size={16} />}
                 onClick={() => setLaunchOpen(true)}
                 style={{ whiteSpace: 'nowrap' }}
@@ -263,21 +273,12 @@ export function NutritionPage() {
                 Lancar trato
               </Button>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: space.inline }}>
               {quickLinks.map((item) => (
                 <Link
                   key={item.to}
                   to={item.to}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: 999,
-                    border: '1px solid var(--border)',
-                    background: 'var(--bg-elevated)',
-                    color: 'var(--text-secondary)',
-                    textDecoration: 'none',
-                    fontSize: 13,
-                    fontWeight: 600,
-                  }}
+                  style={workspaceLink}
                 >
                   {item.label}
                 </Link>
@@ -286,7 +287,7 @@ export function NutritionPage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10, marginTop: 14 }}>
+        <div style={{ ...metricGrid, marginTop: space.section }}>
           {metrics.map((metric) => (
             <div
               key={metric.label}
@@ -294,28 +295,20 @@ export function NutritionPage() {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={workspaceTileLabel}>{metric.label}</span>
-                <span style={{ color: 'var(--accent)' }}>{metric.icon}</span>
+                <span style={{ color: 'var(--accent-dark)', display: 'inline-flex' }}>{metric.icon}</span>
               </div>
-              <div style={{ ...workspaceTileValue, fontSize: 22 }}>{metric.value}</div>
+              <div style={workspaceTileValue}>{metric.value}</div>
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(320px, 0.8fr)', gap: 14 }}>
-        <div
-          style={{
-            borderRadius: 20,
-            padding: 16,
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240,248,255,0.96))',
-            border: '1px solid var(--border)',
-            boxShadow: '0 14px 34px rgba(15, 23, 42, 0.05)',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center', marginBottom: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(320px, 0.8fr)', gap: space.page }}>
+        <div style={workspaceCard}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.inline, alignItems: 'center', flexWrap: 'wrap' }}>
             <div>
-              <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Distribuicao de consumo por viveiro</div>
-              <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>Barra para consumo do dia, linha para acumulado do ciclo.</div>
+              <h2 style={sectionTitle}>Distribuicao de consumo por viveiro</h2>
+              <div style={{ ...sectionSubtitle, marginTop: 2 }}>Barra para consumo do dia, linha para acumulado do ciclo.</div>
             </div>
             <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{date}</div>
           </div>
@@ -329,10 +322,10 @@ export function NutritionPage() {
                 <YAxis yAxisId="right" orientation="right" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickFormatter={(value) => `${value}kg`} />
                 <Tooltip
                   contentStyle={{
-                    borderRadius: 12,
+                    borderRadius: radius.tile,
                     border: '1px solid var(--border)',
-                    background: 'rgba(255,255,255,0.98)',
-                    boxShadow: '0 18px 44px rgba(15, 23, 42, 0.12)',
+                    background: 'var(--bg-card)',
+                    boxShadow: shadow.raised,
                   }}
                 />
                 <Bar yAxisId="left" dataKey="consumoDia" fill="#0284c7" radius={[8, 8, 2, 2]} barSize={22} name="Consumo dia" />
@@ -342,33 +335,22 @@ export function NutritionPage() {
           </div>
         </div>
 
-        <div
-          style={{
-            borderRadius: 22,
-            padding: 18,
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(245,250,255,0.96))',
-            border: '1px solid var(--border)',
-            boxShadow: '0 16px 44px rgba(15, 23, 42, 0.06)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 14,
-          }}
-        >
+        <div style={workspaceCard}>
           <div>
-            <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Spotlight operacional</div>
-            <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>Quem mais consumiu hoje e como esta o ritmo recente.</div>
+            <h2 style={sectionTitle}>Spotlight operacional</h2>
+            <div style={{ ...sectionSubtitle, marginTop: 2 }}>Quem mais consumiu hoje e como esta o ritmo recente.</div>
           </div>
 
           <div
             style={{
-              borderRadius: 18,
+              ...workspaceTile,
               padding: 16,
-              background: 'linear-gradient(135deg, rgba(56,189,248,0.14), rgba(255,255,255,0.95))',
-              border: '1px solid rgba(56,189,248,0.18)',
+              backgroundColor: 'var(--accent-soft)',
+              border: '1px solid var(--accent-soft-strong)',
             }}
           >
-            <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Maior consumo do dia</div>
-            <div style={{ marginTop: 8, color: 'var(--text-primary)', fontSize: 20, fontWeight: 800 }}>{spotlight?.pondCode ?? '-'}</div>
+            <div style={workspaceTileLabel}>Maior consumo do dia</div>
+            <div style={workspaceTileValue}>{spotlight?.pondCode ?? '-'}</div>
             <div style={{ marginTop: 4, color: 'var(--text-secondary)' }}>{spotlight?.lotCode ?? 'Sem dados para a data base'}</div>
             <div style={{ marginTop: 10, display: 'flex', gap: 18, color: 'var(--text-secondary)', fontSize: 13 }}>
               <span>{spotlight ? `${fmt(spotlight.dailyFeedKg, 2)} kg hoje` : '-'}</span>
@@ -384,10 +366,10 @@ export function NutritionPage() {
                 <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickFormatter={(value) => `${value}kg`} />
                 <Tooltip
                   contentStyle={{
-                    borderRadius: 12,
+                    borderRadius: radius.tile,
                     border: '1px solid var(--border)',
-                    background: 'rgba(255,255,255,0.98)',
-                    boxShadow: '0 18px 44px rgba(15, 23, 42, 0.12)',
+                    background: 'var(--bg-card)',
+                    boxShadow: shadow.raised,
                   }}
                 />
                 <Bar dataKey="kg" fill="#7c3aed" radius={[8, 8, 2, 2]} barSize={20} name="Lote lançado" />
@@ -395,87 +377,63 @@ export function NutritionPage() {
             </ResponsiveContainer>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)', fontSize: 13 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: space.inline, color: 'var(--text-secondary)', fontSize: 13 }}>
             <Clock3 size={16} />
             Ultimos {launchRhythm.length} lancamentos usados para leitura de ritmo.
           </div>
         </div>
       </div>
 
-      <section
-        style={{
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 14,
-          borderRadius: 24,
-          padding: 18,
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(245,250,255,0.96))',
-          border: '1px solid var(--border)',
-          boxShadow: '0 14px 34px rgba(15, 23, 42, 0.05)',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: 12, flexWrap: 'wrap' }}>
+      <section style={workspaceCard}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: space.tile, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>Ração por dia</div>
-            <div style={{ marginTop: 6, fontSize: 22, fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
+            <div style={workspaceTileLabel}>Ração por dia</div>
+            <h2 style={{ ...sectionTitle, marginTop: 6 }}>
               Acompanhamento por viveiro
-            </div>
+            </h2>
           </div>
           <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>
             {table.data?.totals.dailyFeedKg === 0 ? 'Sem consumo registrado hoje' : `${fmt(table.data?.totals.dailyFeedKg ?? 0, 2)} kg hoje`}
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-          <div style={{ borderRadius: 16, padding: '16px 14px', background: 'rgba(226,232,240,0.5)', border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>Total do dia</div>
-            <div style={{ marginTop: 8, fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>{fmt(table.data?.totals.dailyFeedKg ?? 0, 1)} kg</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: space.tile }}>
+          <div style={workspaceTile}>
+            <div style={workspaceTileLabel}>Total do dia</div>
+            <div style={workspaceTileValue}>{fmt(table.data?.totals.dailyFeedKg ?? 0, 1)} kg</div>
           </div>
-          <div style={{ borderRadius: 16, padding: '16px 14px', background: 'rgba(226,232,240,0.5)', border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>Acumulado</div>
-            <div style={{ marginTop: 8, fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>{fmt(table.data?.totals.racaoAcumuladaKg ?? 0, 1)} kg</div>
+          <div style={workspaceTile}>
+            <div style={workspaceTileLabel}>Acumulado</div>
+            <div style={workspaceTileValue}>{fmt(table.data?.totals.racaoAcumuladaKg ?? 0, 1)} kg</div>
           </div>
-          <div style={{ borderRadius: 16, padding: '16px 14px', background: 'rgba(226,232,240,0.5)', border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>Sem trato hoje</div>
-            <div style={{ marginTop: 8, fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>
+          <div style={workspaceTile}>
+            <div style={workspaceTileLabel}>Sem trato hoje</div>
+            <div style={workspaceTileValue}>
               {rows.length - rows.filter((r) => r.dailyFeedKg > 0).length}
             </div>
           </div>
         </div>
       </section>
 
-      <section
-        style={{
-          width: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 14,
-          borderRadius: 24,
-          padding: 18,
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(247,250,252,0.92))',
-          border: '1px solid var(--border)',
-          boxShadow: '0 14px 34px rgba(15, 23, 42, 0.05)',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.04em', color: 'var(--text-primary)' }}>
+      <section style={workspaceCard}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: space.tile, flexWrap: 'wrap' }}>
+          <h2 style={sectionTitle}>
             Tabela de arraçoamento
-          </div>
+          </h2>
           <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{table.data?.date ?? date}</div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 14, alignItems: 'start' }}>
-          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Tabela principal</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: space.page, alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: space.tile, minWidth: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: space.inline, flexWrap: 'wrap' }}>
+              <h3 style={sectionTitle}>Tabela principal</h3>
               <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Consumo e acumulado por viveiro</div>
             </div>
             <Table columns={columns} data={rows} rowKey={(row) => `${row.cycleId}:${row.pondId}`} loading={table.isLoading} emptyMessage="Sem tratos para ciclos ativos" />
           </div>
 
-          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Ultimos lancamentos</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: space.tile, minWidth: 0 }}>
+            <h3 style={sectionTitle}>Ultimos lancamentos</h3>
             <Table columns={historyColumns} data={history.data?.items ?? []} rowKey={(row) => row.id} loading={history.isLoading} emptyMessage="Nenhum lancamento ainda" />
           </div>
         </div>

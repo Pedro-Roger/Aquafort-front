@@ -1,8 +1,24 @@
-import { useMemo } from 'react';
-import { ArrowRightLeft } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { ArrowRightLeft, Plus } from 'lucide-react';
 import { useCycles } from '../hooks/useCycles';
 import { usePonds } from '../hooks/usePonds';
-import { workspaceEyebrow, workspaceSurface, workspaceTile, workspaceTileLabel, workspaceTileValue } from '../components/ui/surfaces';
+import { Button } from '../components/ui/Button';
+import { PondFormModal } from '../components/ponds/PondFormModal';
+import {
+  metricGrid,
+  pageStack,
+  radius,
+  sectionSubtitle,
+  sectionTitle,
+  space,
+  workspaceCard,
+  workspaceEyebrow,
+  workspaceSurface,
+  workspaceTile,
+  workspaceTileLabel,
+  workspaceTileValue,
+} from '../components/ui/surfaces';
+import { EmptyState } from '../components/ui/EmptyState';
 import { PondStatus, PondType } from '../types';
 
 function fmt(value: number, digits = 0) {
@@ -26,6 +42,7 @@ function longTypeLabel(type: PondType) {
 
 export function TanquesPage() {
   const { data: ponds = [], isLoading } = usePonds();
+  const [createOpen, setCreateOpen] = useState(false);
   const { data: cycles = [] } = useCycles({ status: 'ativo' });
 
   const categories = useMemo(() => {
@@ -42,74 +59,79 @@ export function TanquesPage() {
   }, [ponds]);
 
   if (isLoading) {
-    return <div style={{ color: 'var(--text-muted)' }}>Carregando tanques...</div>;
+    return <div style={{ color: 'var(--text-muted)' }}>Carregando viveiros...</div>;
   }
 
   const stats = [
-    { label: 'Tanques totais', value: ponds.length },
+    { label: 'Viveiros totais', value: ponds.length },
     { label: 'Povoados', value: ponds.filter((pond) => pond.status === PondStatus.POVOADO).length },
     { label: 'Preparando', value: ponds.filter((pond) => pond.status === PondStatus.PREPARANDO).length },
     { label: 'Lotes ativos', value: cycles.length },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div
-        style={{
-          ...workspaceSurface,
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+    <div style={pageStack}>
+      <div style={workspaceSurface}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.section, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <div>
-            <div style={workspaceEyebrow}>Tanques</div>
+            <div style={workspaceEyebrow}>Viveiros</div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-secondary)' }}>
-            <ArrowRightLeft size={18} />
-            <span style={{ fontSize: 13 }}>Use o povoamento para distribuir o mesmo lote entre vários tanques.</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: space.section, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: space.inline, color: 'var(--text-secondary)' }}>
+              <ArrowRightLeft size={16} />
+              <span style={sectionSubtitle}>Use o povoamento para distribuir o mesmo lote entre vários viveiros.</span>
+            </div>
+            <Button icon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>
+              Cadastrar viveiro
+            </Button>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, marginTop: 18 }}>
+        <div style={{ ...metricGrid, marginTop: space.section }}>
           {stats.map((item) => (
             <div key={item.label} style={workspaceTile}>
               <div style={workspaceTileLabel}>{item.label}</div>
-              <div style={{ ...workspaceTileValue, fontSize: 24 }}>{fmt(item.value, 0)}</div>
+              <div style={workspaceTileValue}>{fmt(item.value, 0)}</div>
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{ display: 'grid', gap: 16 }}>
+      <div style={{ display: 'grid', gap: space.page }}>
         {categories.map((category) => (
-          <section key={category.type} style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+          <section key={category.type} style={workspaceCard}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.tile, flexWrap: 'wrap', alignItems: 'center' }}>
               <div>
-                <div style={{ color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{category.label}</div>
-                <div style={{ color: 'var(--text-primary)', fontWeight: 700, marginTop: 4 }}>{category.title}</div>
+                <div style={workspaceTileLabel}>{category.label}</div>
+                <h2 style={{ ...sectionTitle, marginTop: 4 }}>{category.title}</h2>
               </div>
-              <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{category.items.length} tanques · {category.active} povoados</div>
+              <div style={sectionSubtitle}>{category.items.length}  viveiros · {category.active} povoados</div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
-              {category.items.map((pond) => (
-                <div key={pond.id} style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 14, backgroundColor: 'var(--bg-elevated)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                    <div>
-                      <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{pond.code}</div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>{pond.name}</div>
-                    </div>
-                    <div style={{ textAlign: 'right', color: 'var(--text-secondary)', fontSize: 12 }}>
-                      <div>{pond.status}</div>
-                      <div>{pond.areaHa} ha</div>
+            {category.items.length ? (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: space.tile }}>
+                {category.items.map((pond) => (
+                  <div key={pond.id} style={{ ...workspaceTile, padding: 14, borderRadius: radius.tile }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.tile }}>
+                      <div>
+                        <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{pond.code}</div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>{pond.name}</div>
+                      </div>
+                      <div style={{ textAlign: 'right', color: 'var(--text-secondary)', fontSize: 12 }}>
+                        <div>{pond.status}</div>
+                        <div>{pond.areaHa} ha</div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              {!category.items.length && <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Sem tanques cadastrados nessa categoria.</div>}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState compact title="Sem viveiros cadastrados nessa categoria." />
+            )}
           </section>
         ))}
       </div>
+      <PondFormModal open={createOpen} onClose={() => setCreateOpen(false)} />
     </div>
   );
 }

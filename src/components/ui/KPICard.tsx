@@ -1,4 +1,5 @@
 import React from 'react';
+import { radius, shadow, workspaceMetricValue, workspaceTileLabel } from './surfaces';
 
 interface KPICardProps {
   label: string;
@@ -16,9 +17,9 @@ export function KPICard({ label, value, unit, icon, trend, color = '#0ea5e9', st
       style={{
         backgroundColor: 'var(--bg-card)',
         border: '1px solid var(--border)',
-        borderRadius: '18px',
-        boxShadow: '0 14px 30px rgba(15, 23, 42, 0.05)',
-        padding: '18px 20px',
+        borderRadius: radius.card,
+        boxShadow: shadow.card,
+        padding: '16px 18px',
         display: 'flex',
         flexDirection: 'column',
         gap: '10px',
@@ -27,7 +28,7 @@ export function KPICard({ label, value, unit, icon, trend, color = '#0ea5e9', st
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+        <span style={workspaceTileLabel}>
           {label}
         </span>
         {icon && (
@@ -37,7 +38,7 @@ export function KPICard({ label, value, unit, icon, trend, color = '#0ea5e9', st
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-        <span style={{ fontSize: '30px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
+        <span style={{ ...workspaceMetricValue, marginTop: 0 }}>
           {value}
         </span>
         {unit && (

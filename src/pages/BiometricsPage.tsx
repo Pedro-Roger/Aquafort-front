@@ -18,7 +18,19 @@ import { KPICard } from '../components/ui/KPICard';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Table } from '../components/ui/Table';
-import { workspaceLink, workspaceSurface } from '../components/ui/surfaces';
+import {
+  metricGrid,
+  sectionSubtitle,
+  sectionTitle,
+  space,
+  workspaceCard,
+  workspaceLink,
+  workspaceSurface,
+  workspaceTile,
+  workspaceTileLabel,
+  workspaceTileValue,
+} from '../components/ui/surfaces';
+import { EmptyState } from '../components/ui/EmptyState';
 import { CycleWorkspacePanel } from '../components/ponds/CycleWorkspacePanel';
 import { BiometricsPondsGrid } from '../components/biometrics/BiometricsPondsGrid';
 import { BiometricsModalForm } from '../components/biometrics/BiometricsModalForm';
@@ -280,7 +292,7 @@ export function BiometricsPage() {
           />
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: space.inline, marginTop: space.section }}>
           {quickLinks.map((item) => (
             <Link
               key={item.to}
@@ -293,18 +305,10 @@ export function BiometricsPage() {
         </div>
       </div>
 
-      <section
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border)',
-          borderRadius: 24,
-          padding: 18,
-          boxShadow: '0 14px 32px rgba(15, 23, 42, 0.06)',
-        }}
-      >
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Leitura por viveiro</div>
-          <h2 style={{ margin: '6px 0 0', fontSize: 22, color: 'var(--text-primary)' }}>Clique para registrar biometria</h2>
+      <section style={workspaceCard}>
+        <div>
+          <div style={workspaceTileLabel}>Leitura por viveiro</div>
+          <h2 style={{ ...sectionTitle, marginTop: 6 }}>Clique para registrar biometria</h2>
         </div>
         <BiometricsPondsGrid
           ponds={ponds}
@@ -314,7 +318,7 @@ export function BiometricsPage() {
         />
       </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+      <div style={metricGrid}>
         {summaryCards.map((card) => (
           <KPICard
             key={card.label}
@@ -327,29 +331,18 @@ export function BiometricsPage() {
         ))}
       </div>
 
-      <section
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border)',
-          borderRadius: 24,
-          padding: 18,
-          boxShadow: '0 14px 32px rgba(15, 23, 42, 0.06)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 14,
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'baseline' }}>
+      <section style={workspaceCard}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.tile, flexWrap: 'wrap', alignItems: 'baseline' }}>
           <div>
-            <div style={{ color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Estimativa operacional</div>
-            <h2 style={{ margin: '6px 0 0', fontSize: 22, color: 'var(--text-primary)' }}>Biomassa e sobrevivência a partir da biometria</h2>
+            <div style={workspaceTileLabel}>Estimativa operacional</div>
+            <h2 style={{ ...sectionTitle, marginTop: 6 }}>Biomassa e sobrevivência a partir da biometria</h2>
           </div>
           <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>
             Base usada: {operationalConsumptionPct != null ? `${fmt(operationalConsumptionPct, 1)}% de consumo` : 'sem referência'}
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: space.tile }}>
           <InfoCard label="Peso médio usado" value={operationalEstimate.weightG > 0 ? `${fmt(operationalEstimate.weightG, 2)} g` : '—'} />
           <InfoCard label="Biomassa estimada" value={operationalEstimate.biomassKg != null ? `${fmt(operationalEstimate.biomassKg, 2)} kg` : '—'} />
           <InfoCard label="Camarões estimados" value={operationalEstimate.shrimpCount != null ? `${fmt(operationalEstimate.shrimpCount, 0)}` : '—'} />
@@ -363,13 +356,13 @@ export function BiometricsPage() {
         </div>
       </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '360px minmax(0, 1fr)', gap: 16, minHeight: 0, flex: 1 }}>
-        <div ref={formRef} style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '360px minmax(0, 1fr)', gap: space.page, minHeight: 0, flex: 1 }}>
+        <div ref={formRef} style={workspaceCard}>
           <div>
-            <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Registrar biometria</div>
-            <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>Preencha a leitura para atualizar a curva operacional.</div>
+            <h2 style={sectionTitle}>Registrar biometria</h2>
+            <div style={{ ...sectionSubtitle, marginTop: 2 }}>Preencha a leitura para atualizar a curva operacional.</div>
           </div>
-          <div style={{ display: 'grid', gap: 12 }}>
+          <div style={{ display: 'grid', gap: space.tile }}>
             <Input label="Data" type="date" value={form.measuredAt} onChange={(e) => setForm((current) => ({ ...current, measuredAt: e.target.value }))} />
             <Input label="Amostras" type="number" value={form.sampleCount} onChange={(e) => setForm((current) => ({ ...current, sampleCount: e.target.value }))} />
             <Input label="Peso médio (g)" type="number" step="0.01" value={form.averageWeightG} onChange={(e) => setForm((current) => ({ ...current, averageWeightG: e.target.value }))} />
@@ -381,17 +374,21 @@ export function BiometricsPage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateRows: '280px minmax(0, 1fr)', gap: 16, minHeight: 0 }}>
-          <div ref={chartRef} style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+        <div style={{ display: 'grid', gridTemplateRows: '280px minmax(0, 1fr)', gap: space.page, minHeight: 0 }}>
+          <div ref={chartRef} style={workspaceCard}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: space.tile, flexWrap: 'wrap' }}>
               <div>
-                <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Curva de crescimento</div>
-                <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Eixo por semana com peso médio e ganho semanal.</div>
+                <h2 style={sectionTitle}>Curva de crescimento</h2>
+                <div style={{ ...sectionSubtitle, marginTop: 2 }}>Eixo por semana com peso médio e ganho semanal.</div>
               </div>
               <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{series.data?.points.length ?? 0} pontos</span>
             </div>
             {!series.data?.points.length ? (
-              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Sem pontos ainda.</div>
+              <EmptyState
+                compact
+                title="Sem pontos ainda."
+                description="Registre uma biometria para desenhar a curva."
+              />
             ) : (
               <div style={{ width: '100%', height: 220 }}>
                 <ResponsiveContainer>
@@ -416,9 +413,9 @@ export function BiometricsPage() {
             )}
           </div>
 
-          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-              <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Histórico</div>
+          <div style={{ ...workspaceCard, minHeight: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: space.tile, flexWrap: 'wrap' }}>
+              <h2 style={sectionTitle}>Histórico</h2>
               <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
                 {biometrics.data?.length ?? 0} registros{biometrics.data?.[0] ? ` · último em ${new Date(biometrics.data[0].measuredAt).toLocaleDateString('pt-BR')}` : ''}
               </span>
@@ -448,9 +445,9 @@ export function BiometricsPage() {
 
 function InfoCard({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ borderRadius: 18, padding: '14px 16px', background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(237,245,251,0.94))', border: '1px solid var(--border)' }}>
-      <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
-      <div style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 800, marginTop: 8 }}>{value}</div>
+    <div style={{ ...workspaceTile, padding: '14px 16px' }}>
+      <div style={workspaceTileLabel}>{label}</div>
+      <div style={workspaceTileValue}>{value}</div>
     </div>
   );
 }

@@ -13,6 +13,22 @@ import { useFeedingTable } from '../hooks/useFeeding'
 import { usePonds } from '../hooks/usePonds'
 import { useWaterQuality } from '../hooks/useWaterQuality'
 import { Table } from '../components/ui/Table'
+import {
+  metricGrid,
+  pageStack,
+  radius,
+  sectionSubtitle,
+  sectionTitle,
+  space,
+  workspaceCard,
+  workspaceCardAction,
+  workspaceEyebrow,
+  workspaceMetricValue,
+  workspaceSurface,
+  workspaceTile,
+  workspaceTileLabel,
+  workspaceTileValue,
+} from '../components/ui/surfaces'
 import type { FeedingTableRow, PondStatus, WaterQuality } from '../types'
 
 function todayIsoDate() {
@@ -146,58 +162,45 @@ export function OperationsDashboardPage() {
   ]
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <section
-        style={{
-          borderRadius: 28,
-          padding: 24,
-          color: 'var(--text-primary)',
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240,248,255,0.98))',
-          boxShadow: '0 20px 48px rgba(22, 33, 27, 0.08)',
-          border: '1px solid rgba(56,189,248,0.18)',
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-muted)' }}>
-            <Activity size={14} />
+    <div style={pageStack}>
+      <section style={workspaceSurface}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: space.section }}>
+          <div style={{ ...workspaceEyebrow, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Activity size={13} />
             Painel operacional
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: space.tile }}>
             {quickActions.map((action) => (
               <Link
                 key={action.title}
                 to={action.to}
                 style={{
+                  ...workspaceTile,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 12,
-                  padding: '16px 18px',
-                  borderRadius: 20,
-                  background: 'linear-gradient(135deg, rgba(255,255,255,0.96), rgba(224,242,254,0.90))',
-                  border: '1px solid rgba(56,189,248,0.18)',
+                  gap: space.tile,
+                  padding: 14,
                   color: 'var(--text-primary)',
                   textDecoration: 'none',
-                  boxShadow: '0 12px 28px rgba(2, 132, 199, 0.06)',
-                  minHeight: 92,
                 }}
               >
                 <span
                   style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 14,
+                    width: 38,
+                    height: 38,
+                    borderRadius: radius.control,
                     display: 'inline-flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: 'rgba(2,132,199,0.10)',
+                    backgroundColor: 'var(--accent-soft)',
                     color: 'var(--accent-dark)',
                     flexShrink: 0,
                   }}
                 >
                   {action.icon}
                 </span>
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span style={{ fontWeight: 800, fontSize: 15 }}>{action.title}</span>
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontWeight: 700, fontSize: 14 }}>{action.title}</span>
                   <span style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.45 }}>{action.description}</span>
                 </span>
               </Link>
@@ -206,53 +209,35 @@ export function OperationsDashboardPage() {
         </div>
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
+      <section style={metricGrid}>
         {summaryCards.map((card) => (
           <div
             key={card.label}
-            style={{
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              borderRadius: 20,
-              padding: 16,
-              boxShadow: '0 12px 28px rgba(15, 23, 42, 0.05)',
-              minHeight: 108,
-            }}
+            style={{ ...workspaceSurface, padding: '16px 18px' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <div style={{ color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: space.tile }}>
+              <div style={workspaceTileLabel}>
                 {card.label}
               </div>
-              <div style={{ color: 'var(--accent-dark)' }}>{card.icon}</div>
+              <div style={{ color: 'var(--accent-dark)', display: 'inline-flex' }}>{card.icon}</div>
             </div>
-            <div style={{ marginTop: 16, fontSize: 28, lineHeight: 1, fontWeight: 800, color: 'var(--text-primary)' }}>
+            <div style={{ ...workspaceMetricValue, marginTop: 10 }}>
               {card.value}
             </div>
           </div>
         ))}
       </section>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <section
-          style={{
-            backgroundColor: 'var(--bg-card)',
-            border: '1px solid var(--border)',
-            borderRadius: 24,
-            padding: 18,
-            boxShadow: '0 14px 32px rgba(15, 23, 42, 0.06)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 14,
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'baseline' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: space.page }}>
+        <section style={workspaceCard}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.tile, flexWrap: 'wrap', alignItems: 'baseline' }}>
             <div>
-              <div style={{ color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <div style={workspaceTileLabel}>
                 Ração por dia
               </div>
-              <h2 style={{ margin: '6px 0 0', fontSize: 22, color: 'var(--text-primary)' }}>Acompanhamento por viveiro</h2>
+              <h2 style={{ ...sectionTitle, marginTop: 6 }}>Acompanhamento por viveiro</h2>
             </div>
-            <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+            <div style={sectionSubtitle}>
               {topConsumer ? (
                 <>
                   Maior consumo: <strong style={{ color: 'var(--text-primary)' }}>{topConsumer.pondCode}</strong> · {fmt(topConsumer.dailyFeedKg, 1)} kg
@@ -263,22 +248,22 @@ export function OperationsDashboardPage() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
-            <div style={{ borderRadius: 18, padding: 14, backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-              <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total do dia</div>
-              <div style={{ marginTop: 8, color: 'var(--text-primary)', fontSize: 22, fontWeight: 800 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: space.tile }}>
+            <div style={workspaceTile}>
+              <div style={workspaceTileLabel}>Total do dia</div>
+              <div style={workspaceTileValue}>
                 {fmt(feedingTable?.totals.dailyFeedKg ?? 0, 1)} kg
               </div>
             </div>
-            <div style={{ borderRadius: 18, padding: 14, backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-              <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Acumulado</div>
-              <div style={{ marginTop: 8, color: 'var(--text-primary)', fontSize: 22, fontWeight: 800 }}>
+            <div style={workspaceTile}>
+              <div style={workspaceTileLabel}>Acumulado</div>
+              <div style={workspaceTileValue}>
                 {fmt(feedingTable?.totals.racaoAcumuladaKg ?? 0, 1)} kg
               </div>
             </div>
-            <div style={{ borderRadius: 18, padding: 14, backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-              <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Sem trato hoje</div>
-              <div style={{ marginTop: 8, color: 'var(--text-primary)', fontSize: 22, fontWeight: 800 }}>
+            <div style={workspaceTile}>
+              <div style={workspaceTileLabel}>Sem trato hoje</div>
+              <div style={workspaceTileValue}>
                 {fmt(zeroFeedCount, 0)}
               </div>
             </div>
@@ -293,23 +278,15 @@ export function OperationsDashboardPage() {
           />
         </section>
 
-        <aside style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16, alignItems: 'start' }}>
-          <section
-            style={{
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              borderRadius: 24,
-              padding: 18,
-              boxShadow: '0 14px 32px rgba(15, 23, 42, 0.06)',
-            }}
-          >
-            <div style={{ color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+        <aside style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: space.page, alignItems: 'start' }}>
+          <section style={workspaceSurface}>
+            <div style={workspaceTileLabel}>
               Biometrias
             </div>
-            <h2 style={{ margin: '6px 0 0', fontSize: 20, color: 'var(--text-primary)' }}>
+            <h2 style={{ ...sectionTitle, marginTop: 6 }}>
               Base para definir a dieta
             </h2>
-            <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
+            <div style={{ marginTop: space.section, display: 'grid', gap: space.inline }}>
               <InfoLine label="Lote ativo" value={activeCycles[0]?.lotCode ?? 'Sem lote ativo'} />
               <InfoLine label="Peso médio" value={biometricKpis ? `${fmt(biometricKpis.pesoMedioG ?? 0, 1)} g` : '—'} />
               <InfoLine label="Sobrevivência" value={biometricKpis?.survivalPct != null ? `${fmt(biometricKpis.survivalPct, 1)}%` : '—'} />
@@ -318,41 +295,20 @@ export function OperationsDashboardPage() {
             </div>
             <Link
               to="/biometrias"
-              style={{
-                marginTop: 16,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '100%',
-                minHeight: 40,
-                borderRadius: 10,
-                border: '1px solid var(--border)',
-                backgroundColor: 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                textDecoration: 'none',
-                fontWeight: 600,
-              }}
+              style={{ ...workspaceCardAction, marginTop: space.section }}
             >
               Abrir biometrias
             </Link>
           </section>
 
-          <section
-            style={{
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              borderRadius: 24,
-              padding: 18,
-              boxShadow: '0 14px 32px rgba(15, 23, 42, 0.06)',
-            }}
-          >
-            <div style={{ color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <section style={workspaceSurface}>
+            <div style={workspaceTileLabel}>
               Qualidade da água
             </div>
-            <h2 style={{ margin: '6px 0 0', fontSize: 20, color: 'var(--text-primary)' }}>
+            <h2 style={{ ...sectionTitle, marginTop: 6 }}>
               Último ponto do ciclo
             </h2>
-            <div style={{ marginTop: 14, display: 'grid', gap: 10 }}>
+            <div style={{ marginTop: space.section, display: 'grid', gap: space.inline }}>
               <InfoLine label="Viveiro" value={latestPond?.code ?? '—'} />
               <InfoLine label="Última leitura" value={fmtDate(latestWaterQuality?.measuredAt)} />
               <InfoLine label="Oxigênio" value={latestWaterQuality ? `${fmt(latestWaterQuality.oxygenMgL, 1)} mg/L` : '—'} />
@@ -361,20 +317,7 @@ export function OperationsDashboardPage() {
             </div>
             <Link
               to="/water-quality"
-              style={{
-                marginTop: 16,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '100%',
-                minHeight: 40,
-                borderRadius: 10,
-                border: '1px solid var(--border)',
-                backgroundColor: 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                textDecoration: 'none',
-                fontWeight: 600,
-              }}
+              style={{ ...workspaceCardAction, marginTop: space.section }}
             >
               Abrir qualidade
             </Link>
@@ -390,17 +333,15 @@ function InfoLine({ label, value }: { label: string; value: string }) {
   return (
     <div
       style={{
+        ...workspaceTile,
         display: 'flex',
         justifyContent: 'space-between',
-        gap: 12,
+        gap: space.tile,
         padding: '10px 12px',
-        borderRadius: 14,
-        backgroundColor: 'var(--bg-elevated)',
-        border: '1px solid var(--border)',
       }}
     >
       <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{label}</span>
-      <span style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 700, textAlign: 'right' }}>{value}</span>
+      <span style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 700, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{value}</span>
     </div>
   )
 }

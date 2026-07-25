@@ -3,12 +3,20 @@ import { Cpu } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import {
+  metricGrid,
+  pageStack,
+  radius,
+  sectionSubtitle,
+  sectionTitle,
+  space,
+  workspaceCard,
   workspaceEyebrow,
   workspaceSurface,
   workspaceTile,
   workspaceTileLabel,
   workspaceTileValue,
 } from '../components/ui/surfaces';
+import { EmptyState } from '../components/ui/EmptyState';
 import { usePonds, useUpdatePond } from '../hooks/usePonds';
 
 export function AutoFeedersPage() {
@@ -54,14 +62,14 @@ export function AutoFeedersPage() {
   const withoutFeeder = ponds.filter((pond) => !pond.feederCount).length;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={pageStack}>
       <div style={workspaceSurface}>
         <div style={workspaceEyebrow}>Alimentadores</div>
-        <div style={{ marginTop: 6, color: 'var(--text-muted)', fontSize: 13, maxWidth: 620 }}>
+        <div style={{ ...sectionSubtitle, marginTop: 6, maxWidth: 620 }}>
           Quantos alimentadores estão instalados em cada viveiro.
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginTop: 16 }}>
+        <div style={{ ...metricGrid, marginTop: space.section }}>
           <div style={workspaceTile}>
             <div style={workspaceTileLabel}>Total instalado</div>
             <div style={workspaceTileValue}>{isLoading ? '—' : total}</div>
@@ -77,23 +85,23 @@ export function AutoFeedersPage() {
         </div>
       </div>
 
-      <section style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)' }}>
-        <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Por viveiro</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+      <section style={workspaceCard}>
+        <h2 style={sectionTitle}>Por viveiro</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: space.tile }}>
           {ponds.map((pond) => (
-            <div key={pond.id} style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 14, backgroundColor: 'var(--bg-elevated)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 8 }}>
+            <div key={pond.id} style={{ ...workspaceTile, padding: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: space.inline }}>
                 <div>
                   <div style={workspaceTileLabel}>Viveiro</div>
-                  <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)', marginTop: 4 }}>{pond.code}</div>
+                  <div style={{ ...workspaceTileValue, fontSize: 17, marginTop: 4 }}>{pond.code}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{pond.name}</div>
                 </div>
-                <span style={{ width: 30, height: 30, borderRadius: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--accent-soft)', color: 'var(--accent-dark)' }}>
+                <span style={{ width: 30, height: 30, borderRadius: radius.control, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--accent-soft)', color: 'var(--accent-dark)' }}>
                   <Cpu size={15} />
                 </span>
               </div>
 
-              <div style={{ display: 'flex', gap: 8, alignItems: 'end', marginTop: 12 }}>
+              <div style={{ display: 'flex', gap: space.inline, alignItems: 'end', marginTop: space.tile }}>
                 <div style={{ flex: 1 }}>
                   <Input
                     label="Alimentadores"
@@ -118,7 +126,11 @@ export function AutoFeedersPage() {
             </div>
           ))}
           {!ponds.length && !isLoading && (
-            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Nenhum viveiro cadastrado.</div>
+            <EmptyState
+              compact
+              title="Nenhum viveiro cadastrado."
+              description="Cadastre um viveiro para definir quantos alimentadores ele tem."
+            />
           )}
         </div>
       </section>

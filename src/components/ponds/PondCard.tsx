@@ -163,7 +163,7 @@ export function PondCard({ pond, summary, onOpenCanvas }: Props) {
               boxShadow: '0 16px 34px rgba(15, 23, 42, 0.18)',
             }}
           >
-            Abrir painel do tanque
+            Abrir painel do viveiro
           </button>
         )}
       </div>

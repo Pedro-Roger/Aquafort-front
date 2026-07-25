@@ -30,7 +30,7 @@ describe('buildBiometriaCards', () => {
       'Nova leitura',
       'Ver curva',
       'Ir para Despesca',
-      'Voltar para Tanques',
+      'Voltar para Viveiros',
     ]);
     expect(actions[2]).toMatchObject({ to: '/despesca', kind: 'ghost' });
   });

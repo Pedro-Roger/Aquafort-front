@@ -75,7 +75,7 @@ vi.mock('../pages/biometrias', () => ({
     { label: 'Nova leitura', description: '', kind: 'primary', action: 'focus-form' },
     { label: 'Ver curva', description: '', kind: 'secondary', action: 'focus-chart' },
     { label: 'Ir para Despesca', description: '', kind: 'ghost', action: 'navigate-despesca' },
-    { label: 'Voltar para Tanques', description: '', kind: 'ghost', action: 'navigate-tanques' },
+    { label: 'Voltar para Viveiros', description: '', kind: 'ghost', action: 'navigate-tanques' },
   ],
   buildBiometriaSnapshot: () => [
     { label: 'Ciclo', value: 'V-01 · L-001', detail: 'referência ativa' },

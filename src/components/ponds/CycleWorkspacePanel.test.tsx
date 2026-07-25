@@ -14,8 +14,8 @@ describe('CycleWorkspacePanel', () => {
         title="Painel de leitura"
         description="Resumo do ciclo"
         cycleOptions={[
-          { value: 'cycle-1', label: 'Tanque 1' },
-          { value: 'cycle-2', label: 'Tanque 2' },
+          { value: 'cycle-1', label: 'Viveiro 1' },
+          { value: 'cycle-2', label: 'Viveiro 2' },
         ]}
         selectedCycleId="cycle-1"
         onCycleChange={onCycleChange}

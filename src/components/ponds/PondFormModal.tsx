@@ -9,7 +9,7 @@ interface Props {
 }
 
 const TYPE_OPTIONS: Array<{ value: PondType; hint: string }> = [
-  { value: 'ENGORDA', hint: 'Tanque de producao principal' },
+  { value: 'ENGORDA', hint: 'Viveiro de produção principal' },
   { value: 'BERCARIO', hint: 'Fase inicial de crescimento' },
   { value: 'PRE_BERCARIO', hint: 'Recepcao e adaptacao' },
   { value: 'REPRODUTOR', hint: 'Matriz e manejo reprodutivo' },
@@ -26,7 +26,7 @@ export function PondFormModal({ open, onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const normalizedCode = form.code.trim().toUpperCase();
-  const suggestedName = form.name.trim() || (normalizedCode ? `Tanque ${normalizedCode}` : 'Novo tanque');
+  const suggestedName = form.name.trim() || (normalizedCode ? `Viveiro ${normalizedCode}` : 'Novo viveiro');
 
   if (!open) return null;
 
@@ -48,7 +48,7 @@ export function PondFormModal({ open, onClose }: Props) {
       setForm({ code: '', name: '', type: 'ENGORDA', areaHa: '' });
       onClose();
     } catch (err: any) {
-      setError(err?.response?.data?.message ?? 'Erro ao criar tanque.');
+      setError(err?.response?.data?.message ?? 'Erro ao criar viveiro.');
     }
   }
 
@@ -82,7 +82,7 @@ export function PondFormModal({ open, onClose }: Props) {
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.05fr) minmax(320px, 0.95fr)' }}>
           <div style={{ padding: 30, color: '#f8fafc' }}>
             <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.68 }}>Cadastro simples</div>
-            <h2 style={{ margin: '10px 0 0', fontSize: 34, lineHeight: 1.05, letterSpacing: '-0.05em' }}>Criar tanque novo em menos de 1 minuto.</h2>
+            <h2 style={{ margin: '10px 0 0', fontSize: 34, lineHeight: 1.05, letterSpacing: '-0.05em' }}>Criar viveiro novo em menos de 1 minuto.</h2>
             <p style={{ marginTop: 12, color: 'var(--text-muted)', maxWidth: 420 }}>
               Fluxo reduzido para o operacional: codigo, area e tipo. O nome pode nascer automatico e depois voce ajusta no painel.
             </p>
@@ -99,7 +99,7 @@ export function PondFormModal({ open, onClose }: Props) {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                 <div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Preview do tanque</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Prévia do viveiro</div>
                   <div style={{ marginTop: 10, fontSize: 24, fontWeight: 800 }}>{normalizedCode || 'VE-101'}</div>
                   <div style={{ marginTop: 4, color: 'var(--text-muted)' }}>{suggestedName}</div>
                 </div>
@@ -124,7 +124,7 @@ export function PondFormModal({ open, onClose }: Props) {
           <div style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.97), rgba(245,250,255,0.96))', padding: 30 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
               <div>
-                <div style={{ color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Novo tanque</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Novo viveiro</div>
                 <div style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: 24, marginTop: 4 }}>Dados minimos</div>
               </div>
               <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 24 }}>×</button>
@@ -214,7 +214,7 @@ export function PondFormModal({ open, onClose }: Props) {
                     boxShadow: '0 18px 34px rgba(15, 23, 42, 0.16)',
                   }}
                 >
-                  {createPond.isPending ? 'Criando...' : 'Criar tanque'}
+                  {createPond.isPending ? 'Criando...' : 'Criar viveiro'}
                 </button>
               </div>
             </form>

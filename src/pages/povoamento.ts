@@ -44,15 +44,15 @@ export function validateAllocationRows(rows: AllocationRow[], totalQuantity: num
   }
 
   if (!rows.length) {
-    return { valid: false, message: 'Adicione ao menos um tanque para o povoamento.' };
+    return { valid: false, message: 'Adicione ao menos um viveiro para o povoamento.' };
   }
 
   if (rows.some((row) => !row.pondId)) {
-    return { valid: false, message: 'Selecione um tanque para cada linha de distribuição.' };
+    return { valid: false, message: 'Selecione um viveiro para cada linha de distribuição.' };
   }
 
   if (rows.some((row) => !Number.isFinite(row.quantity) || row.quantity <= 0)) {
-    return { valid: false, message: 'Informe a quantidade de larvas em cada tanque.' };
+    return { valid: false, message: 'Informe a quantidade de larvas em cada viveiro.' };
   }
 
   const summary = getAllocationSummary(rows, totalQuantity);

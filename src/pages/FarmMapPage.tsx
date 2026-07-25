@@ -82,13 +82,13 @@ export function FarmMapPage() {
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em' }}>
               <Sparkles size={14} />
-              Tanques
+              Viveiros
             </div>
             <h1 style={{ margin: '10px 0 0', fontSize: 30, lineHeight: 1.05, letterSpacing: '-0.05em', color: 'var(--text-primary)' }}>
               BRÇ, PC e VE.
             </h1>
           </div>
-          <InfoBadge label={`${totals.total} tanques`} />
+          <InfoBadge label={`${totals.total} viveiros`} />
         </div>
       </div>
 
@@ -240,7 +240,7 @@ export function FarmMapPage() {
                     })}
                     {!group.tanks.length && (
                       <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '12px 4px' }}>
-                        Nenhum tanque gerado nesse grupo.
+                        Nenhum viveiro gerado nesse grupo.
                       </div>
                     )}
                   </div>

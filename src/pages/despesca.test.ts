@@ -24,7 +24,7 @@ describe('buildDespescaCards', () => {
     expect(actions.map((action) => action.label)).toEqual([
       'Recalcular projeção',
       'Abrir Biometrias',
-      'Ir para Tanques',
+      'Ir para Viveiros',
       'Ver janela ideal',
     ]);
     expect(actions[1]).toMatchObject({ to: '/biometrias', kind: 'secondary' });

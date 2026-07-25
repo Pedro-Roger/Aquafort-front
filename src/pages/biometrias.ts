@@ -78,7 +78,7 @@ export function buildBiometriaQuickActions(): BiometriaQuickAction[] {
     { label: 'Nova leitura', description: 'Ir para o formulário e registrar um novo ponto.', kind: 'primary', action: 'focus-form' },
     { label: 'Ver curva', description: 'Abrir o gráfico e comparar a evolução.', kind: 'secondary', action: 'focus-chart' },
     { label: 'Ir para Despesca', description: 'Cruzar crescimento com a janela de saída.', to: '/despesca', kind: 'ghost', action: 'navigate-despesca' },
-    { label: 'Voltar para Tanques', description: 'Revisar os viveiros e o contexto do ciclo.', to: '/tanques', kind: 'ghost', action: 'navigate-tanques' },
+    { label: 'Voltar para Viveiros', description: 'Revisar os viveiros e o contexto do ciclo.', to: '/tanques', kind: 'ghost', action: 'navigate-tanques' },
   ];
 }
 

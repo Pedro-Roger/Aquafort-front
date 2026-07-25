@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
 import {
   ArrowRightLeft,
   CircleDollarSign,
@@ -22,7 +23,29 @@ import {
 } from '../hooks/useInventory'
 import { groupBalancesByLocation, formatMovementLabel } from './inventoryTransforms'
 import type { InventoryBalanceRow, InventoryLocationType, InventoryMovement, InventoryMovementType } from '../types'
-import { workspaceSurface } from '../components/ui/surfaces';
+import { controlHeight, pageStack, radius, sectionTitle, space, workspaceCard, workspaceEyebrow, workspaceSurface, workspaceTile, workspaceTileLabel, workspaceTileValue } from '../components/ui/surfaces';
+
+// A few fields here need native <select> markup, so they cannot use the shared
+// Select component. Pin them to the same control tokens so a modal row of
+// inputs and selects lines up instead of stair-stepping.
+const nativeLabelStyle: CSSProperties = {
+  display: 'block',
+  color: 'var(--text-secondary)',
+  fontSize: 12,
+  fontWeight: 600,
+  letterSpacing: '0.03em',
+  marginBottom: 6,
+};
+
+const nativeSelectStyle: CSSProperties = {
+  width: '100%',
+  height: controlHeight,
+  borderRadius: radius.control,
+  border: '1px solid var(--border)',
+  padding: '0 12px',
+  backgroundColor: 'var(--bg-input)',
+  color: 'var(--text-primary)',
+};
 
 function fmt(value: number, digits = 2) {
   return value.toLocaleString('pt-BR', {
@@ -264,75 +287,63 @@ export function InventoryPage() {
   const movementTypeRequiresTo = movementForm.movementType === 'INBOUND' || movementForm.movementType === 'TRANSFER' || movementForm.movementType === 'ADJUSTMENT'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%' }}>
-      <div
-        style={{
-          ...workspaceSurface,
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-          <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.7, paddingTop: 10 }}>
+    <div style={{ ...pageStack, height: '100%' }}>
+      <div style={workspaceSurface}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.section, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={workspaceEyebrow}>
             Estoque por local
           </div>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <Button size="lg" icon={<Plus size={16} />} onClick={() => setLocationOpen(true)} style={{ backgroundColor: '#fff', color: '#0f172a', boxShadow: 'none' }}>
+          <div style={{ display: 'flex', gap: space.inline, flexWrap: 'wrap' }}>
+            <Button variant="secondary" icon={<Plus size={16} />} onClick={() => setLocationOpen(true)}>
               Novo local
             </Button>
-            <Button size="lg" icon={<ArrowRightLeft size={16} />} onClick={() => setMovementOpen(true)} style={{ whiteSpace: 'nowrap' }}>
+            <Button icon={<ArrowRightLeft size={16} />} onClick={() => setMovementOpen(true)} style={{ whiteSpace: 'nowrap' }}>
               Nova movimentacao
             </Button>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, marginTop: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: space.tile, marginTop: space.section }}>
           {cards.map((card) => (
-            <div
-              key={card.label}
-              style={{
-                borderRadius: 18,
-                padding: '14px 16px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border)',
-              }}
-            >
+            <div key={card.label} style={{ ...workspaceTile, padding: '14px 16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)' }}>
-                <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{card.label}</span>
+                <span style={workspaceTileLabel}>{card.label}</span>
                 {card.icon}
               </div>
-              <div style={{ marginTop: 10, fontSize: 24, fontWeight: 800 }}>{summaryLoading ? '-' : card.value}</div>
+              <div style={workspaceTileValue}>{summaryLoading ? '-' : card.value}</div>
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'end' }}>
+      <div style={{ display: 'flex', gap: space.tile, flexWrap: 'wrap', alignItems: 'end' }}>
         <div style={{ minWidth: 320, flex: '1 1 360px' }}>
           <Input label="Pesquisar item ou local" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Racao, probiotico, almox..." />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-muted)', paddingBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: space.inline, color: 'var(--text-muted)', height: 38, fontSize: 13 }}>
           <Search size={16} />
           <span>{filteredBalanceRows.length} saldos visiveis</span>
         </div>
       </div>
 
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 1fr)', gap: 16, minHeight: 0 }}>
-        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Saldo consolidado por local</div>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 1fr)', gap: space.page, minHeight: 0 }}>
+        <div style={{ ...workspaceCard, minHeight: 0 }}>
+          <h2 style={sectionTitle}>Saldo consolidado por local</h2>
           <div style={{ flex: 1, minHeight: 0 }}>
             <Table columns={balanceColumns} data={filteredGroupedBalances} rowKey={(row) => row.locationId} loading={balancesLoading} emptyMessage="Sem saldos registrados" />
           </div>
         </div>
 
-        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Movimentacoes recentes</div>
+        <div style={{ ...workspaceCard, minHeight: 0 }}>
+          <h2 style={sectionTitle}>Movimentacoes recentes</h2>
           <div style={{ flex: 1, minHeight: 0 }}>
             <Table columns={movementColumns} data={filteredMovements} rowKey={(row) => row.id} loading={movementsLoading} emptyMessage="Sem movimentacoes ainda" />
           </div>
         </div>
       </div>
 
-      <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', minHeight: 280, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Saldo detalhado por item e local</div>
+      <div style={{ ...workspaceCard, minHeight: 280 }}>
+        <h2 style={sectionTitle}>Saldo detalhado por item e local</h2>
         <div style={{ flex: 1, minHeight: 0 }}>
           <Table columns={detailColumns} data={filteredBalanceRows} rowKey={(row) => `${row.locationId}:${row.productId}`} loading={balancesLoading} emptyMessage="Sem saldos detalhados" />
         </div>
@@ -343,11 +354,11 @@ export function InventoryPage() {
           <Input label="Codigo" value={locationForm.code} onChange={(e) => setLocationForm((current) => ({ ...current, code: e.target.value }))} placeholder="ALM-01" />
           <Input label="Nome" value={locationForm.name} onChange={(e) => setLocationForm((current) => ({ ...current, name: e.target.value }))} placeholder="Almoxarifado central" />
           <div>
-            <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Tipo</label>
+            <label style={nativeLabelStyle}>Tipo</label>
             <select
               value={locationForm.type}
               onChange={(e) => setLocationForm((current) => ({ ...current, type: e.target.value as InventoryLocationType }))}
-              style={{ width: '100%', borderRadius: 12, border: '1px solid var(--border)', padding: '10px 12px', background: '#fff' }}
+              style={nativeSelectStyle}
             >
               {LOCATION_TYPE_OPTIONS.map((type) => (
                 <option key={type} value={type}>{locationTypeLabel(type)}</option>
@@ -355,11 +366,11 @@ export function InventoryPage() {
             </select>
           </div>
           <div>
-            <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Local pai</label>
+            <label style={nativeLabelStyle}>Local pai</label>
             <select
               value={locationForm.parentId}
               onChange={(e) => setLocationForm((current) => ({ ...current, parentId: e.target.value }))}
-              style={{ width: '100%', borderRadius: 12, border: '1px solid var(--border)', padding: '10px 12px', background: '#fff' }}
+              style={nativeSelectStyle}
             >
               <option value="">Sem pai</option>
               {locations.map((location) => (
@@ -384,11 +395,11 @@ export function InventoryPage() {
       <Modal open={movementOpen} onClose={() => setMovementOpen(false)} title="Nova movimentacao" width={680}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <div style={{ gridColumn: '1 / -1' }}>
-            <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Produto</label>
+            <label style={nativeLabelStyle}>Produto</label>
             <select
               value={movementForm.productId}
               onChange={(e) => setMovementForm((current) => ({ ...current, productId: e.target.value }))}
-              style={{ width: '100%', borderRadius: 12, border: '1px solid var(--border)', padding: '10px 12px', background: '#fff' }}
+              style={nativeSelectStyle}
             >
               <option value="">Selecione um produto</option>
               {activeProductOptions.map((product) => (
@@ -397,11 +408,11 @@ export function InventoryPage() {
             </select>
           </div>
           <div>
-            <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Tipo</label>
+            <label style={nativeLabelStyle}>Tipo</label>
             <select
               value={movementForm.movementType}
               onChange={(e) => setMovementForm((current) => ({ ...current, movementType: e.target.value as InventoryMovementType }))}
-              style={{ width: '100%', borderRadius: 12, border: '1px solid var(--border)', padding: '10px 12px', background: '#fff' }}
+              style={nativeSelectStyle}
             >
               {MOVEMENT_TYPE_OPTIONS.map((type) => (
                 <option key={type} value={type}>{formatMovementLabel({ movementType: type } as InventoryMovement)}</option>
@@ -414,11 +425,11 @@ export function InventoryPage() {
 
           {movementTypeRequiresFrom && (
             <div>
-              <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Origem</label>
+              <label style={nativeLabelStyle}>Origem</label>
               <select
                 value={movementForm.fromLocationId}
                 onChange={(e) => setMovementForm((current) => ({ ...current, fromLocationId: e.target.value }))}
-                style={{ width: '100%', borderRadius: 12, border: '1px solid var(--border)', padding: '10px 12px', background: '#fff' }}
+                style={nativeSelectStyle}
               >
                 <option value="">Selecione a origem</option>
                 {locationOptions.map((location) => (
@@ -430,11 +441,11 @@ export function InventoryPage() {
 
           {movementTypeRequiresTo && (
             <div>
-              <label style={{ display: 'block', color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Destino</label>
+              <label style={nativeLabelStyle}>Destino</label>
               <select
                 value={movementForm.toLocationId}
                 onChange={(e) => setMovementForm((current) => ({ ...current, toLocationId: e.target.value }))}
-                style={{ width: '100%', borderRadius: 12, border: '1px solid var(--border)', padding: '10px 12px', background: '#fff' }}
+                style={nativeSelectStyle}
               >
                 <option value="">Selecione o destino</option>
                 {locationOptions.map((location) => (

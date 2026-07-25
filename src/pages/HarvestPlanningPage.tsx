@@ -14,7 +14,19 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCycles } from '../hooks/useCycles';
 import { useHarvestProjection, useRecomputeHarvestProjection } from '../hooks/useHarvestProjection';
 import { KPICard } from '../components/ui/KPICard';
-import { workspaceSurface } from '../components/ui/surfaces';
+import {
+  metricGrid,
+  pageStack,
+  radius,
+  sectionSubtitle,
+  sectionTitle,
+  shadow,
+  space,
+  workspaceCard,
+  workspaceSurface,
+  workspaceTileLabel,
+} from '../components/ui/surfaces';
+import { EmptyState } from '../components/ui/EmptyState';
 import { CycleWorkspacePanel, type CycleWorkspaceStatus } from '../components/ponds/CycleWorkspacePanel';
 import type { Cycle, HarvestProjectionPoint } from '../types';
 import { buildBiometriaPath } from './biometrias';
@@ -54,10 +66,10 @@ function HarvestTooltip({ active, payload, label }: HarvestTooltipProps) {
   if (!point) return null;
 
   return (
-    <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 12, boxShadow: '0 12px 30px rgba(15, 23, 42, 0.10)' }}>
+    <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: radius.tile, padding: '10px 12px', fontSize: 12, boxShadow: shadow.raised }}>
       <div style={{ color: 'var(--text-muted)', marginBottom: 4 }}>Semana {label} · {formatDate(point.date)}</div>
-      <div style={{ color: '#0284c7' }}>Custo: {formatMoney(point.costPerKg)}/kg</div>
-      <div style={{ color: '#38bdf8' }}>Peso: {formatNumber(point.avgWeightG)}g</div>
+      <div style={{ color: 'var(--accent)' }}>Custo: {formatMoney(point.costPerKg)}/kg</div>
+      <div style={{ color: 'var(--accent-dark)' }}>Peso: {formatNumber(point.avgWeightG)}g</div>
       <div style={{ color: 'var(--text-secondary)' }}>Biomassa: {formatNumber(point.biomassKg, 0)} kg</div>
     </div>
   );
@@ -132,13 +144,9 @@ export function HarvestPlanningPage() {
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 18, overflow: 'hidden' }}>
-      <div
-        style={{
-          ...workspaceSurface,
-        }}
-      >
-        <div style={{ display: 'grid', gap: 16, alignItems: 'start' }}>
+    <div style={{ ...pageStack, height: '100%', overflow: 'hidden' }}>
+      <div style={workspaceSurface}>
+        <div style={{ display: 'grid', gap: space.section, alignItems: 'start' }}>
           <CycleWorkspacePanel
             eyebrow="Ciclo ativo"
             title="Painel de despesca"
@@ -180,7 +188,7 @@ export function HarvestPlanningPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+      <div style={{ ...metricGrid }}>
         {summaryCards.map((card) => (
           <KPICard
             key={card.label}
@@ -193,21 +201,28 @@ export function HarvestPlanningPage() {
         ))}
       </div>
 
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) 340px', gap: 16, overflow: 'hidden' }}>
-        <div ref={chartRef} style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0, 2fr) 340px', gap: space.page, overflow: 'hidden' }}>
+        <div ref={chartRef} style={{ ...workspaceCard, minHeight: 0 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: space.tile, flexWrap: 'wrap' }}>
             <div>
-              <h2 style={{ fontSize: 15, color: 'var(--text-primary)', margin: 0 }}>Curva projetada</h2>
-              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Eixo por semana com custo por kg e peso estimado.</div>
+              <h2 style={sectionTitle}>Curva projetada</h2>
+              <div style={{ ...sectionSubtitle, marginTop: 2 }}>Eixo por semana com custo por kg e peso estimado.</div>
             </div>
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>mínimo {formatMoney(projectionData?.minCostPerKg)}/kg</span>
           </div>
 
           <div style={{ flex: 1, minHeight: 260 }}>
             {projection.isLoading || cyclesLoading ? (
-              <div style={{ height: '100%', display: 'grid', placeItems: 'center', color: 'var(--text-muted)' }}>Carregando...</div>
+              <div style={{ height: '100%', display: 'grid', placeItems: 'center' }}>
+                <EmptyState title="Carregando..." icon={null} />
+              </div>
             ) : !selectedCycle || !projectionData ? (
-              <div style={{ height: '100%', display: 'grid', placeItems: 'center', color: 'var(--text-muted)' }}>Sem ciclo ativo</div>
+              <div style={{ height: '100%', display: 'grid', placeItems: 'center' }}>
+                <EmptyState
+                  title="Sem ciclo ativo"
+                  description="Selecione ou inicie um ciclo para ver a curva de despesca."
+                />
+              </div>
             ) : (
               <ResponsiveContainer>
                 <ComposedChart data={chartData} margin={{ top: 12, right: 16, bottom: 12, left: 0 }}>
@@ -231,11 +246,11 @@ export function HarvestPlanningPage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, minHeight: 0 }}>
-          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16 }}>
-            <div style={{ fontWeight: 800, color: 'var(--text-primary)', marginBottom: 12 }}>Premissas</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: space.page, minHeight: 0 }}>
+          <div style={workspaceCard}>
+            <h2 style={sectionTitle}>Premissas</h2>
             {projectionData ? (
-              <div style={{ display: 'grid', gap: 10 }}>
+              <div style={{ display: 'grid', gap: space.inline }}>
                 <Info label="Biometrias" value={String(projectionData.assumptions.biometricPoints)} />
                 <Info label="Crescimento" value={`${formatNumber(projectionData.assumptions.growthRateGPerDay, 3)} g/dia`} />
                 <Info label="Sobrevivência" value={`${formatNumber(projectionData.assumptions.survivalPct)}%`} />
@@ -243,42 +258,42 @@ export function HarvestPlanningPage() {
                 <Info label="Custo semanal" value={formatMoney(projectionData.assumptions.weeklyCost)} />
               </div>
             ) : (
-              <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>-</span>
+              <EmptyState compact title="Sem projeção calculada ainda." />
             )}
           </div>
 
-          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16 }}>
-            <div style={{ fontWeight: 800, color: 'var(--text-primary)', marginBottom: 12 }}>Resumo rápido</div>
-            <div style={{ display: 'grid', gap: 10 }}>
+          <div style={workspaceCard}>
+            <h2 style={sectionTitle}>Resumo rápido</h2>
+            <div style={{ display: 'grid', gap: space.inline }}>
               {snapshot.map((item) => (
-                <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
+                <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', gap: space.tile, fontSize: 13 }}>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ color: 'var(--text-muted)' }}>{item.label}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{item.detail}</div>
                   </div>
-                  <div style={{ color: 'var(--text-primary)', fontWeight: 700, textAlign: 'right' }}>{item.value}</div>
+                  <div style={{ color: 'var(--text-primary)', fontWeight: 700, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{item.value}</div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', minHeight: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', fontSize: 13, fontWeight: 800, color: 'var(--text-primary)' }}>Semanas</div>
+          <div style={{ ...workspaceSurface, padding: 0, overflow: 'hidden', minHeight: 0, flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ ...workspaceTileLabel, padding: '11px 16px', borderBottom: '1px solid var(--border-strong)', backgroundColor: 'var(--bg-elevated)' }}>Semanas</div>
             <div style={{ overflowY: 'auto', maxHeight: '100%' }}>
               <table>
                 <thead>
-                  <tr style={{ color: 'var(--text-muted)', fontSize: 11, borderBottom: '1px solid var(--border)' }}>
-                    <th style={{ padding: '8px 10px' }}>S</th>
-                    <th style={{ padding: '8px 10px' }}>g</th>
-                    <th style={{ padding: '8px 10px' }}>R$/kg</th>
+                  <tr style={{ ...workspaceTileLabel, borderBottom: '1px solid var(--border)' }}>
+                    <th style={{ padding: '8px 16px' }}>S</th>
+                    <th style={{ padding: '8px 16px', textAlign: 'right' }}>g</th>
+                    <th style={{ padding: '8px 16px', textAlign: 'right' }}>R$/kg</th>
                   </tr>
                 </thead>
                 <tbody>
                   {chartData.map((point) => (
-                    <tr key={point.week} style={{ borderBottom: '1px solid var(--border)', fontSize: 12 }}>
-                      <td style={{ padding: '8px 10px', color: 'var(--text-primary)', fontWeight: 600 }}>S{point.week}</td>
-                      <td style={{ padding: '8px 10px', color: 'var(--text-secondary)' }}>{formatNumber(point.avgWeightG)}</td>
-                      <td style={{ padding: '8px 10px', color: point.costPerKg === projectionData?.minCostPerKg ? '#0284c7' : 'var(--text-secondary)', fontWeight: point.costPerKg === projectionData?.minCostPerKg ? 700 : 400 }}>
+                    <tr key={point.week} style={{ borderTop: '1px solid var(--border)', fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>
+                      <td style={{ padding: '8px 16px', color: 'var(--text-primary)', fontWeight: 600 }}>S{point.week}</td>
+                      <td style={{ padding: '8px 16px', color: 'var(--text-secondary)', textAlign: 'right' }}>{formatNumber(point.avgWeightG)}</td>
+                      <td style={{ padding: '8px 16px', textAlign: 'right', color: point.costPerKg === projectionData?.minCostPerKg ? 'var(--accent-dark)' : 'var(--text-secondary)', fontWeight: point.costPerKg === projectionData?.minCostPerKg ? 700 : 400 }}>
                         {formatMoney(point.costPerKg)}
                       </td>
                     </tr>
@@ -295,9 +310,9 @@ export function HarvestPlanningPage() {
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.tile, fontSize: 13 }}>
       <span style={{ color: 'var(--text-muted)' }}>{label}</span>
-      <span style={{ color: 'var(--text-primary)', fontWeight: 600, textAlign: 'right' }}>{value}</span>
+      <span style={{ color: 'var(--text-primary)', fontWeight: 600, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{value}</span>
     </div>
   );
 }

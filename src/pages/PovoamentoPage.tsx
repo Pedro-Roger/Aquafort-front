@@ -8,7 +8,24 @@ import { useCreateCycle } from '../hooks/useCycles';
 import { usePonds } from '../hooks/usePonds';
 import type { Pond } from '../types';
 import { PondType } from '../types';
-import { workspaceEyebrow, workspaceSurface, workspaceTile, workspaceTileLabel, workspaceTileValue } from '../components/ui/surfaces';
+import {
+  controlHeight,
+  metricGrid,
+  pageStack,
+  radius,
+  sectionSubtitle,
+  sectionTitle,
+  space,
+  workspaceCard,
+  workspaceEyebrow,
+  workspaceLink,
+  workspaceSurface,
+  workspaceTile,
+  workspaceTileDetail,
+  workspaceTileLabel,
+  workspaceTileValue,
+} from '../components/ui/surfaces';
+import { EmptyState } from '../components/ui/EmptyState';
 import {
   calculatePovoamentoQuantity,
   getAllocationSummary,
@@ -187,7 +204,7 @@ export function PovoamentoPage() {
         allocations.map((allocation) => {
           const pond = selectedPonds.get(allocation.pondId);
           if (!pond) {
-            throw new Error('Selecione um tanque válido.');
+            throw new Error('Selecione um viveiro válido.');
           }
 
           return createCycle.mutateAsync({
@@ -234,30 +251,26 @@ export function PovoamentoPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div
-        style={{
-          ...workspaceSurface,
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+    <div style={pageStack}>
+      <div style={workspaceSurface}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.section, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div>
             <div style={workspaceEyebrow}>Povoamento</div>
-            <div style={{ marginTop: 6, color: 'var(--text-muted)', fontSize: 13, maxWidth: 620 }}>
+            <div style={{ ...sectionSubtitle, marginTop: 6, maxWidth: 620 }}>
               A soma das quantidades nunca pode passar do total informado.
             </div>
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'end', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: space.inline, alignItems: 'end', flexWrap: 'wrap' }}>
             <div style={{ minWidth: 170 }}>
               <Input label="Data do povoamento" type="date" value={form.stockDate} onChange={(e) => setForm((current) => ({ ...current, stockDate: e.target.value }))} />
             </div>
-            <Button size="lg" icon={<Plus size={16} />} onClick={() => setAllocations((current) => [...current, makeRow(availablePonds[0]?.id ?? '')])}>
-              Adicionar tanque
+            <Button icon={<Plus size={16} />} onClick={() => setAllocations((current) => [...current, makeRow(availablePonds[0]?.id ?? '')])}>
+              Adicionar viveiro
             </Button>
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 16 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: space.inline, marginTop: space.section }}>
           {[
             { to: '/dashboard', label: 'Voltar ao painel' },
             { to: '/tanques', label: 'Viveiros' },
@@ -267,24 +280,15 @@ export function PovoamentoPage() {
             <Link
               key={item.to}
               to={item.to}
-              style={{
-                padding: '8px 12px',
-                borderRadius: 999,
-                border: '1px solid var(--border)',
-                background: 'var(--bg-elevated)',
-                color: 'var(--text-secondary)',
-                textDecoration: 'none',
-                fontSize: 13,
-                fontWeight: 600,
-              }}
+              style={workspaceLink}
             >
               {item.label}
             </Link>
           ))}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, marginTop: 18 }}>
-          <StatCard label="Tanques aptos" value={isLoading ? '-' : availablePonds.length} />
+        <div style={{ ...metricGrid, marginTop: space.section }}>
+          <StatCard label="Viveiros aptos" value={isLoading ? '-' : availablePonds.length} />
           <StatCard label="Larvas alocadas" value={`${fmt(summary.allocated, 0)}`} />
           <StatCard label="Larvas restantes" value={`${fmt(summary.remaining, 0)}`} />
           <StatCard
@@ -295,8 +299,8 @@ export function PovoamentoPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.92fr) minmax(0, 1.08fr)', gap: 16, alignItems: 'start' }}>
-        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.92fr) minmax(0, 1.08fr)', gap: space.page, alignItems: 'start' }}>
+        <div style={workspaceCard}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <Input label="Espécie" value={form.species} onChange={(e) => setForm((current) => ({ ...current, species: e.target.value }))} />
             <Input label="Fornecedor" value={form.supplier} onChange={(e) => setForm((current) => ({ ...current, supplier: e.target.value }))} />
@@ -322,18 +326,18 @@ export function PovoamentoPage() {
             <Select label="Estágio" options={STAGE_OPTIONS} value={form.stage} onChange={(e) => setForm((current) => ({ ...current, stage: e.target.value as PovoamentoForm['stage'] }))} />
           </div>
 
-          <div style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 14, background: 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(237,245,251,0.96))' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ ...workspaceTile, padding: 14 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.tile, flexWrap: 'wrap', alignItems: 'center' }}>
               <div>
-                <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Cálculo do povoamento</div>
-                <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>1 ha = 10.000 m². O bônus é aplicado só se preenchido.</div>
+                <h3 style={sectionTitle}>Cálculo do povoamento</h3>
+                <div style={{ ...sectionSubtitle, marginTop: 2 }}>1 ha = 10.000 m². O bônus é aplicado só se preenchido.</div>
               </div>
               <Button variant="secondary" onClick={applyCalculatedDistribution} disabled={!Number.isFinite(density) || density <= 0}>
                 Aplicar cálculo
               </Button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10, marginTop: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: space.inline, marginTop: space.section }}>
               <MiniCalc label="Área total" value={`${fmt(calculationSummary.areaHa, 2)} ha`} detail={`${fmt(calculationSummary.areaHa * 10000, 0)} m²`} />
               <MiniCalc label="Base" value={`${fmt(calculationSummary.baseLarvae, 0)} PL`} detail="sem bônus" />
               <MiniCalc label="Bônus" value={hasBonus ? `${fmt(calculationSummary.bonusLarvae, 0)} PL` : '0 PL'} detail={hasBonus ? `${fmt(bonusPct ?? 0, 1)}% aplicado` : 'opcional'} />
@@ -341,22 +345,22 @@ export function PovoamentoPage() {
             </div>
           </div>
 
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: space.section }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: space.tile, flexWrap: 'wrap', marginBottom: space.tile }}>
               <div>
-                <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Distribuição por tanque</div>
-                <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Ajuste as quantidades por tanque antes de salvar.</div>
+                <h3 style={sectionTitle}>Distribuição por viveiro</h3>
+                <div style={{ ...sectionSubtitle, marginTop: 2 }}>Ajuste as quantidades por viveiro antes de salvar.</div>
               </div>
               <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
                 Restante: <strong style={{ color: 'var(--text-primary)' }}>{fmt(summary.remaining, 0)}</strong>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gap: 10 }}>
+            <div style={{ display: 'grid', gap: space.tile }}>
               {allocations.map((allocation, index) => (
-                <div key={allocation.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 140px 44px', gap: 10, alignItems: 'end' }}>
+                <div key={allocation.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 140px 44px', gap: space.inline, alignItems: 'end' }}>
                   <Select
-                    label={`Tanque ${index + 1}`}
+                    label={`Viveiro ${index + 1}`}
                     options={pondOptions}
                     placeholder="Selecione"
                     value={allocation.pondId}
@@ -375,20 +379,20 @@ export function PovoamentoPage() {
                     onClick={() => setAllocations((current) => current.filter((row) => row.id !== allocation.id))}
                     disabled={allocations.length === 1}
                     style={{
-                      height: 42,
-                      borderRadius: 10,
+                      height: controlHeight,
+                      borderRadius: radius.control,
                       border: '1px solid var(--border)',
                       backgroundColor: 'var(--bg-elevated)',
                       color: 'var(--text-secondary)',
                       cursor: allocations.length === 1 ? 'not-allowed' : 'pointer',
                     }}
-                    aria-label={`Remover tanque ${index + 1}`}
+                    aria-label={`Remover viveiro ${index + 1}`}
                   >
                     <Trash2 size={16} />
                   </button>
                   {allocationCalculations[index]?.calculation && (
                     <div style={{ gridColumn: '1 / -1', marginTop: -4, color: 'var(--text-muted)', fontSize: 12 }}>
-                      {allocationCalculations[index].pond?.code ?? 'Tanque'}: área {fmt(allocationCalculations[index].calculation.areaM2 / 10000, 2)} ha · base {fmt(allocationCalculations[index].calculation.baseLarvae, 0)} PL
+                      {allocationCalculations[index].pond?.code ?? 'Viveiro'}: área {fmt(allocationCalculations[index].calculation.areaM2 / 10000, 2)} ha · base {fmt(allocationCalculations[index].calculation.baseLarvae, 0)} PL
                       {hasBonus ? ` · bônus ${fmt(allocationCalculations[index].calculation.bonusLarvae, 0)} PL` : ''} · sugerido {fmt(allocationCalculations[index].calculation.totalLarvae, 0)} PL
                     </div>
                   )}
@@ -396,11 +400,11 @@ export function PovoamentoPage() {
               ))}
             </div>
 
-            <div style={{ marginTop: 16, display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div style={{ marginTop: space.section, display: 'flex', justifyContent: 'space-between', gap: space.tile, flexWrap: 'wrap', alignItems: 'center' }}>
               <div style={{ color: validation.valid ? 'var(--text-muted)' : 'var(--danger)', fontSize: 13 }}>
                 {validation.valid ? 'Pronto para salvar.' : validation.message}
               </div>
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ display: 'flex', gap: space.inline }}>
                 <Button variant="secondary" icon={<ArrowRightLeft size={16} />} onClick={() => setAllocations([makeRow(availablePonds[0]?.id ?? '')])}>
                   Limpar distribuição
                 </Button>
@@ -414,47 +418,51 @@ export function PovoamentoPage() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gap: 16, alignContent: 'start' }}>
-          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)' }}>
-            <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Tanques disponíveis</div>
-            <div style={{ display: 'grid', gap: 12 }}>
+        <div style={{ display: 'grid', gap: space.page, alignContent: 'start' }}>
+          <div style={workspaceCard}>
+            <h2 style={sectionTitle}>Viveiros disponíveis</h2>
+            <div style={{ display: 'grid', gap: space.tile }}>
               {cards.map((card) => (
-                <div key={card.type} style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 14, backgroundColor: 'var(--bg-elevated)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+                <div key={card.type} style={{ ...workspaceTile, padding: 14 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.tile, alignItems: 'center' }}>
                     <div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{card.label}</div>
+                      <div style={workspaceTileLabel}>{card.label}</div>
                       <div style={{ color: 'var(--text-primary)', fontWeight: 700, marginTop: 4 }}>{card.title}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{card.count}</div>
+                      <div style={{ color: 'var(--text-primary)', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{card.count}</div>
                       <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{card.activeCount} povoados</div>
                     </div>
                   </div>
-                  <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: space.inline }}>
                     {card.ponds.slice(0, 4).map((pond) => (
-                      <span key={pond.id} style={{ padding: '5px 10px', borderRadius: 999, backgroundColor: '#fff', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: 12 }}>
+                      <span key={pond.id} style={{ padding: '5px 10px', borderRadius: radius.pill, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: 12 }}>
                         {pond.code}
                       </span>
                     ))}
-                    {card.ponds.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Sem tanques cadastrados.</span>}
+                    {card.ponds.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Sem viveiros cadastrados.</span>}
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)' }}>
-            <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Últimos povoamentos salvos</div>
-            <div style={{ display: 'grid', gap: 10 }}>
+          <div style={workspaceCard}>
+            <h2 style={sectionTitle}>Últimos povoamentos salvos</h2>
+            <div style={{ display: 'grid', gap: space.inline }}>
               {savedLots.length ? savedLots.map((item, index) => (
-                <div key={`${item.pond}-${index}`} style={{ border: '1px solid var(--border)', borderRadius: 14, padding: 12, backgroundColor: 'var(--bg-elevated)' }}>
+                <div key={`${item.pond}-${index}`} style={{ ...workspaceTile, padding: 12 }}>
                   <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{item.pond}</div>
                   <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
                     {item.species} · {item.supplier} · {fmt(item.quantity, 0)} PL
                   </div>
                 </div>
               )) : (
-                <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Nenhum povoamento salvo ainda.</div>
+                <EmptyState
+                  compact
+                  title="Nenhum povoamento salvo ainda."
+                  description="Preencha o lote e a distribuição ao lado para salvar o primeiro."
+                />
               )}
             </div>
           </div>
@@ -480,8 +488,6 @@ function StatCard({ label, value, tone }: { label: string; value: string | numbe
       <div
         style={{
           ...workspaceTileValue,
-          marginTop: 10,
-          fontSize: 24,
           color: tone === 'danger' ? 'var(--danger)' : tone === 'ok' ? 'var(--accent-dark)' : 'var(--text-primary)',
         }}
       >
@@ -493,10 +499,10 @@ function StatCard({ label, value, tone }: { label: string; value: string | numbe
 
 function MiniCalc({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <div style={{ borderRadius: 14, padding: '12px 14px', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
-      <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
-      <div style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 800, marginTop: 6 }}>{value}</div>
-      <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 4 }}>{detail}</div>
+    <div style={{ ...workspaceTile, backgroundColor: 'var(--bg-card)', padding: '12px 14px' }}>
+      <div style={workspaceTileLabel}>{label}</div>
+      <div style={{ ...workspaceTileValue, fontSize: 18 }}>{value}</div>
+      <div style={workspaceTileDetail}>{detail}</div>
     </div>
   );
 }

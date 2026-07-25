@@ -5,12 +5,20 @@ import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
 import { Table } from '../components/ui/Table';
 import {
+  metricGrid,
+  pageStack,
+  radius,
+  sectionSubtitle,
+  sectionTitle,
+  space,
+  workspaceCard,
   workspaceEyebrow,
   workspaceSurface,
   workspaceTile,
   workspaceTileLabel,
   workspaceTileValue,
 } from '../components/ui/surfaces';
+import { EmptyState } from '../components/ui/EmptyState';
 import { useAssignPonds, useCreateFeeder, useFeederRanking, useFeeders } from '../hooks/useFeeders';
 import { usePonds } from '../hooks/usePonds';
 import type { Feeder, FeederRanking } from '../types';
@@ -121,21 +129,21 @@ export function FeedersPage() {
   const assignedPondCount = feeders.reduce((total, feeder) => total + feeder.ponds.length, 0);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={pageStack}>
       <div style={workspaceSurface}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.section, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div>
             <div style={workspaceEyebrow}>Arraçoadores</div>
-            <div style={{ marginTop: 6, color: 'var(--text-muted)', fontSize: 13, maxWidth: 620 }}>
+            <div style={{ ...sectionSubtitle, marginTop: 6, maxWidth: 620 }}>
               Quem trata cada viveiro, e como o camarão cresce sob cada um.
             </div>
           </div>
-          <Button size="lg" icon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>
+          <Button icon={<Plus size={16} />} onClick={() => setCreateOpen(true)}>
             Cadastrar arraçoador
           </Button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginTop: 16 }}>
+        <div style={{ ...metricGrid, marginTop: space.section }}>
           <div style={workspaceTile}>
             <div style={workspaceTileLabel}>Arraçoadores</div>
             <div style={workspaceTileValue}>{isLoading ? '—' : feeders.length}</div>
@@ -160,10 +168,12 @@ export function FeedersPage() {
         </div>
       </div>
 
-      <section style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)' }}>
-        <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Ranking de crescimento</div>
-        <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 12 }}>
-          Ganho de peso por semana, medido entre a primeira e a última biometria do ciclo ativo de cada viveiro.
+      <section style={workspaceCard}>
+        <div>
+          <h2 style={sectionTitle}>Ranking de crescimento</h2>
+          <p style={{ ...sectionSubtitle, marginTop: 4 }}>
+            Ganho de peso por semana, medido entre a primeira e a última biometria do ciclo ativo de cada viveiro.
+          </p>
         </div>
         <Table
           columns={rankingColumns}
@@ -173,22 +183,26 @@ export function FeedersPage() {
         />
       </section>
 
-      <section style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)' }}>
-        <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Cadastro e viveiros</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+      <section style={workspaceCard}>
+        <h2 style={sectionTitle}>Cadastro e viveiros</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: space.tile }}>
           {feeders.map((feeder) => (
-            <div key={feeder.id} style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 14, backgroundColor: 'var(--bg-elevated)' }}>
+            <div key={feeder.id} style={{ ...workspaceTile, padding: 14 }}>
               <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{feeder.name}</div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
                 {feeder.ponds.length ? feeder.ponds.map((pond) => pond.code).join(', ') : 'Nenhum viveiro atribuído'}
               </div>
-              <Button variant="secondary" size="sm" style={{ marginTop: 12 }} onClick={() => openAssign(feeder)}>
+              <Button variant="secondary" size="sm" style={{ marginTop: space.tile }} onClick={() => openAssign(feeder)}>
                 Atribuir viveiros
               </Button>
             </div>
           ))}
           {!feeders.length && !isLoading && (
-            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Nenhum arraçoador cadastrado ainda.</div>
+            <EmptyState
+              compact
+              title="Nenhum arraçoador cadastrado ainda."
+              description="Cadastre um arraçoador para atribuir viveiros a ele."
+            />
           )}
         </div>
       </section>
@@ -212,11 +226,11 @@ export function FeedersPage() {
         title={`Viveiros de ${assigning?.name ?? ''}`}
         width={520}
       >
-        <div style={{ display: 'grid', gap: 10 }}>
+        <div style={{ display: 'grid', gap: space.tile }}>
           <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>
             Marque os viveiros sob responsabilidade dessa pessoa. Desmarcar libera o viveiro.
           </div>
-          <div style={{ display: 'grid', gap: 8, maxHeight: 320, overflowY: 'auto' }}>
+          <div style={{ display: 'grid', gap: space.inline, maxHeight: 320, overflowY: 'auto' }}>
             {ponds.map((pond) => {
               const checked = selectedPondIds.includes(pond.id);
               const owner = assignedElsewhere.get(pond.id);
@@ -229,8 +243,8 @@ export function FeedersPage() {
                     alignItems: 'center',
                     gap: 10,
                     padding: '10px 12px',
-                    borderRadius: 12,
-                    border: '1px solid var(--border)',
+                    borderRadius: radius.tile,
+                    border: `1px solid ${checked ? 'var(--accent-soft-strong)' : 'var(--border)'}`,
                     backgroundColor: checked ? 'var(--accent-soft)' : 'var(--bg-card)',
                     cursor: 'pointer',
                   }}

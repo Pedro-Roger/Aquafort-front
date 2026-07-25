@@ -1,4 +1,5 @@
 import React, { useId } from 'react';
+import { controlHeight, radius, space } from './surfaces';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -11,7 +12,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const inputId = id ?? reactId;
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {label && (
           <label htmlFor={inputId} style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600, letterSpacing: '0.03em' }}>
             {label}
@@ -23,8 +24,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           style={{
             backgroundColor: 'var(--bg-input)',
             border: `1px solid ${error ? 'var(--danger)' : 'var(--border)'}`,
-            borderRadius: '14px',
-            padding: '11px 14px',
+            borderRadius: radius.control,
+            height: controlHeight,
+            padding: `0 ${space.inline + 4}px`,
             color: 'var(--text-primary)',
             outline: 'none',
             width: '100%',

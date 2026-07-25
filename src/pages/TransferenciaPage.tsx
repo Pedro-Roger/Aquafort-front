@@ -1,7 +1,20 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ArrowRightLeft, CornerDownRight, Plus, RotateCw, ShieldAlert, Truck } from 'lucide-react';
 import { Button } from '../components/ui/Button';
-import { workspaceEyebrow, workspaceSurface, workspaceTile, workspaceTileLabel, workspaceTileValue } from '../components/ui/surfaces';
+import {
+  metricGrid,
+  pageStack,
+  radius,
+  sectionSubtitle,
+  sectionTitle,
+  space,
+  workspaceCard,
+  workspaceEyebrow,
+  workspaceSurface,
+  workspaceTile,
+  workspaceTileLabel,
+  workspaceTileValue,
+} from '../components/ui/surfaces';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Table } from '../components/ui/Table';
@@ -186,31 +199,29 @@ export function TransferenciaPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div
-        style={{
-          ...workspaceSurface,
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+    <div style={pageStack}>
+      <div style={workspaceSurface}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.section, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <div>
             <div style={workspaceEyebrow}>Transferência</div>
-            <h1 style={{ margin: '8px 0 0', fontSize: 30, lineHeight: 1.05, letterSpacing: '-0.05em' }}>Movimente lotes entre viveiros sem cair no povoamento.</h1>
-            <p style={{ marginTop: 10, color: 'var(--text-muted)', maxWidth: 760 }}>
+            <h1 style={{ margin: '8px 0 0', fontSize: 22, fontWeight: 700, lineHeight: 1.25, color: 'var(--text-primary)' }}>
+              Movimente lotes entre viveiros sem cair no povoamento.
+            </h1>
+            <p style={{ ...sectionSubtitle, marginTop: 6, maxWidth: 760 }}>
               Registre a saída de um viveiro e a entrada em outro com origem, destino, quantidade e responsável.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'end', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: space.inline, alignItems: 'end', flexWrap: 'wrap' }}>
             <div style={{ minWidth: 170 }}>
               <Input label="Data" type="date" value={form.transferDate} onChange={(e) => setForm((current) => ({ ...current, transferDate: e.target.value }))} />
             </div>
-            <Button size="lg" icon={<Plus size={16} />} onClick={handleSubmit}>
+            <Button icon={<Plus size={16} />} onClick={handleSubmit}>
               Registrar
             </Button>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, marginTop: 18 }}>
+        <div style={{ ...metricGrid, marginTop: space.section }}>
           <StatCard label="Viveiros ativos" value={isLoading ? '-' : activePonds.length} icon={<Truck size={18} />} />
           <StatCard label="Transferências" value={summary.totalTransfers} icon={<ArrowRightLeft size={18} />} />
           <StatCard label="Unidades movidas" value={fmt(summary.totalQuantity, 0)} icon={<RotateCw size={18} />} />
@@ -218,8 +229,8 @@ export function TransferenciaPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(0, 1.05fr)', gap: 16, alignItems: 'start' }}>
-        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(0, 1.05fr)', gap: space.page, alignItems: 'start' }}>
+        <div style={workspaceCard}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <Select label="Origem" options={fromOptions} value={form.fromPondId} onChange={(e) => setForm((current) => ({ ...current, fromPondId: e.target.value }))} placeholder="Selecione a origem" />
             <Select label="Destino" options={toOptions} value={form.toPondId} onChange={(e) => setForm((current) => ({ ...current, toPondId: e.target.value }))} placeholder="Selecione o destino" />
@@ -229,7 +240,7 @@ export function TransferenciaPage() {
             <Input label="Observação" value={form.note} onChange={(e) => setForm((current) => ({ ...current, note: e.target.value }))} placeholder="Detalhes adicionais da movimentação" />
           </div>
 
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+          <div style={{ display: 'flex', gap: space.tile, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: space.section }}>
             <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>
               {fromPond ? `Origem: ${pondLabel(fromPond)} (${statusLabel(fromPond.status)})` : 'Origem não selecionada'}
               {' · '}
@@ -241,20 +252,20 @@ export function TransferenciaPage() {
           </div>
 
           {error && (
-            <div style={{ padding: '12px 14px', borderRadius: 14, backgroundColor: 'rgba(220,38,38,0.08)', color: 'var(--danger)', border: '1px solid rgba(220,38,38,0.18)', fontSize: 13 }}>
+            <div style={{ padding: '12px 14px', borderRadius: radius.tile, backgroundColor: 'rgba(220,38,38,0.08)', color: 'var(--danger)', border: '1px solid rgba(220,38,38,0.18)', fontSize: 13 }}>
               {error}
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: space.tile }}>
             <InfoCard title="Origem" value={fromPond ? pondLabel(fromPond) : 'Selecione um viveiro'} />
             <InfoCard title="Destino" value={toPond ? pondLabel(toPond) : 'Selecione um destino'} />
             <InfoCard title="Resumo" value={`${summary.totalTransfers} transferências salvas`} />
           </div>
         </div>
 
-        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Transferências recentes</div>
+        <div style={workspaceCard}>
+          <h2 style={sectionTitle}>Transferências recentes</h2>
           <Table columns={columns} data={savedTransfers} rowKey={(row) => row.id} loading={transfersLoading} emptyMessage="Nenhuma transferência registrada ainda" />
         </div>
       </div>
@@ -268,19 +279,19 @@ function StatCard({ label, value, icon }: { label: string; value: number | strin
     <div style={{ ...workspaceTile, minHeight: 96 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <div style={workspaceTileLabel}>{label}</div>
-        <span style={{ width: 34, height: 34, borderRadius: 12, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--accent-soft)', color: 'var(--accent-dark)' }}>
+        <span style={{ width: 34, height: 34, borderRadius: radius.control, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--accent-soft)', color: 'var(--accent-dark)' }}>
           {icon}
         </span>
       </div>
-      <div style={{ ...workspaceTileValue, marginTop: 12, fontSize: 24, letterSpacing: '-0.04em' }}>{value}</div>
+      <div style={{ ...workspaceTileValue, marginTop: 10 }}>{value}</div>
     </div>
   );
 }
 
 function InfoCard({ title, value }: { title: string; value: string }) {
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 16, padding: 14, backgroundColor: 'var(--bg-elevated)' }}>
-      <div style={{ color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{title}</div>
+    <div style={{ ...workspaceTile, padding: 14 }}>
+      <div style={workspaceTileLabel}>{title}</div>
       <div style={{ marginTop: 8, color: 'var(--text-primary)', fontWeight: 700, lineHeight: 1.4 }}>{value}</div>
     </div>
   );

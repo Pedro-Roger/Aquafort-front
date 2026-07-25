@@ -11,7 +11,15 @@ import {
   workspaceTile,
   workspaceTileLabel,
   workspaceTileValue,
+  metricGrid,
+  pageStack,
+  radius,
+  sectionSubtitle,
+  sectionTitle,
+  space,
+  workspaceCard,
 } from '../components/ui/surfaces';
+import { EmptyState } from '../components/ui/EmptyState';
 import { useCreateMaterial, useMaterialUsages, useMaterials, useRegisterUsage } from '../hooks/useMaterials';
 import { usePonds } from '../hooks/usePonds';
 import type { MaterialUnit, MaterialUsage, Pond } from '../types';
@@ -131,21 +139,21 @@ export function MaterialsPage() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+    <div style={pageStack}>
       <div style={workspaceSurface}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.section, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div>
             <div style={workspaceEyebrow}>Materiais</div>
-            <div style={{ marginTop: 6, color: 'var(--text-muted)', fontSize: 13, maxWidth: 620 }}>
+            <div style={{ ...sectionSubtitle, marginTop: 6, maxWidth: 620 }}>
               Cadastre o produto e registre o que cada viveiro consumiu.
             </div>
           </div>
-          <Button size="lg" icon={<Plus size={16} />} onClick={() => setProductOpen(true)}>
+          <Button icon={<Plus size={16} />} onClick={() => setProductOpen(true)}>
             Cadastrar produto
           </Button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginTop: 16 }}>
+        <div style={{ ...metricGrid, marginTop: space.section }}>
           <div style={workspaceTile}>
             <div style={workspaceTileLabel}>Produtos</div>
             <div style={workspaceTileValue}>{materialsLoading ? '—' : materials.length}</div>
@@ -161,12 +169,14 @@ export function MaterialsPage() {
         </div>
       </div>
 
-      <section style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)' }}>
-        <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Registrar consumo</div>
-        <div style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 12 }}>
-          Clique no viveiro para lançar o que foi utilizado.
+      <section style={workspaceCard}>
+        <div>
+          <h2 style={sectionTitle}>Registrar consumo</h2>
+          <p style={{ ...sectionSubtitle, marginTop: 4 }}>
+            Clique no viveiro para lançar o que foi utilizado.
+          </p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: space.tile }}>
           {ponds.map((pond) => {
             const summary = usageByPond.get(pond.id);
             return (
@@ -174,20 +184,19 @@ export function MaterialsPage() {
                 key={pond.id}
                 onClick={() => setUsagePond(pond)}
                 style={{
+                  ...workspaceTile,
                   textAlign: 'left',
-                  border: '1px solid var(--border)',
-                  borderRadius: 16,
                   padding: 14,
-                  backgroundColor: 'var(--bg-elevated)',
                   cursor: 'pointer',
+                  font: 'inherit',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: space.inline }}>
                   <div>
                     <div style={workspaceTileLabel}>Viveiro</div>
-                    <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)', marginTop: 4 }}>{pond.code}</div>
+                    <div style={{ ...workspaceTileValue, fontSize: 17, marginTop: 4 }}>{pond.code}</div>
                   </div>
-                  <span style={{ width: 30, height: 30, borderRadius: 10, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--accent-soft)', color: 'var(--accent-dark)' }}>
+                  <span style={{ width: 30, height: 30, borderRadius: radius.control, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--accent-soft)', color: 'var(--accent-dark)' }}>
                     <Package size={15} />
                   </span>
                 </div>
@@ -199,11 +208,18 @@ export function MaterialsPage() {
               </button>
             );
           })}
+          {!ponds.length && (
+            <EmptyState
+              compact
+              title="Nenhum viveiro cadastrado."
+              description="Cadastre um viveiro para registrar o consumo de materiais."
+            />
+          )}
         </div>
       </section>
 
-      <section style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)' }}>
-        <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Últimos lançamentos</div>
+      <section style={workspaceCard}>
+        <h2 style={sectionTitle}>Últimos lançamentos</h2>
         <Table
           columns={usageColumns}
           data={usages}

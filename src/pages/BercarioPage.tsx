@@ -8,7 +8,8 @@ import { Table } from '../components/ui/Table';
 import { usePonds } from '../hooks/usePonds';
 import { useNurseryActivities, useCreateNurseryActivity } from '../hooks/useNursery';
 import { PondType } from '../types';
-import { workspaceSurface } from '../components/ui/surfaces';
+import { pageStack, radius, sectionSubtitle, sectionTitle, space, workspaceCard, workspaceEyebrow, workspaceSurface, workspaceTile, workspaceTileLabel, workspaceTileValue } from '../components/ui/surfaces';
+import { EmptyState } from '../components/ui/EmptyState';
 
 function fmt(value: number | null | undefined, digits = 2) {
   if (value === null || value === undefined || Number.isNaN(value)) return '-';
@@ -167,31 +168,29 @@ export function BercarioPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%' }}>
-      <div
-        style={{
-          ...workspaceSurface,
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+    <div style={{ ...pageStack, height: '100%' }}>
+      <div style={workspaceSurface}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.section, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <div>
-            <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.7 }}>Berçário</div>
-            <h1 style={{ margin: '8px 0 0', fontSize: 30, lineHeight: 1.05, letterSpacing: '-0.05em' }}>PL grama, insumos e manejo operacional.</h1>
-            <p style={{ marginTop: 10, color: 'var(--text-muted)', maxWidth: 760 }}>
-              Registre somente tanques do tipo berçário, com biometria de PL grama e manejo de água opcional.
+            <div style={workspaceEyebrow}>Berçário</div>
+            <h1 style={{ margin: '8px 0 0', fontSize: 22, fontWeight: 700, lineHeight: 1.25, color: 'var(--text-primary)' }}>
+              PL grama, insumos e manejo operacional.
+            </h1>
+            <p style={{ ...sectionSubtitle, marginTop: 6, maxWidth: 760 }}>
+              Registre somente viveiros do tipo berçário, com biometria de PL grama e manejo de água opcional.
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'end', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: space.inline, alignItems: 'end', flexWrap: 'wrap' }}>
             <div style={{ minWidth: 170 }}>
               <Input label="Data" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
-            <Button size="lg" icon={<Plus size={16} />} onClick={() => setOpen(true)} style={{ backgroundColor: '#fff', color: '#0f172a', boxShadow: 'none' }}>
+            <Button variant="secondary" icon={<Plus size={16} />} onClick={() => setOpen(true)}>
               Novo registro
             </Button>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, marginTop: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: space.tile, marginTop: space.section }}>
           <StatCard label="Berçários ativos" value={pondsLoading ? '-' : ponds.length} icon={<Layers size={18} />} />
           <StatCard label="Registros do dia" value={records.isLoading ? '-' : todayRecords.length} icon={<ShieldCheck size={18} />} />
           <StatCard label="PL grama" value={`${fmt(totals.plGram, 2)} g`} icon={<FlaskConical size={18} />} />
@@ -199,18 +198,18 @@ export function BercarioPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(0, 1.05fr)', gap: 16, minHeight: 0, flex: 1 }}>
-        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Tanques de berçário</div>
-          <div style={{ display: 'grid', gap: 10, overflowY: 'auto' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.95fr) minmax(0, 1.05fr)', gap: space.page, minHeight: 0, flex: 1 }}>
+        <div style={{ ...workspaceCard, minHeight: 0 }}>
+          <h2 style={sectionTitle}>Viveiros de berçário</h2>
+          <div style={{ display: 'grid', gap: space.inline, overflowY: 'auto', alignContent: 'start' }}>
             {groupedByPond.map(({ pond, latest }) => (
-              <div key={pond.id} style={{ border: '1px solid var(--border)', borderRadius: 14, padding: 14, backgroundColor: 'var(--bg-elevated)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
+              <div key={pond.id} style={{ ...workspaceTile, padding: 14, borderRadius: radius.tile }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.tile, alignItems: 'flex-start' }}>
                   <div>
                     <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{pond.code}</div>
                     <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>{pond.name}</div>
                   </div>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>PL g: {latest ? fmt(latest.plGram, 2) : '—'}</div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: 12, fontVariantNumeric: 'tabular-nums' }}>PL g: {latest ? fmt(latest.plGram, 2) : '—'}</div>
                 </div>
                 <div style={{ marginTop: 10, color: 'var(--text-secondary)', fontSize: 12 }}>
                   Insumos: {latest ? [latest.probioticKg, latest.bicarbonateKg, latest.chlorineKg, latest.bokashiKg].some(Boolean) ? 'registrados' : 'sem uso no dia' : 'sem registro'}
@@ -221,13 +220,16 @@ export function BercarioPage() {
               </div>
             ))}
             {!pondsLoading && ponds.length === 0 && (
-              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Nenhum tanque do tipo berçário encontrado.</div>
+              <EmptyState
+                title="Nenhum viveiro do tipo berçário encontrado."
+                description="Cadastre um viveiro do tipo berçário para registrar PL grama e insumos."
+              />
             )}
           </div>
         </div>
 
-        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Registros do dia</div>
+        <div style={{ ...workspaceCard, minHeight: 0 }}>
+          <h2 style={sectionTitle}>Registros do dia</h2>
           <div style={{ flex: 1, minHeight: 0 }}>
             <Table columns={columns} data={todayRecords} rowKey={(row) => row.id} loading={records.isLoading} emptyMessage="Nenhum registro para a data selecionada" />
           </div>
@@ -265,12 +267,12 @@ export function BercarioPage() {
 
 function StatCard({ label, value, icon }: { label: string; value: string | number; icon: ReactNode }) {
   return (
-    <div style={{ borderRadius: 18, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+    <div style={{ ...workspaceTile, padding: '14px 16px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)' }}>
-        <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
+        <span style={workspaceTileLabel}>{label}</span>
         {icon}
       </div>
-      <div style={{ marginTop: 10, fontSize: 24, fontWeight: 800 }}>{value}</div>
+      <div style={workspaceTileValue}>{value}</div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import React from 'react';
+import { controlHeight, radius } from './surfaces';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
@@ -12,15 +13,15 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantStyles: Record<Variant, React.CSSProperties> = {
   primary: {
-    background: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)',
+    backgroundColor: 'var(--accent)',
     color: '#fff',
-    border: '1px solid transparent',
-    boxShadow: '0 12px 22px rgba(2, 132, 199, 0.18)',
+    border: '1px solid var(--accent)',
+    boxShadow: '0 1px 2px rgba(15, 23, 42, 0.04)',
   },
   secondary: {
     backgroundColor: 'var(--bg-card)',
     color: 'var(--text-primary)',
-    border: '1px solid var(--border)',
+    border: '1px solid var(--border-strong)',
   },
   ghost: {
     backgroundColor: 'transparent',
@@ -34,10 +35,11 @@ const variantStyles: Record<Variant, React.CSSProperties> = {
   },
 };
 
+// Heights are locked to the input scale so a "filtro + botão" row lines up.
 const sizeStyles: Record<Size, React.CSSProperties> = {
-  sm: { padding: '5px 12px', fontSize: '12px', borderRadius: '999px' },
-  md: { padding: '8px 16px', fontSize: '14px', borderRadius: '999px' },
-  lg: { padding: '11px 20px', fontSize: '15px', borderRadius: '999px' },
+  sm: { height: 30, padding: '0 12px', fontSize: '12px', borderRadius: radius.control },
+  md: { height: controlHeight, padding: '0 16px', fontSize: '14px', borderRadius: radius.control },
+  lg: { height: 44, padding: '0 20px', fontSize: '15px', borderRadius: radius.control },
 };
 
 export function Button({

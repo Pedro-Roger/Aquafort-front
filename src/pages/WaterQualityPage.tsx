@@ -23,6 +23,20 @@ import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Table } from '../components/ui/Table';
+import { EmptyState } from '../components/ui/EmptyState';
+import {
+  controlHeight,
+  pageStack,
+  radius,
+  sectionTitle,
+  shadow,
+  space,
+  workspaceEyebrow,
+  workspaceLink,
+  workspaceMetricValue,
+  workspaceSurface,
+  workspaceTileLabel,
+} from '../components/ui/surfaces';
 import type { WaterQuality } from '../types';
 import { CyclePhase } from '../types';
 
@@ -178,14 +192,14 @@ export function WaterQualityPage() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '20px' }}>
+    <div style={{ ...pageStack, height: '100%' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+      <div style={{ ...workspaceSurface, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: space.tile }}>
         <div>
-          <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>Qualidade da Água</h1>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Leitura do ciclo e alerta operacional.</p>
+          <div style={workspaceEyebrow}>Qualidade da Água</div>
+          <h1 style={{ ...sectionTitle, marginTop: 6 }}>Leitura do ciclo e alerta operacional.</h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: space.tile, flexWrap: 'wrap' }}>
           {/* Socket indicator */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: socketConnected ? 'var(--accent)' : 'var(--text-muted)' }}>
             {socketConnected ? <Wifi size={14} /> : <WifiOff size={14} />}
@@ -200,8 +214,9 @@ export function WaterQualityPage() {
             style={{
               backgroundColor: 'var(--bg-input)',
               border: '1px solid var(--border)',
-              borderRadius: '8px',
-              padding: '9px 12px',
+              borderRadius: radius.control,
+              height: controlHeight,
+              padding: '0 12px',
               color: 'var(--text-primary)',
               fontSize: '13px',
               cursor: 'pointer',
@@ -214,8 +229,7 @@ export function WaterQualityPage() {
           </select>
           <Button
             variant="primary"
-            size="sm"
-            icon={<Plus size={14} />}
+            icon={<Plus size={16} />}
             disabled={!selectedCycleId}
             onClick={() => setNewModal(true)}
           >
@@ -224,21 +238,12 @@ export function WaterQualityPage() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: space.inline }}>
         {quickLinks.map((item) => (
           <Link
             key={item.to}
             to={item.to}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 999,
-              border: '1px solid var(--border)',
-              background: 'var(--bg-card)',
-              color: 'var(--text-primary)',
-              textDecoration: 'none',
-              fontSize: 13,
-              fontWeight: 600,
-            }}
+            style={workspaceLink}
           >
             {item.label}
           </Link>
@@ -248,7 +253,7 @@ export function WaterQualityPage() {
       {selectedCycleId ? (
         <>
           {/* Real-time parameter cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: space.tile }}>
             {(Object.keys(paramConfig) as ParamTab[]).map((param) => {
               const cfg = paramConfig[param];
               const val = lastMeasurement?.[param];
@@ -257,20 +262,18 @@ export function WaterQualityPage() {
                 <div
                   key={param}
                   style={{
-                    backgroundColor: 'var(--bg-card)',
+                    ...workspaceSurface,
                     border: `1px solid ${oor ? 'var(--danger)' : 'var(--border)'}`,
-                    borderRadius: '12px',
                     padding: '14px 16px',
-                    borderLeft: `3px solid ${oor ? '#1d4ed8' : cfg.color}`,
-                    boxShadow: '0 10px 24px rgba(15, 23, 42, 0.05)',
+                    borderLeft: `3px solid ${oor ? 'var(--danger)' : cfg.color}`,
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: cfg.color }}>
                     {cfg.icon}
-                    <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-secondary)' }}>{cfg.label}</span>
+                    <span style={workspaceTileLabel}>{cfg.label}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                    <span style={{ fontSize: '22px', fontWeight: 700, color: oor ? 'var(--danger)' : 'var(--text-primary)' }}>
+                    <span style={{ ...workspaceMetricValue, marginTop: 0, fontSize: 22, color: oor ? 'var(--danger)' : 'var(--text-primary)' }}>
                       {val?.toFixed(2) ?? '—'}
                     </span>
                     <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{cfg.unit}</span>
@@ -284,17 +287,9 @@ export function WaterQualityPage() {
           </div>
 
           {/* Chart */}
-          <div
-            style={{
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              borderRadius: '16px',
-              padding: '16px 20px',
-              boxShadow: '0 10px 24px rgba(15, 23, 42, 0.05)',
-            }}
-          >
+          <div style={workspaceSurface}>
             {/* Param tabs */}
-            <div style={{ display: 'flex', gap: '4px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', gap: '4px', marginBottom: space.section, flexWrap: 'wrap' }}>
               {(Object.keys(paramConfig) as ParamTab[]).map((param) => {
                 const cfg = paramConfig[param];
                 const isActive = activeParam === param;
@@ -303,13 +298,13 @@ export function WaterQualityPage() {
                     key={param}
                     onClick={() => setActiveParam(param)}
                     style={{
-                      padding: '5px 14px',
-                      borderRadius: '6px',
-                      border: '1px solid transparent',
+                      padding: '6px 14px',
+                      borderRadius: radius.pill,
+                      border: `1px solid ${isActive ? 'var(--accent-soft-strong)' : 'transparent'}`,
                       fontSize: '12px',
-                      fontWeight: isActive ? 600 : 400,
+                      fontWeight: 600,
                       backgroundColor: isActive ? 'var(--accent-soft)' : 'transparent',
-                      color: isActive ? cfg.color : 'var(--text-secondary)',
+                      color: isActive ? 'var(--accent-dark)' : 'var(--text-secondary)',
                       cursor: 'pointer',
                     }}
                   >
@@ -325,7 +320,7 @@ export function WaterQualityPage() {
                 <XAxis dataKey="time" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
                 <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} width={40} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: radius.tile, boxShadow: shadow.raised }}
                   labelStyle={{ color: 'var(--text-secondary)' }}
                   itemStyle={{ color: paramConfig[activeParam].color }}
                 />
@@ -343,24 +338,16 @@ export function WaterQualityPage() {
           </div>
 
           {/* Série Temporal */}
-          <div
-            style={{
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              borderRadius: '16px',
-              padding: '16px 20px',
-              boxShadow: '0 10px 24px rgba(15, 23, 42, 0.05)',
-            }}
-          >
-            <div style={{ marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>Série Temporal</span>
+          <div style={workspaceSurface}>
+            <div style={{ marginBottom: space.section, display: 'flex', alignItems: 'baseline', gap: space.inline, flexWrap: 'wrap' }}>
+              <h2 style={sectionTitle}>Série Temporal</h2>
               <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>histórico completo por parâmetro</span>
             </div>
             {seriesLoading ? (
-              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Carregando série...</div>
+              <EmptyState compact title="Carregando série..." icon={null} />
             ) : series ? (
               <>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: space.section }}>
                   {([
                     { key: 'doMgL', label: 'O₂ (mg/L)', color: '#0ea5e9' },
                     { key: 'ph', label: 'pH', color: '#38bdf8' },
@@ -372,7 +359,7 @@ export function WaterQualityPage() {
                       key={p.key}
                       onClick={() => setSeriesParam(p.key)}
                       style={{
-                        padding: '4px 10px', borderRadius: 20, fontSize: 11, cursor: 'pointer',
+                        padding: '5px 12px', borderRadius: radius.pill, fontSize: 11, fontWeight: 600, cursor: 'pointer',
                         backgroundColor: seriesParam === p.key ? p.color : 'transparent',
                         border: `1px solid ${seriesParam === p.key ? p.color : 'var(--border)'}`,
                         color: seriesParam === p.key ? '#fff' : 'var(--text-secondary)',
@@ -383,9 +370,7 @@ export function WaterQualityPage() {
                   ))}
                 </div>
                 {series[seriesParam].length === 0 ? (
-                  <div style={{ color: 'var(--text-muted)', fontSize: 13, textAlign: 'center', padding: 24 }}>
-                    Sem medições para exibir.
-                  </div>
+                  <EmptyState title="Sem medições para exibir." />
                 ) : (
                   <ResponsiveContainer width="100%" height={200}>
                     <LineChart
@@ -399,7 +384,7 @@ export function WaterQualityPage() {
                       <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 10 }} />
                       <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 10 }} domain={['auto', 'auto']} width={40} />
                       <Tooltip
-                        contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px' }}
+                        contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: radius.tile, boxShadow: shadow.raised }}
                         labelStyle={{ color: 'var(--text-secondary)' }}
                         itemStyle={{ color: '#0ea5e9' }}
                       />
@@ -418,18 +403,16 @@ export function WaterQualityPage() {
           {/* History table */}
           <div
             style={{
+              ...workspaceSurface,
               flex: 1,
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border)',
-              borderRadius: '16px',
+              padding: 0,
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
-              boxShadow: '0 10px 24px rgba(15, 23, 42, 0.05)',
             }}
           >
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-              <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--bg-elevated)' }}>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
                 Histórico de Medições
               </span>
               <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '8px' }}>
@@ -448,22 +431,12 @@ export function WaterQualityPage() {
           </div>
         </>
       ) : (
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexDirection: 'column',
-            gap: '16px',
-            color: 'var(--text-muted)',
-          }}
-        >
-          <Droplets size={48} style={{ opacity: 0.4 }} />
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ fontSize: '16px', fontWeight: 500, marginBottom: '4px' }}>Selecione um lote</p>
-            <p style={{ fontSize: '13px' }}>Escolha um lote ativo para visualizar os dados de qualidade da água</p>
-          </div>
+        <div style={{ ...workspaceSurface, flex: 1, display: 'grid', placeItems: 'center' }}>
+          <EmptyState
+            icon={<Droplets size={22} />}
+            title="Selecione um lote"
+            description="Escolha um lote ativo para visualizar os dados de qualidade da água"
+          />
         </div>
       )}
 

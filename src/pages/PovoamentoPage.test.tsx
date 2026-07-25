@@ -29,6 +29,6 @@ describe('PovoamentoPage', () => {
     expect(screen.getByText('Ração')).toBeInTheDocument()
     expect(screen.getByText('Biometrias')).toBeInTheDocument()
     expect(screen.getByText('Salvar povoamento')).toBeInTheDocument()
-    expect(screen.getByText('Tanques disponíveis')).toBeInTheDocument()
+    expect(screen.getByText('Viveiros disponíveis')).toBeInTheDocument()
   })
 })

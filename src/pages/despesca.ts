@@ -95,7 +95,7 @@ export function buildDespescaQuickActions(): DespescaQuickAction[] {
   return [
     { label: 'Recalcular projeção', description: 'Atualizar a janela com a leitura mais recente.', kind: 'primary', action: 'recompute' },
     { label: 'Abrir Biometrias', description: 'Conferir o crescimento que alimenta a projeção.', to: '/biometrias', kind: 'secondary', action: 'navigate-biometrias' },
-    { label: 'Ir para Tanques', description: 'Revisar os viveiros que serão colhidos.', to: '/tanques', kind: 'ghost', action: 'navigate-tanques' },
+    { label: 'Ir para Viveiros', description: 'Revisar os viveiros que serão colhidos.', to: '/tanques', kind: 'ghost', action: 'navigate-tanques' },
     { label: 'Ver janela ideal', description: 'Destacar o trecho mais favorável do gráfico.', kind: 'ghost', action: 'focus-chart' },
   ];
 }

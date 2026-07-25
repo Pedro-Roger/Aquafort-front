@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { radius, shadow } from './surfaces';
 
 interface ModalProps {
   open: boolean;
@@ -40,9 +41,9 @@ export function Modal({ open, onClose, title, children, width = 480 }: ModalProp
       <div
         style={{
           backgroundColor: 'var(--bg-card)',
-          borderRadius: '24px',
+          borderRadius: radius.card,
           border: '1px solid var(--border)',
-          boxShadow: '0 28px 70px rgba(15, 23, 42, 0.18)',
+          boxShadow: shadow.raised,
           width: '100%',
           maxWidth: width,
           maxHeight: '90vh',
@@ -56,9 +57,9 @@ export function Modal({ open, onClose, title, children, width = 480 }: ModalProp
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '18px 22px',
+            padding: '16px 20px',
             borderBottom: '1px solid var(--border)',
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.92), rgba(255,255,255,0.78))',
+            backgroundColor: 'var(--bg-elevated)',
           }}
         >
           <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>{title}</h2>
@@ -78,7 +79,7 @@ export function Modal({ open, onClose, title, children, width = 480 }: ModalProp
             <X size={18} />
           </button>
         </div>
-        <div style={{ padding: '22px', overflowY: 'auto', flex: 1 }}>
+        <div style={{ padding: 20, overflowY: 'auto', flex: 1 }}>
           {children}
         </div>
       </div>
