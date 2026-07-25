@@ -152,12 +152,7 @@ export function OperationsDashboardPage() {
       header: 'FCA',
       align: 'right' as const,
       render: (row: FeedingTableRow) =>
-        row.fca == null ? '—' : `${fmt(row.fca, 2)} kg/kg`,
-    },
-    {
-      key: 'responsibleName',
-      header: 'Último trato',
-      render: (row: FeedingTableRow) => `${row.responsibleName} · ${fmtDate(row.lastFedAt)}`,
+        row.fca == null ? '—' : fmt(row.fca, 2),
     },
   ]
 

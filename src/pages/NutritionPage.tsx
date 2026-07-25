@@ -217,7 +217,7 @@ export function NutritionPage() {
       key: 'fca',
       header: 'FCA',
       align: 'right' as const,
-      render: (row: FeedingTableRow) => (row.fca == null ? '—' : `${fmt(row.fca, 2)} kg/kg`),
+      render: (row: FeedingTableRow) => (row.fca == null ? '—' : fmt(row.fca, 2)),
     },
   ];
 

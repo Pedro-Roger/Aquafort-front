@@ -67,6 +67,20 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      const storedToken = localStorage.getItem(TOKEN_KEY);
+      const sentToken = String(originalRequest.headers?.Authorization ?? '').replace('Bearer ', '');
+
+      // A request that left before a refresh comes back 401 carrying the old
+      // token. The session was already renewed by whoever refreshed, so this
+      // one just needs sending again — trying to refresh with the rotated
+      // token would fail and end the session, which is what was logging
+      // people out mid-use.
+      if (storedToken && sentToken && sentToken !== storedToken) {
+        originalRequest._retry = true;
+        originalRequest.headers.Authorization = `Bearer ${storedToken}`;
+        return api(originalRequest);
+      }
+
       const refreshToken = localStorage.getItem(REFRESH_KEY);
 
       if (!refreshToken) {
@@ -104,6 +118,7 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
+
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(REFRESH_KEY);
         window.location.href = '/login';
