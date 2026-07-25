@@ -5,6 +5,7 @@ import { ArrowRightLeft, ClipboardList, Droplets, FileSpreadsheet, Fish, FlaskCo
   Cpu,
   Users,
   TrendingUp,
+  CalendarDays,
 } from 'lucide-react';
 
 interface NavItem {
@@ -23,6 +24,7 @@ const navItems: NavItem[] = [
   { to: '/consumo', label: 'Consumo x peso', icon: <TrendingUp size={18} /> },
   { to: '/water-quality', label: 'Qualidade', icon: <Droplets size={18} /> },
   { to: '/despesca', label: 'Despesca', icon: <Waves size={18} /> },
+  { to: '/despesca-calendario', label: 'Calendário', icon: <CalendarDays size={18} /> },
   { to: '/arracoadores', label: 'Arraçoadores', icon: <Users size={18} /> },
   { to: '/alimentadores', label: 'Alimentadores', icon: <Cpu size={18} /> },
   { to: '/materiais', label: 'Materiais', icon: <Boxes size={18} /> },

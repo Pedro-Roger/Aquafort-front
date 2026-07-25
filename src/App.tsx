@@ -56,6 +56,7 @@ function App() {
           <Route path="/biometrics" element={<RedirectTo to="/biometrias" />} />
           <Route path="/water-quality" element={<WaterQualityPage />} />
           <Route path="/despesca" element={<HarvestPlanningPage />} />
+          <Route path="/despesca-calendario" element={<HarvestCalendarPage />} />
           <Route path="/relatorios-operacionais" element={<OperationalReportsPage />} />
           <Route path="/harvest-planning" element={<RedirectTo to="/despesca" />} />
           <Route path="/viveiros" element={<RedirectTo to="/tanques" />} />

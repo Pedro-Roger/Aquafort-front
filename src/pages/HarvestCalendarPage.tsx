@@ -299,7 +299,7 @@ export function HarvestCalendarPage() {
           <div style={{ display: 'flex', gap: space.inline, alignItems: 'end', flexWrap: 'wrap' }}>
             <div style={{ minWidth: 210 }}>
               <Select
-                label="Viveiro"
+                label="Filtrar por viveiro"
                 options={[{ value: '', label: 'Todos os viveiros' }, ...pondOptions]}
                 value={pondFilter}
                 onChange={(e) => setPondFilter(e.target.value)}
