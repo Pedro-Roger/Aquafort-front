@@ -523,3 +523,27 @@ export interface FeederRanking {
   biomassKg: number;
   ponds: FeederPondPerformance[];
 }
+
+/** Situação de uma despesca agendada no calendário. */
+export type HarvestScheduleStatus = 'AGENDADA' | 'CONCLUIDA' | 'CANCELADA';
+
+/** Alguém escalado para a despesca. `userId` só existe quando é um usuário do sistema. */
+export interface HarvestScheduleParticipant {
+  id: string;
+  name: string;
+  userId?: string | null;
+  role?: string | null;
+}
+
+export interface HarvestSchedule {
+  id: string;
+  pondId: string;
+  cycleId?: string | null;
+  /** ISO com hora — o calendário agrupa pelo dia local. */
+  scheduledAt: string;
+  status: HarvestScheduleStatus;
+  note?: string | null;
+  pond: Pick<Pond, 'id' | 'code' | 'name' | 'areaHa'>;
+  cycle: Pick<Cycle, 'id' | 'larvaeLotCode' | 'plCount'> | null;
+  participants: HarvestScheduleParticipant[];
+}

@@ -6,6 +6,7 @@ import { OperationsDashboardPage } from './pages/OperationsDashboardPage'
 import { WaterQualityPage } from './pages/WaterQualityPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { HarvestPlanningPage } from './pages/HarvestPlanningPage'
+import { HarvestCalendarPage } from './pages/HarvestCalendarPage'
 import { NutritionPage } from './pages/NutritionPage'
 import { BiometricsPage } from './pages/BiometricsPage'
 import { InventoryPage } from './pages/InventoryPage'
@@ -14,6 +15,7 @@ import { TransferenciaPage } from './pages/TransferenciaPage'
 import { TanquesPage } from './pages/TanquesPage'
 import { FeedersPage } from './pages/FeedersPage';
 import { MaterialsPage } from './pages/MaterialsPage';
+import { ConsumptionChartPage } from './pages/ConsumptionChartPage';
 import { AutoFeedersPage } from './pages/AutoFeedersPage';
 import { SettingsPage } from './pages/SettingsPage'
 import { OperationalReportsPage } from './pages/OperationalReportsPage'
@@ -59,6 +61,7 @@ function App() {
           <Route path="/viveiros" element={<RedirectTo to="/tanques" />} />
           <Route path="/arracoadores" element={<FeedersPage />} />
           <Route path="/materiais" element={<MaterialsPage />} />
+          <Route path="/consumo" element={<ConsumptionChartPage />} />
           <Route path="/alimentadores" element={<AutoFeedersPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
