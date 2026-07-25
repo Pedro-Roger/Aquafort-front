@@ -51,6 +51,8 @@ export interface Pond {
   status: PondStatus;
   areaHa: number;
   volumeM3: number;
+  /** Automatic feeders installed in this pond. */
+  feederCount?: number;
   activeCycleId?: string;
   farmId: string;
   createdAt: string;
@@ -459,4 +461,49 @@ export interface PondTransfer {
   createdAt: string;
   fromPond: Pick<Pond, 'id' | 'code' | 'name' | 'status'>;
   toPond: Pick<Pond, 'id' | 'code' | 'name' | 'status'>;
+}
+
+export type MaterialUnit = 'UN' | 'KG' | 'L' | 'SC';
+
+export interface Material {
+  id: string;
+  name: string;
+  unit: MaterialUnit;
+  packageWeightKg?: number | null;
+  unitPrice?: number | null;
+  active: boolean;
+}
+
+export interface MaterialUsage {
+  id: string;
+  pondId: string;
+  materialId: string;
+  quantity: number;
+  totalCost?: number | null;
+  usedAt: string;
+  responsible?: string | null;
+  note?: string | null;
+  pond: Pick<Pond, 'id' | 'code' | 'name'>;
+  material: Pick<Material, 'id' | 'name' | 'unit' | 'unitPrice'>;
+}
+
+export interface Feeder {
+  id: string;
+  name: string;
+  document?: string | null;
+  phone?: string | null;
+  active: boolean;
+  ponds: Pick<Pond, 'id' | 'code' | 'name' | 'type' | 'status'>[];
+}
+
+export interface FeederRanking {
+  position: number;
+  feederId: string;
+  feederName: string;
+  pondCount: number;
+  pondCodes: string[];
+  weeklyGrowthG: number | null;
+  averageWeightG: number | null;
+  survivalPct: number | null;
+  biomassKg: number;
 }

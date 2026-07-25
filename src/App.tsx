@@ -12,6 +12,9 @@ import { InventoryPage } from './pages/InventoryPage'
 import { PovoamentoPage } from './pages/PovoamentoPage'
 import { TransferenciaPage } from './pages/TransferenciaPage'
 import { TanquesPage } from './pages/TanquesPage'
+import { FeedersPage } from './pages/FeedersPage';
+import { MaterialsPage } from './pages/MaterialsPage';
+import { AutoFeedersPage } from './pages/AutoFeedersPage';
 import { SettingsPage } from './pages/SettingsPage'
 import { OperationalReportsPage } from './pages/OperationalReportsPage'
 
@@ -54,6 +57,9 @@ function App() {
           <Route path="/relatorios-operacionais" element={<OperationalReportsPage />} />
           <Route path="/harvest-planning" element={<RedirectTo to="/despesca" />} />
           <Route path="/viveiros" element={<RedirectTo to="/tanques" />} />
+          <Route path="/arracoadores" element={<FeedersPage />} />
+          <Route path="/materiais" element={<MaterialsPage />} />
+          <Route path="/alimentadores" element={<AutoFeedersPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
 

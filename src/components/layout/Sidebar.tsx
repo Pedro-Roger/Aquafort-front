@@ -1,6 +1,10 @@
 import type React from 'react';
 import { NavLink } from 'react-router-dom';
-import { ArrowRightLeft, ClipboardList, Droplets, FileSpreadsheet, Fish, FlaskConical, LayoutDashboard, List, Settings2, Waves } from 'lucide-react';
+import { ArrowRightLeft, ClipboardList, Droplets, FileSpreadsheet, Fish, FlaskConical, LayoutDashboard, List, Settings2, Waves,
+  Boxes,
+  Cpu,
+  Users,
+} from 'lucide-react';
 
 interface NavItem {
   to: string;
@@ -17,6 +21,9 @@ const navItems: NavItem[] = [
   { to: '/biometrias', label: 'Biometrias', icon: <FlaskConical size={18} /> },
   { to: '/water-quality', label: 'Qualidade', icon: <Droplets size={18} /> },
   { to: '/despesca', label: 'Despesca', icon: <Waves size={18} /> },
+  { to: '/arracoadores', label: 'Arraçoadores', icon: <Users size={18} /> },
+  { to: '/alimentadores', label: 'Alimentadores', icon: <Cpu size={18} /> },
+  { to: '/materiais', label: 'Materiais', icon: <Boxes size={18} /> },
   { to: '/relatorios-operacionais', label: 'Relatórios', icon: <FileSpreadsheet size={18} /> },
   { to: '/settings', label: 'Configurações', icon: <Settings2 size={18} /> },
 ];
