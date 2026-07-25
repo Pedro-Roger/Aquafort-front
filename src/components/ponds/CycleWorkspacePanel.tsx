@@ -3,6 +3,10 @@ import { AlertCircle, CheckCircle2, RefreshCcw } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
 import {
+  radius,
+  sectionSubtitle,
+  sectionTitle,
+  space,
   workspaceEyebrow,
   workspaceTile,
   workspaceTileDetail,
@@ -55,12 +59,12 @@ export function CycleWorkspacePanel({
   const id = useId();
 
   return (
-    <div style={{ minWidth: 0, display: 'grid', gap: 14 }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end', justifyContent: 'space-between' }}>
+    <div style={{ minWidth: 0, display: 'grid', gap: space.section }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: space.section, alignItems: 'flex-end', justifyContent: 'space-between' }}>
         <div style={{ minWidth: 0 }}>
           <div style={workspaceEyebrow}>{eyebrow}</div>
-          <h2 style={{ margin: '6px 0 0', fontSize: 20, lineHeight: 1.15, letterSpacing: '-0.02em' }}>{title}</h2>
-          <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--text-muted)', maxWidth: 620 }}>{description}</p>
+          <h2 style={{ ...sectionTitle, marginTop: 6 }}>{title}</h2>
+          <p style={{ ...sectionSubtitle, marginTop: 6, maxWidth: 620 }}>{description}</p>
         </div>
         <div style={{ minWidth: 260, flex: '0 1 320px' }}>
           <Select
@@ -74,7 +78,7 @@ export function CycleWorkspacePanel({
         </div>
       </div>
 
-      <div style={{ display: 'grid', gap: 12 }}>
+      <div style={{ display: 'grid', gap: space.tile }}>
         {status && (
           <div
             style={{
@@ -82,7 +86,7 @@ export function CycleWorkspacePanel({
               alignItems: 'flex-start',
               gap: 10,
               padding: 12,
-              borderRadius: 16,
+              borderRadius: radius.tile,
               backgroundColor: 'var(--accent-soft)',
               border: '1px solid var(--accent-soft-strong)',
               color: 'var(--accent-dark)',
@@ -93,7 +97,7 @@ export function CycleWorkspacePanel({
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: space.tile }}>
           {metrics.map((metric) => (
             <div key={metric.label} style={workspaceTile}>
               <div style={workspaceTileLabel}>{metric.label}</div>
@@ -103,7 +107,7 @@ export function CycleWorkspacePanel({
           ))}
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'flex-end' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: space.inline, justifyContent: 'flex-end' }}>
           {actions.map((action) => (
             <Button
               key={action.label}

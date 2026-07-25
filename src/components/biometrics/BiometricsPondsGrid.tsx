@@ -1,4 +1,6 @@
 import { BarChart3, Plus } from 'lucide-react';
+import { EmptyState } from '../ui/EmptyState';
+import { radius, workspaceTileLabel, workspaceTileValue } from '../ui/surfaces';
 import type { Pond } from '../../types';
 
 interface BiometricsPondsGridProps {
@@ -21,7 +23,7 @@ export function BiometricsPondsGrid({
           <div
             key={i}
             style={{
-              borderRadius: 16,
+              borderRadius: radius.tile,
               padding: 16,
               background: 'var(--bg-card)',
               border: '1px solid var(--border)',
@@ -36,18 +38,11 @@ export function BiometricsPondsGrid({
 
   if (!ponds.length) {
     return (
-      <div
-        style={{
-          textAlign: 'center',
-          padding: '40px 20px',
-          color: 'var(--text-muted)',
-          borderRadius: 16,
-          border: '2px dashed var(--border)',
-        }}
-      >
-        <BarChart3 size={32} style={{ opacity: 0.4, margin: '0 auto 12px' }} />
-        <p>Nenhum viveiro ativo. Inicie um ciclo para ver os dados.</p>
-      </div>
+      <EmptyState
+        icon={<BarChart3 size={22} />}
+        title="Nenhum viveiro ativo. Inicie um ciclo para ver os dados."
+        style={{ border: '1px dashed var(--border)' }}
+      />
     );
   }
 
@@ -68,12 +63,13 @@ export function BiometricsPondsGrid({
             key={pond.id}
             onClick={() => onPondClick(pond)}
             style={{
-              borderRadius: 16,
+              borderRadius: radius.tile,
               padding: 16,
+              // `--primary` never existed, so the old hover border was a no-op.
               background: 'var(--bg-card)',
-              border: '2px solid var(--border)',
+              border: '1px solid var(--border)',
               cursor: 'pointer',
-              transition: 'all 0.2s ease',
+              transition: 'border-color 0.15s, background-color 0.15s, transform 0.15s',
               textAlign: 'left',
               display: 'flex',
               flexDirection: 'column',
@@ -81,11 +77,12 @@ export function BiometricsPondsGrid({
               minHeight: 140,
               position: 'relative',
               overflow: 'hidden',
+              font: 'inherit',
             }}
             onMouseEnter={(e) => {
               const el = e.currentTarget;
-              el.style.borderColor = 'var(--primary)';
-              el.style.background = 'linear-gradient(135deg, var(--bg-card), rgba(14, 165, 233, 0.05))';
+              el.style.borderColor = 'var(--accent)';
+              el.style.background = 'var(--bg-card-hover)';
               el.style.transform = 'translateY(-2px)';
             }}
             onMouseLeave={(e) => {
@@ -97,10 +94,10 @@ export function BiometricsPondsGrid({
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
               <div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <div style={workspaceTileLabel}>
                   Viveiro
                 </div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>
+                <div style={{ ...workspaceTileValue, fontSize: 18, marginTop: 4 }}>
                   {pond.code || pond.name || '—'}
                 </div>
               </div>
@@ -108,12 +105,12 @@ export function BiometricsPondsGrid({
                 style={{
                   width: 32,
                   height: 32,
-                  borderRadius: 8,
-                  background: hasData ? 'rgba(34, 197, 94, 0.1)' : 'rgba(100, 116, 139, 0.1)',
+                  borderRadius: radius.control,
+                  background: hasData ? 'var(--accent-soft)' : 'var(--bg-elevated)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: hasData ? '#22c55e' : 'var(--text-muted)',
+                  color: hasData ? 'var(--accent-dark)' : 'var(--text-muted)',
                 }}
               >
                 {hasData ? <BarChart3 size={16} /> : <Plus size={16} />}

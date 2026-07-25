@@ -5,6 +5,8 @@ import { MaterialsPage } from './MaterialsPage';
 
 const registerMutate = vi.fn().mockResolvedValue({});
 const createMutate = vi.fn().mockResolvedValue({});
+const updateMutate = vi.fn().mockResolvedValue({});
+const addStockMutate = vi.fn().mockResolvedValue({});
 
 vi.mock('../hooks/usePonds', () => ({
   usePonds: () => ({
@@ -18,7 +20,7 @@ vi.mock('../hooks/usePonds', () => ({
 
 vi.mock('../hooks/useMaterials', () => ({
   useMaterials: () => ({
-    data: [{ id: 'mat-1', name: 'Cal virgem', unit: 'KG', unitPrice: 2.5, packageWeightKg: 25, active: true }],
+    data: [{ id: 'mat-1', name: 'Cal virgem', unit: 'KG', unitPrice: 2.5, packageWeightKg: 25, stockQuantity: 120, active: true }],
     isLoading: false,
   }),
   useMaterialUsages: () => ({
@@ -38,6 +40,8 @@ vi.mock('../hooks/useMaterials', () => ({
     isLoading: false,
   }),
   useCreateMaterial: () => ({ mutateAsync: createMutate, isPending: false }),
+  useUpdateMaterial: () => ({ mutateAsync: updateMutate, isPending: false }),
+  useAddStock: () => ({ mutateAsync: addStockMutate, isPending: false }),
   useRegisterUsage: () => ({ mutateAsync: registerMutate, isPending: false }),
 }));
 
@@ -53,6 +57,8 @@ describe('MaterialsPage', () => {
   beforeEach(() => {
     registerMutate.mockClear();
     createMutate.mockClear();
+    updateMutate.mockClear();
+    addStockMutate.mockClear();
   });
 
   it('shows what each pond already consumed', () => {
@@ -99,5 +105,50 @@ describe('MaterialsPage', () => {
 
     expect(await screen.findByText('Escolha o material e informe a quantidade.')).toBeInTheDocument();
     expect(registerMutate).not.toHaveBeenCalled();
+  });
+
+  it('shows what is on hand for each product', () => {
+    renderPage();
+
+    expect(screen.getByText('Em estoque')).toBeInTheDocument();
+    expect(screen.getByText(/120,00 kg/)).toBeInTheDocument();
+  });
+
+  it('saves a corrected price', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Editar preço' }));
+    const field = screen.getByLabelText(/Preço por kg/);
+    await user.clear(field);
+    await user.type(field, '3.1');
+    await user.click(screen.getByRole('button', { name: 'Salvar preço' }));
+
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+    expect(updateMutate).toHaveBeenCalledWith({ id: 'mat-1', data: { unitPrice: 3.1 } });
+  });
+
+  it('adds a stock entry instead of overwriting the balance', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Lançar entrada' }));
+    await user.type(screen.getByLabelText('Quantidade recebida'), '200');
+    await user.click(screen.getAllByRole('button', { name: /^Lançar entrada$/ })[1]);
+
+    await waitFor(() => expect(addStockMutate).toHaveBeenCalledTimes(1));
+    expect(addStockMutate).toHaveBeenCalledWith({ id: 'mat-1', quantity: 200 });
+  });
+
+  it('refuses a stock entry that is not above zero', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: 'Lançar entrada' }));
+    await user.type(screen.getByLabelText('Quantidade recebida'), '0');
+    await user.click(screen.getAllByRole('button', { name: /^Lançar entrada$/ })[1]);
+
+    expect(await screen.findByText('Informe uma quantidade maior que zero.')).toBeInTheDocument();
+    expect(addStockMutate).not.toHaveBeenCalled();
   });
 });

@@ -20,9 +20,9 @@ import {
   workspaceCard,
 } from '../components/ui/surfaces';
 import { EmptyState } from '../components/ui/EmptyState';
-import { useCreateMaterial, useMaterialUsages, useMaterials, useRegisterUsage } from '../hooks/useMaterials';
+import { useAddStock, useCreateMaterial, useMaterialUsages, useMaterials, useRegisterUsage, useUpdateMaterial } from '../hooks/useMaterials';
 import { usePonds } from '../hooks/usePonds';
-import type { MaterialUnit, MaterialUsage, Pond } from '../types';
+import type { Material, MaterialUnit, MaterialUsage, Pond } from '../types';
 
 const UNIT_OPTIONS: { value: MaterialUnit; label: string }[] = [
   { value: 'KG', label: 'Quilo (kg)' },
@@ -52,9 +52,15 @@ export function MaterialsPage() {
   const { data: ponds = [] } = usePonds();
   const { data: usages = [], isLoading: usagesLoading } = useMaterialUsages();
   const createMaterial = useCreateMaterial();
+  const updateMaterial = useUpdateMaterial();
+  const addStock = useAddStock();
   const registerUsage = useRegisterUsage();
 
   const [productOpen, setProductOpen] = useState(false);
+  const [editing, setEditing] = useState<Material | null>(null);
+  const [editPrice, setEditPrice] = useState('');
+  const [stockFor, setStockFor] = useState<Material | null>(null);
+  const [stockQty, setStockQty] = useState('');
   const [usagePond, setUsagePond] = useState<Pond | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -118,6 +124,41 @@ export function MaterialsPage() {
     setUsagePond(null);
   }
 
+  async function handleSavePrice() {
+    if (!editing) return;
+    setError(null);
+    const price = Number(editPrice.replace(',', '.'));
+    if (!Number.isFinite(price) || price < 0) {
+      setError('Informe um preço válido.');
+      return;
+    }
+    try {
+      await updateMaterial.mutateAsync({ id: editing.id, data: { unitPrice: price } });
+    } catch {
+      setError('Não foi possível atualizar o preço.');
+      return;
+    }
+    setEditing(null);
+  }
+
+  async function handleAddStock() {
+    if (!stockFor) return;
+    setError(null);
+    const quantity = Number(stockQty.replace(',', '.'));
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setError('Informe uma quantidade maior que zero.');
+      return;
+    }
+    try {
+      await addStock.mutateAsync({ id: stockFor.id, quantity });
+    } catch {
+      setError('Não foi possível lançar a entrada.');
+      return;
+    }
+    setStockQty('');
+    setStockFor(null);
+  }
+
   const selectedMaterial = materials.find((item) => item.id === usage.materialId) ?? null;
   const estimatedCost =
     selectedMaterial?.unitPrice != null && usage.quantity
@@ -168,6 +209,55 @@ export function MaterialsPage() {
           </div>
         </div>
       </div>
+
+      <section style={workspaceCard}>
+        <div>
+          <h2 style={sectionTitle}>Produtos e estoque</h2>
+          <p style={{ ...sectionSubtitle, marginTop: 4 }}>
+            O saldo cai quando um viveiro consome e sobe quando você lança uma entrada.
+          </p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+          {materials.map((item) => {
+            const stock = Number(item.stockQuantity ?? 0);
+            const short = stock <= 0;
+            return (
+              <div key={item.id} style={{ ...workspaceTile, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{item.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                    {item.unitPrice != null ? `${money(Number(item.unitPrice))} por ${item.unit.toLowerCase()}` : 'Sem preço'}
+                  </div>
+                </div>
+                <div>
+                  <div style={workspaceTileLabel}>Em estoque</div>
+                  <div style={{ ...workspaceTileValue, color: short ? 'var(--danger)' : 'var(--text-primary)' }}>
+                    {fmt(stock, 2)} {item.unit.toLowerCase()}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setEditing(item);
+                      setEditPrice(item.unitPrice != null ? String(item.unitPrice) : '');
+                    }}
+                  >
+                    Editar preço
+                  </Button>
+                  <Button variant="secondary" size="sm" onClick={() => setStockFor(item)}>
+                    Lançar entrada
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+          {!materials.length && !materialsLoading && (
+            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Nenhum produto cadastrado ainda.</div>
+          )}
+        </div>
+      </section>
 
       <section style={workspaceCard}>
         <div>
@@ -308,6 +398,42 @@ export function MaterialsPage() {
           <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Button variant="ghost" onClick={() => setUsagePond(null)}>Cancelar</Button>
             <Button loading={registerUsage.isPending} onClick={handleRegisterUsage}>Registrar uso</Button>
+          </div>
+        </div>
+      </Modal>
+      <Modal open={!!editing} onClose={() => setEditing(null)} title={`Preço — ${editing?.name ?? ''}`} width={420}>
+        <div style={{ display: 'grid', gap: 12 }}>
+          <Input
+            label={`Preço por ${editing?.unit.toLowerCase() ?? ''}`}
+            type="number"
+            step="0.0001"
+            value={editPrice}
+            onChange={(e) => setEditPrice(e.target.value)}
+          />
+          {error && <div style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</div>}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button>
+            <Button loading={updateMaterial.isPending} onClick={handleSavePrice}>Salvar preço</Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={!!stockFor} onClose={() => setStockFor(null)} title={`Entrada — ${stockFor?.name ?? ''}`} width={420}>
+        <div style={{ display: 'grid', gap: 12 }}>
+          <div style={sectionSubtitle}>
+            Saldo atual: {fmt(Number(stockFor?.stockQuantity ?? 0), 2)} {stockFor?.unit.toLowerCase()}
+          </div>
+          <Input
+            label="Quantidade recebida"
+            type="number"
+            step="0.001"
+            value={stockQty}
+            onChange={(e) => setStockQty(e.target.value)}
+          />
+          {error && <div style={{ color: 'var(--danger)', fontSize: 13 }}>{error}</div>}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Button variant="ghost" onClick={() => setStockFor(null)}>Cancelar</Button>
+            <Button loading={addStock.isPending} onClick={handleAddStock}>Lançar entrada</Button>
           </div>
         </div>
       </Modal>

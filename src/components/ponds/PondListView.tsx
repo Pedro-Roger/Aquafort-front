@@ -5,7 +5,7 @@ import { usePonds, usePondCanvas } from '../../hooks/usePonds';
 import { useCycles } from '../../hooks/useCycles';
 import { useFeedingTable } from '../../hooks/useFeeding';
 import { STATUS_META } from './pondInsights';
-import { workspaceEyebrow } from '../ui/surfaces';
+import { controlHeight, radius, workspaceEyebrow } from '../ui/surfaces';
 import type { Pond, PondStatus } from '../../types';
 
 interface Props {
@@ -86,14 +86,15 @@ export function PondListView({ onOpenCanvas }: Props) {
       key={value}
       onClick={() => setMode(value)}
       style={{
-        padding: '8px 12px',
-        borderRadius: 12,
+        height: controlHeight,
+        padding: '0 14px',
+        borderRadius: radius.control,
         cursor: 'pointer',
-        background: mode === value ? 'linear-gradient(135deg, #0f172a, #0284c7)' : 'rgba(255,255,255,0.88)',
-        border: `1px solid ${mode === value ? 'rgba(2, 132, 199, 0.4)' : 'var(--border)'}`,
+        backgroundColor: mode === value ? 'var(--accent)' : 'var(--bg-card)',
+        border: `1px solid ${mode === value ? 'var(--accent)' : 'var(--border)'}`,
         color: mode === value ? '#fff' : 'var(--text-secondary)',
         fontSize: 13,
-        fontWeight: 700,
+        fontWeight: 600,
       }}
     >
       {label}

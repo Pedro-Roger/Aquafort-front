@@ -471,6 +471,8 @@ export interface Material {
   unit: MaterialUnit;
   packageWeightKg?: number | null;
   unitPrice?: number | null;
+  /** How much is on hand. Entries add to it, pond usage takes from it. */
+  stockQuantity?: number | null;
   active: boolean;
 }
 

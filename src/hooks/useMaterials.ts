@@ -42,6 +42,29 @@ export function useCreateMaterial() {
   });
 }
 
+export function useUpdateMaterial() {
+  const qc = useQueryClient();
+  return useMutation<Material, Error, { id: string; data: Partial<CreateMaterialDto> }>({
+    mutationFn: async ({ id, data }) => {
+      const { data: response } = await api.patch(`/v1/materials/${id}`, data);
+      return response;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['materials'] }),
+  });
+}
+
+/** A stock entry adds to the balance; it never overwrites it. */
+export function useAddStock() {
+  const qc = useQueryClient();
+  return useMutation<Material, Error, { id: string; quantity: number }>({
+    mutationFn: async ({ id, quantity }) => {
+      const { data } = await api.post(`/v1/materials/${id}/stock`, { quantity });
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['materials'] }),
+  });
+}
+
 interface RegisterUsageDto {
   pondId: string;
   materialId: string;
