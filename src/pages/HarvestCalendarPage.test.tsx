@@ -17,6 +17,16 @@ function isoKey(day: number) {
   return `${year}-${pad(month + 1)}-${pad(day)}`;
 }
 
+vi.mock('../hooks/useFeeders', () => ({
+  useFeeders: () => ({
+    data: [
+      { id: 'feeder-1', name: 'Pedro Roger', active: true, ponds: [] },
+      { id: 'feeder-2', name: 'Maria', active: true, ponds: [] },
+    ],
+    isLoading: false,
+  }),
+}));
+
 vi.mock('../hooks/usePonds', () => ({
   usePonds: () => ({
     data: [
@@ -215,5 +225,38 @@ describe('HarvestCalendarPage', () => {
 
     const grade = screen.getByText('Dom').parentElement as HTMLElement;
     expect(within(grade).getByText('Sáb')).toBeInTheDocument();
+  });
+
+
+  it('escala um arraçoador cadastrado mantendo o vínculo', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: `Agendar despesca em 15/${pad(month + 1)}/${year}` }));
+    await user.click(screen.getByRole('button', { name: 'Pedro Roger' }));
+    await user.selectOptions(screen.getByLabelText('Viveiro'), 'p2');
+    await user.click(screen.getByRole('button', { name: /Salvar/ }));
+
+    await waitFor(() => expect(createMutateAsync).toHaveBeenCalled());
+    const payload = createMutateAsync.mock.calls[0][0];
+    expect(payload.participants).toEqual([
+      expect.objectContaining({ name: 'Pedro Roger', feederId: 'feeder-1' }),
+    ]);
+  });
+
+  it('continua aceitando um nome digitado, sem arraçoador por trás', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.click(screen.getByRole('button', { name: `Agendar despesca em 15/${pad(month + 1)}/${year}` }));
+    await user.type(screen.getByLabelText('Participante'), 'Diarista');
+    await user.click(screen.getByRole('button', { name: 'Adicionar' }));
+    await user.selectOptions(screen.getByLabelText('Viveiro'), 'p2');
+    await user.click(screen.getByRole('button', { name: /Salvar/ }));
+
+    await waitFor(() => expect(createMutateAsync).toHaveBeenCalled());
+    const payload = createMutateAsync.mock.calls[0][0];
+    expect(payload.participants).toEqual([expect.objectContaining({ name: 'Diarista' })]);
+    expect(payload.participants[0].feederId ?? null).toBeNull();
   });
 });

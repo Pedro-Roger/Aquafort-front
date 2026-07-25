@@ -14,6 +14,8 @@ interface HarvestSchedulesParams {
 export interface HarvestScheduleParticipantInput {
   name: string;
   userId?: string | null;
+  /** Set when the person was picked from the registered feeders. */
+  feederId?: string | null;
   role?: string | null;
 }
 

@@ -22,6 +22,7 @@ import {
 } from '../components/ui/surfaces';
 import { usePonds } from '../hooks/usePonds';
 import { useAuth } from '../hooks/useAuth';
+import { useFeeders } from '../hooks/useFeeders';
 import {
   useCreateHarvestSchedule,
   useDeleteHarvestSchedule,
@@ -101,6 +102,7 @@ function emptyForm(date: string): ScheduleForm {
 export function HarvestCalendarPage() {
   const today = new Date();
   const { user } = useAuth();
+  const { data: feeders = [] } = useFeeders();
   const [cursor, setCursor] = useState(() => ({ year: today.getFullYear(), month: today.getMonth() }));
   const [pondFilter, setPondFilter] = useState('');
   const [form, setForm] = useState<ScheduleForm | null>(null);
@@ -184,6 +186,7 @@ export function HarvestCalendarPage() {
       participants: schedule.participants.map((person) => ({
         name: person.name,
         userId: person.userId ?? null,
+        feederId: person.feederId ?? null,
         role: person.role ?? null,
       })),
     });
@@ -230,6 +233,7 @@ export function HarvestCalendarPage() {
     const participants = form.participants.map((person) => ({
       name: person.name,
       userId: person.userId ?? undefined,
+      feederId: person.feederId ?? undefined,
       role: person.role ?? undefined,
     }));
 
@@ -519,6 +523,31 @@ export function HarvestCalendarPage() {
                   Adicionar
                 </Button>
               </div>
+
+              {/* Escalar quem já está cadastrado, sem impedir um nome digitado. */}
+              {feeders.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <span style={workspaceTileLabel}>Arraçoadores cadastrados</span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {feeders.map((feeder) => {
+                      const already = form.participants.some(
+                        (person) => person.feederId === feeder.id || person.name.toLowerCase() === feeder.name.toLowerCase(),
+                      );
+                      return (
+                        <Button
+                          key={feeder.id}
+                          variant="secondary"
+                          size="sm"
+                          disabled={already}
+                          onClick={() => addParticipant({ name: feeder.name, feederId: feeder.id })}
+                        >
+                          {already ? `${feeder.name} ✓` : feeder.name}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {user && (
                 <Button
