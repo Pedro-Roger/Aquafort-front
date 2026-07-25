@@ -8,7 +8,7 @@ import { useCreateCycle } from '../hooks/useCycles';
 import { usePonds } from '../hooks/usePonds';
 import type { Pond } from '../types';
 import { PondType } from '../types';
-import { workspaceSurface } from '../components/ui/surfaces';
+import { workspaceEyebrow, workspaceSurface, workspaceTile, workspaceTileLabel, workspaceTileValue } from '../components/ui/surfaces';
 import {
   calculatePovoamentoQuantity,
   getAllocationSummary,
@@ -234,25 +234,24 @@ export function PovoamentoPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div
         style={{
           ...workspaceSurface,
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div>
-            <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.7 }}>Povoamento</div>
-            <h1 style={{ margin: '8px 0 0', fontSize: 30, lineHeight: 1.05, letterSpacing: '-0.05em' }}>Distribua um lote de larvas entre vários tanques.</h1>
-            <p style={{ marginTop: 10, color: 'var(--text-muted)', maxWidth: 760 }}>
-              Você pode transferir o mesmo lote entre tanques diferentes. A soma das quantidades nunca pode passar do total informado.
-            </p>
+            <div style={workspaceEyebrow}>Povoamento</div>
+            <div style={{ marginTop: 6, color: 'var(--text-muted)', fontSize: 13, maxWidth: 620 }}>
+              A soma das quantidades nunca pode passar do total informado.
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'end', flexWrap: 'wrap' }}>
             <div style={{ minWidth: 170 }}>
               <Input label="Data do povoamento" type="date" value={form.stockDate} onChange={(e) => setForm((current) => ({ ...current, stockDate: e.target.value }))} />
             </div>
-            <Button size="lg" icon={<Plus size={16} />} onClick={() => setAllocations((current) => [...current, makeRow(availablePonds[0]?.id ?? '')])} style={{ backgroundColor: '#fff', color: '#0f172a', boxShadow: 'none' }}>
+            <Button size="lg" icon={<Plus size={16} />} onClick={() => setAllocations((current) => [...current, makeRow(availablePonds[0]?.id ?? '')])}>
               Adicionar tanque
             </Button>
           </div>
@@ -288,12 +287,16 @@ export function PovoamentoPage() {
           <StatCard label="Tanques aptos" value={isLoading ? '-' : availablePonds.length} />
           <StatCard label="Larvas alocadas" value={`${fmt(summary.allocated, 0)}`} />
           <StatCard label="Larvas restantes" value={`${fmt(summary.remaining, 0)}`} />
-          <StatCard label="Distribuição" value={summary.isOverallocated ? 'Excede o total' : 'Dentro do limite'} />
+          <StatCard
+            label="Distribuição"
+            value={summary.isOverallocated ? 'Excede o total' : 'Dentro do limite'}
+            tone={summary.isOverallocated ? 'danger' : 'ok'}
+          />
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.92fr) minmax(0, 1.08fr)', gap: 16, minHeight: 0, flex: 1 }}>
-        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', minHeight: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.92fr) minmax(0, 1.08fr)', gap: 16, alignItems: 'start' }}>
+        <div style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 20, padding: 16, boxShadow: '0 10px 28px rgba(15, 23, 42, 0.06)', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <Input label="Espécie" value={form.species} onChange={(e) => setForm((current) => ({ ...current, species: e.target.value }))} />
             <Input label="Fornecedor" value={form.supplier} onChange={(e) => setForm((current) => ({ ...current, supplier: e.target.value }))} />
@@ -461,11 +464,29 @@ export function PovoamentoPage() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string | number }) {
+function StatCard({ label, value, tone }: { label: string; value: string | number; tone?: 'ok' | 'danger' }) {
+  // The distribution tile is the one the operator watches while allocating, so
+  // it turns red the moment the sum passes the lot.
+  const toneStyle =
+    tone === 'danger'
+      ? { backgroundColor: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.22)' }
+      : tone === 'ok'
+        ? { backgroundColor: 'var(--accent-soft)', border: '1px solid var(--accent-soft-strong)' }
+        : {};
+
   return (
-    <div style={{ borderRadius: 18, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
-      <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>{label}</div>
-      <div style={{ marginTop: 10, fontSize: 24, fontWeight: 800 }}>{value}</div>
+    <div style={{ ...workspaceTile, ...toneStyle }}>
+      <div style={workspaceTileLabel}>{label}</div>
+      <div
+        style={{
+          ...workspaceTileValue,
+          marginTop: 10,
+          fontSize: 24,
+          color: tone === 'danger' ? 'var(--danger)' : tone === 'ok' ? 'var(--accent-dark)' : 'var(--text-primary)',
+        }}
+      >
+        {value}
+      </div>
     </div>
   );
 }
