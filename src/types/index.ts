@@ -391,6 +391,10 @@ export interface FeedingTableRow {
   dailyFeedKg: number;
   racaoAcumuladaKg: number;
   estimatedBagsUsed: number;
+  /** Live biomass from the latest biometric, null before any reading. */
+  biomassaKg: number | null;
+  /** Feed offered per kilo produced. Null while biomass is unknown. */
+  fca: number | null;
 }
 
 export interface FeedingTableResponse {

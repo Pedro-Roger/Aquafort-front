@@ -192,6 +192,18 @@ export function NutritionPage() {
       align: 'right' as const,
       render: (row: FeedingTableRow) => `${fmt(row.racaoAcumuladaKg, 2)} kg`,
     },
+    {
+      key: 'biomassaKg',
+      header: 'Biomassa',
+      align: 'right' as const,
+      render: (row: FeedingTableRow) => (row.biomassaKg == null ? '—' : `${fmt(row.biomassaKg, 1)} kg`),
+    },
+    {
+      key: 'fca',
+      header: 'FCA',
+      align: 'right' as const,
+      render: (row: FeedingTableRow) => (row.fca == null ? '—' : `${fmt(row.fca, 2)} kg/kg`),
+    },
   ];
 
   const historyColumns = [
