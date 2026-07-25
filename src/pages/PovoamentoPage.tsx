@@ -273,7 +273,7 @@ export function PovoamentoPage() {
                 borderRadius: 999,
                 border: '1px solid var(--border)',
                 background: 'var(--bg-elevated)',
-                color: '#fff',
+                color: 'var(--text-secondary)',
                 textDecoration: 'none',
                 fontSize: 13,
                 fontWeight: 600,

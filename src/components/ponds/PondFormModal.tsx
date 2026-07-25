@@ -209,7 +209,7 @@ export function PondFormModal({ open, onClose }: Props) {
                     background: 'linear-gradient(135deg, #0f172a, #0f5c81)',
                     border: 'none',
                     borderRadius: 14,
-                    color: '#fff',
+                    color: 'var(--text-primary)',
                     fontWeight: 700,
                     boxShadow: '0 18px 34px rgba(15, 23, 42, 0.16)',
                   }}

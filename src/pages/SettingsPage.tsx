@@ -61,7 +61,7 @@ export function SettingsPage() {
           <div style={{ display: 'flex', gap: 10, alignItems: 'end', flexWrap: 'wrap' }}>
             <div style={{ minWidth: 260 }}>
               <div style={{ color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Responsável</div>
-              <div style={{ padding: '11px 14px', borderRadius: 16, background: 'rgba(255,255,255,0.10)', border: '1px solid var(--border)' }}>
+              <div style={{ padding: '11px 14px', borderRadius: 16, background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                 <div style={{ fontWeight: 800 }}>{user?.name ?? 'Sem usuário'}</div>
                 <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{canEdit ? 'Gerente com permissão de edição' : 'Somente leitura'}</div>
               </div>

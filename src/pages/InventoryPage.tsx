@@ -278,7 +278,7 @@ export function InventoryPage() {
             <Button size="lg" icon={<Plus size={16} />} onClick={() => setLocationOpen(true)} style={{ backgroundColor: '#fff', color: '#0f172a', boxShadow: 'none' }}>
               Novo local
             </Button>
-            <Button size="lg" icon={<ArrowRightLeft size={16} />} onClick={() => setMovementOpen(true)} style={{ backgroundColor: 'rgba(255,255,255,0.14)', color: '#fff', border: '1px solid rgba(255,255,255,0.18)', boxShadow: 'none' }}>
+            <Button size="lg" icon={<ArrowRightLeft size={16} />} onClick={() => setMovementOpen(true)} style={{ whiteSpace: 'nowrap' }}>
               Nova movimentacao
             </Button>
           </div>

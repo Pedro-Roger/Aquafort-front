@@ -65,3 +65,24 @@ export function useBiometricKpis(cycleId: string | null) {
     enabled: !!cycleId,
   });
 }
+
+export interface LatestPondBiometric {
+  pondId: string;
+  pondCode: string;
+  cycleId: string;
+  measuredAt: string;
+  averageWeightG: number;
+  survivalRatePct: number | null;
+  estimatedBiomassKg: number | null;
+}
+
+/** Most recent reading of each pond's active cycle, for the pond cards. */
+export function useLatestBiometricsByPond() {
+  return useQuery<LatestPondBiometric[]>({
+    queryKey: ['biometrics', 'latest-by-pond'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/biometrics/latest-by-pond');
+      return data;
+    },
+  });
+}

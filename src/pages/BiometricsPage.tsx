@@ -12,7 +12,7 @@ import {
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCycles } from '../hooks/useCycles';
 import { usePonds } from '../hooks/usePonds';
-import { useBiometricKpis, useBiometrics, useBiometricSeries, useCreateBiometric, useDeleteBiometric } from '../hooks/useBiometrics';
+import { useBiometricKpis, useBiometrics, useBiometricSeries, useCreateBiometric, useDeleteBiometric, useLatestBiometricsByPond } from '../hooks/useBiometrics';
 import { useFarmBiometricsReference } from '../hooks/useFarmBiometricsReference';
 import { KPICard } from '../components/ui/KPICard';
 import { Button } from '../components/ui/Button';
@@ -32,6 +32,7 @@ import {
   getConsumptionPctForWeight,
 } from './biometrias';
 import { buildDespescaPath } from './despesca';
+import { calculateProductivity, daysSince } from '../lib/productivity';
 
 function fmt(value: number | null | undefined, digits = 1) {
   if (value == null) return '—';
@@ -49,6 +50,7 @@ export function BiometricsPage() {
   const chartRef = useRef<HTMLDivElement>(null);
   const { data: cycles = [] } = useCycles({ status: 'ativo' });
   const { data: ponds = [], isLoading: pondsLoading } = usePonds();
+  const { data: latestByPond = [] } = useLatestBiometricsByPond();
   const [cycleId, setCycleId] = useState(() => searchParams.get('cycleId') ?? '');
   const selectedCycleId = cycleId || cycles[0]?.id || '';
   const selectedCycle = cycles.find((cycle) => cycle.id === selectedCycleId) ?? null;
@@ -136,12 +138,19 @@ export function BiometricsPage() {
     value: cycle.id,
     label: `${cycle.pond?.code ?? cycle.pondId} · ${cycle.lotCode ?? cycle.larvaeLotCode ?? cycle.supplier}`,
   }));
+  const cycleAgeDays = selectedCycle?.stockDate ? daysSince(selectedCycle.stockDate) : 0;
+  const productivity = calculateProductivity({
+    biomassKg: kpis.data?.biomassaAtualKg ?? 0,
+    areaHa: Number(selectedCycle?.pond?.areaHa ?? 0),
+    days: cycleAgeDays,
+  });
   const summaryCards = buildBiometriaCards({
     pesoMedioG: kpis.data?.pesoMedioG,
     survivalPct: kpis.data?.survivalPct,
     biomassaAtualKg: kpis.data?.biomassaAtualKg,
     racaoConsumidaKg: kpis.data?.racaoConsumidaKg,
     fca: kpis.data?.fca,
+    kgPerHaPerDay: productivity.kgPerHaPerDay,
   });
   const latestPoint = series.data?.points?.at(-1) ?? null;
   const operationalEstimate = calculateBiometricsOperationalEstimate({
@@ -168,6 +177,12 @@ export function BiometricsPage() {
     survivalPct: kpis.data?.survivalPct ?? null,
   });
   const cyclePanelMetrics = snapshot.slice(1, 5);
+  const latestBiometricsByPond = Object.fromEntries(
+    latestByPond.map((reading) => [
+      reading.pondId,
+      { measuredAt: reading.measuredAt, pesoMedioG: reading.averageWeightG },
+    ]),
+  );
 
   useEffect(() => {
     if (focusParam === 'form') {
@@ -295,11 +310,11 @@ export function BiometricsPage() {
           ponds={ponds}
           loading={pondsLoading}
           onPondClick={handlePondClick}
-          latestBiometricsByPond={{}}
+          latestBiometricsByPond={latestBiometricsByPond}
         />
       </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12 }}>
         {summaryCards.map((card) => (
           <KPICard
             key={card.label}

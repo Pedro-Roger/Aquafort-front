@@ -12,6 +12,8 @@ export type BiometriaKpisInput = {
   biomassaAtualKg?: number | null;
   racaoConsumidaKg?: number | null;
   fca?: number | null;
+  /** Productivity in kg/ha/dia, when the pond area and cycle age are known. */
+  kgPerHaPerDay?: number | null;
 };
 
 export type BiometriaCard = {
@@ -67,6 +69,7 @@ export function buildBiometriaCards(kpis: BiometriaKpisInput): BiometriaCard[] {
     { label: 'Biomassa atual', value: fmt(kpis.biomassaAtualKg, 2), unit: 'kg', tone: 'amber' },
     { label: 'Ração consumida', value: fmt(kpis.racaoConsumidaKg, 2), unit: 'kg', tone: 'slate' },
     { label: 'FCA', value: fmt(kpis.fca, 3), tone: (kpis.fca ?? 0) > 1.8 ? 'red' : 'green' },
+    { label: 'Produtividade', value: fmt(kpis.kgPerHaPerDay, 1), unit: 'kg/ha/dia', tone: 'blue' },
   ];
 }
 

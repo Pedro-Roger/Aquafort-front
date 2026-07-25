@@ -130,13 +130,12 @@ export function PondListView({ onOpenCanvas }: Props) {
               style={{
                 borderRadius: 18,
                 padding: '14px 16px',
-                background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.10)',
-                backdropFilter: 'blur(10px)',
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border)',
               }}
             >
               <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)' }}>{item.label}</div>
-              <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: '#fff' }}>{item.value}</div>
+              <div style={{ fontSize: 24, fontWeight: 800, marginTop: 6, color: 'var(--text-primary)' }}>{item.value}</div>
             </div>
           ))}
         </div>

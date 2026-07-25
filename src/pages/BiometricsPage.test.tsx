@@ -30,6 +30,19 @@ vi.mock('../hooks/useBiometrics', () => ({
   useBiometricSeries: () => ({ data: { points: [] }, isLoading: false }),
   useCreateBiometric: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useDeleteBiometric: () => ({ mutate: vi.fn(), isPending: false }),
+  useLatestBiometricsByPond: () => ({
+    data: [
+      {
+        pondId: 'p1',
+        pondCode: 'V-01',
+        cycleId: 'c1',
+        measuredAt: '2026-07-23T00:00:00.000Z',
+        averageWeightG: 20.81,
+        survivalRatePct: 75.83,
+        estimatedBiomassKg: 3788.2,
+      },
+    ],
+  }),
 }))
 
 vi.mock('../components/ponds/CycleWorkspacePanel', () => ({
@@ -109,6 +122,6 @@ describe('BiometricsPage', () => {
     )
 
     expect(screen.getByText('V-01')).toBeInTheDocument()
-    expect(screen.getByText('Nenhuma leitura registrada. Clique para iniciar.')).toBeInTheDocument()
+    expect(screen.getByText(/Peso: 20,81 g/)).toBeInTheDocument()
   })
 })
