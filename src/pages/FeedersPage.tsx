@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trophy } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Trophy } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Modal } from '../components/ui/Modal';
@@ -38,6 +38,7 @@ export function FeedersPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [assigning, setAssigning] = useState<Feeder | null>(null);
   const [selectedPondIds, setSelectedPondIds] = useState<string[]>([]);
+  const [expanded, setExpanded] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', document: '', phone: '' });
   const [error, setError] = useState<string | null>(null);
 
@@ -109,7 +110,38 @@ export function FeedersPage() {
       key: 'averageWeightG',
       header: 'Peso atual',
       align: 'right' as const,
-      render: (row: FeederRanking) => (row.averageWeightG == null ? '—' : `${fmt(row.averageWeightG, 2)} g`),
+      // The heaviest pond, not an average — clicking opens the pond by pond view.
+      render: (row: FeederRanking) => {
+        if (row.averageWeightG == null) return '—';
+        const open = expanded === row.feederId;
+        return (
+          <button
+            type="button"
+            onClick={() => setExpanded(open ? null : row.feederId)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              border: 'none',
+              background: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              color: 'var(--accent-dark)',
+              fontWeight: 700,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+            title={`Ver os ${row.pondCount} viveiros de ${row.feederName}`}
+          >
+            {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            {fmt(row.averageWeightG, 2)} g
+            {row.heaviestPondCode && (
+              <span style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: 12 }}>
+                {row.heaviestPondCode}
+              </span>
+            )}
+          </button>
+        );
+      },
     },
     {
       key: 'survivalPct',
@@ -125,6 +157,7 @@ export function FeedersPage() {
     },
   ];
 
+  const expandedRow = ranking.find((row) => row.feederId === expanded) ?? null;
   const leader = ranking.find((row) => row.weeklyGrowthG != null) ?? null;
   const assignedPondCount = feeders.reduce((total, feeder) => total + feeder.ponds.length, 0);
 
@@ -181,6 +214,41 @@ export function FeedersPage() {
           rowKey={(row) => row.feederId}
           emptyMessage="Cadastre um arraçoador e atribua viveiros para ver o ranking"
         />
+
+        {expandedRow && (
+          <div style={{ ...workspaceTile, marginTop: space.tile }}>
+            <div style={workspaceTileLabel}>Viveiros de {expandedRow.feederName}</div>
+            <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+              {expandedRow.ponds.map((pond) => (
+                <div
+                  key={pond.pondId}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    flexWrap: 'wrap',
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{pond.pondCode}</span>
+                  <span style={{ display: 'flex', gap: 16, flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: 13 }}>
+                    <span><strong style={{ color: 'var(--text-primary)' }}>{fmt(pond.averageWeightG, 2)} g</strong> peso atual</span>
+                    <span>{pond.survivalPct == null ? '—' : `${fmt(pond.survivalPct, 1)} %`} sobrev.</span>
+                    <span>{fmt(pond.biomassKg, 1)} kg</span>
+                  </span>
+                </div>
+              ))}
+              {!expandedRow.ponds.length && (
+                <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+                  Nenhum viveiro com biometria registrada.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </section>
 
       <section style={workspaceCard}>

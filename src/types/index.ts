@@ -498,6 +498,15 @@ export interface Feeder {
   ponds: Pick<Pond, 'id' | 'code' | 'name' | 'type' | 'status'>[];
 }
 
+export interface FeederPondPerformance {
+  pondId: string;
+  pondCode: string;
+  averageWeightG: number;
+  survivalPct: number | null;
+  biomassKg: number;
+  weeklyGrowthG: number | null;
+}
+
 export interface FeederRanking {
   position: number;
   feederId: string;
@@ -505,7 +514,10 @@ export interface FeederRanking {
   pondCount: number;
   pondCodes: string[];
   weeklyGrowthG: number | null;
+  /** Weight of the heaviest pond under this feeder, not an average. */
   averageWeightG: number | null;
+  heaviestPondCode: string | null;
   survivalPct: number | null;
   biomassKg: number;
+  ponds: FeederPondPerformance[];
 }

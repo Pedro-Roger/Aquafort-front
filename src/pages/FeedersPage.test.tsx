@@ -26,8 +26,16 @@ vi.mock('../hooks/useFeeders', () => ({
   }),
   useFeederRanking: () => ({
     data: [
-      { position: 1, feederId: 'f1', feederName: 'João', pondCount: 1, pondCodes: ['VE-01'], weeklyGrowthG: 2.5, averageWeightG: 20.81, survivalPct: 75.83, biomassKg: 3788.2 },
-      { position: 2, feederId: 'f2', feederName: 'Maria', pondCount: 0, pondCodes: [], weeklyGrowthG: null, averageWeightG: null, survivalPct: null, biomassKg: 0 },
+      {
+        position: 1, feederId: 'f1', feederName: 'João', pondCount: 2, pondCodes: ['VE-01', 'VE-02'],
+        weeklyGrowthG: 2.5, averageWeightG: 20.81, heaviestPondCode: 'VE-01',
+        survivalPct: 75.83, biomassKg: 6289.2,
+        ponds: [
+          { pondId: 'p1', pondCode: 'VE-01', averageWeightG: 20.81, survivalPct: 75.83, biomassKg: 3788.2, weeklyGrowthG: 2.5 },
+          { pondId: 'p2', pondCode: 'VE-02', averageWeightG: 18.33, survivalPct: 75.83, biomassKg: 2501, weeklyGrowthG: 2.2 },
+        ],
+      },
+      { position: 2, feederId: 'f2', feederName: 'Maria', pondCount: 0, pondCodes: [], weeklyGrowthG: null, averageWeightG: null, heaviestPondCode: null, survivalPct: null, biomassKg: 0, ponds: [] },
     ],
   }),
   useCreateFeeder: () => ({ mutateAsync: createMutate, isPending: false }),
@@ -85,5 +93,36 @@ describe('FeedersPage', () => {
 
     expect(await screen.findByText('Informe o nome do arraçoador.')).toBeInTheDocument();
     expect(createMutate).not.toHaveBeenCalled();
+  });
+
+  it('shows the heaviest pond weight and names that pond', () => {
+    renderPage();
+
+    // the weight cell names the heaviest pond alongside the number
+    const trigger = screen.getByRole('button', { name: /20,81 g/ });
+    expect(trigger).toHaveTextContent('VE-01');
+  });
+
+  it('opens the pond by pond breakdown when the weight is clicked', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(screen.queryByText(/Viveiros de João/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /20,81 g/ }));
+
+    expect(await screen.findByText(/Viveiros de João/)).toBeInTheDocument();
+    expect(screen.getByText('18,33 g')).toBeInTheDocument();
+  });
+
+  it('closes the breakdown when the weight is clicked again', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    const trigger = screen.getByRole('button', { name: /20,81 g/ });
+    await user.click(trigger);
+    await user.click(trigger);
+
+    expect(screen.queryByText(/Viveiros de João/)).not.toBeInTheDocument();
   });
 });
