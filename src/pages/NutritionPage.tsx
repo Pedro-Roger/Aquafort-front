@@ -21,6 +21,9 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { useCycles } from '../hooks/useCycles';
 import { useCreateExpressFeeding, useFeedingList, useFeedingTable, useFeedProducts } from '../hooks/useFeeding';
+import { useBiometricKpis } from '../hooks/useBiometrics';
+import { useFarmBiometricsReference } from '../hooks/useFarmBiometricsReference';
+import { calculateDailyRation } from '../lib/biometricsReference';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Input } from '../components/ui/Input';
@@ -58,6 +61,7 @@ export function NutritionPage() {
   });
 
   const table = useFeedingTable({ cycleId: cycleFilter || undefined, date });
+  const { reference } = useFarmBiometricsReference();
   const history = useFeedingList({ cycleId: cycleFilter || undefined, limit: 12 });
   const createFeeding = useCreateExpressFeeding();
 
@@ -65,6 +69,14 @@ export function NutritionPage() {
   const selectedProductId = form.productId || products[0]?.id || '';
   const selectedCycle = cycles.find((cycle) => cycle.id === selectedCycleId) ?? null;
   const rows = table.data?.rows ?? [];
+
+  const launchKpis = useBiometricKpis(launchOpen ? selectedCycleId || null : null);
+  const suggestion = calculateDailyRation({
+    plCount: selectedCycle?.plCount ?? 0,
+    averageWeightG: launchKpis.data?.pesoMedioG ?? 0,
+    survivalPct: launchKpis.data?.survivalPct ?? null,
+    reference,
+  });
 
   const spotlight = rows[0] ?? null;
   const pondDistribution = rows
@@ -486,6 +498,43 @@ export function NutritionPage() {
             value={form.feedKg}
             onChange={(e) => setForm((current) => ({ ...current, feedKg: e.target.value }))}
           />
+          <div style={{ gridColumn: '1 / -1' }}>
+            {suggestion.rationKg == null ? (
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                Sem biometria neste ciclo ainda — registre uma leitura para o sistema sugerir a ração do dia.
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 12,
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 14px',
+                  borderRadius: 14,
+                  backgroundColor: 'rgba(2,132,199,0.06)',
+                  border: '1px solid rgba(2,132,199,0.18)',
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>
+                    Sugestão do dia: {fmt(suggestion.rationKg, 2)} kg
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+                    {fmt(suggestion.biomassKg ?? 0, 1)} kg de biomassa viva x {fmt(suggestion.consumptionPct ?? 0, 1)}% do peso
+                    {launchKpis.data?.pesoMedioG != null ? ` · ultima biometria ${fmt(launchKpis.data.pesoMedioG, 2)} g` : ''}
+                  </div>
+                </div>
+                <Button
+                  variant="secondary"
+                  onClick={() => setForm((current) => ({ ...current, feedKg: String(suggestion.rationKg) }))}
+                >
+                  Usar sugestão
+                </Button>
+              </div>
+            )}
+          </div>
           <Input
             label="Data / hora"
             type="datetime-local"

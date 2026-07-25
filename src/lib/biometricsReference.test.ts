@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  calculateDailyRation,
   DEFAULT_CONSUMPTION_REFERENCE,
   getConsumptionPctForWeight,
   normalizeConsumptionReference,
@@ -51,5 +52,43 @@ describe('consumption reference', () => {
 
     expect(normalized.find((item) => item.weightG === 10)?.consumptionPct).toBe(3);
     expect(normalized.length).toBe(DEFAULT_CONSUMPTION_REFERENCE.length);
+  });
+});
+
+describe('daily ration', () => {
+  it('follows the formula: stocked x survival x weight x rate', () => {
+    // 240.000 post-larvae at 0,1 g = 24 kg of biomass; 15% of that is 3,6 kg
+    const ration = calculateDailyRation({
+      plCount: 240_000,
+      averageWeightG: 0.1,
+      survivalPct: 100,
+    });
+
+    expect(ration.biomassKg).toBeCloseTo(24, 2);
+    expect(ration.consumptionPct).toBe(15);
+    expect(ration.rationKg).toBeCloseTo(3.6, 2);
+  });
+
+  it('counts only the survivors', () => {
+    const ration = calculateDailyRation({
+      plCount: 240_000,
+      averageWeightG: 21,
+      survivalPct: 75,
+    });
+
+    // 240.000 x 75% x 21 g = 3.780 kg, at 2% = 75,6 kg
+    expect(ration.biomassKg).toBeCloseTo(3780, 2);
+    expect(ration.consumptionPct).toBe(2);
+    expect(ration.rationKg).toBeCloseTo(75.6, 2);
+  });
+
+  it('assumes full survival when no biometrics recorded it yet', () => {
+    const ration = calculateDailyRation({ plCount: 1000, averageWeightG: 1 });
+
+    expect(ration.biomassKg).toBeCloseTo(1, 3);
+  });
+
+  it('returns nothing to suggest without a weight', () => {
+    expect(calculateDailyRation({ plCount: 240_000, averageWeightG: 0 }).rationKg).toBeNull();
   });
 });

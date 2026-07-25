@@ -24,6 +24,10 @@ vi.mock('../hooks/useCycles', () => ({
   }),
 }))
 
+vi.mock('../hooks/useBiometrics', () => ({
+  useBiometricKpis: () => ({ data: { pesoMedioG: 20.81, survivalPct: 75.83 } }),
+}));
+
 vi.mock('../hooks/useFeeding', () => ({
   useFeedProducts: () => ({ data: [{ id: 'prod1', name: 'Ração 35%' }] }),
   useFeedingTable: () => ({

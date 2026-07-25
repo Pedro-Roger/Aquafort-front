@@ -141,14 +141,7 @@ export function HarvestPlanningPage() {
           boxShadow: '0 28px 80px rgba(15, 23, 42, 0.14)',
         }}
       >
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.15fr) minmax(0, 0.95fr)', gap: 16, alignItems: 'start' }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.72 }}>Despesca</div>
-            <h1 style={{ margin: '8px 0 0', fontSize: 30, lineHeight: 1.05, letterSpacing: '-0.05em' }}>Janela ideal, custo projetado e decisão de colheita.</h1>
-            <p style={{ marginTop: 10, color: 'rgba(238,251,248,0.78)', maxWidth: 760 }}>
-              Acompanhe a projeção por semana, veja o melhor momento de saída e recalcule quando a operação mudar.
-            </p>
-          </div>
+        <div style={{ display: 'grid', gap: 16, alignItems: 'start' }}>
           <CycleWorkspacePanel
             eyebrow="Ciclo ativo"
             title="Painel de despesca"

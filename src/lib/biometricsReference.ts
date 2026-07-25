@@ -104,6 +104,54 @@ export function getConsumptionPctForWeight(weightG: number, reference: Consumpti
   return clampPct(row.consumptionPct);
 }
 
+export interface DailyRationInput {
+  plCount: number;
+  averageWeightG: number;
+  /** Latest measured survival. Defaults to 100% while no biometrics exist. */
+  survivalPct?: number | null;
+  reference?: ConsumptionReferenceRow[];
+}
+
+export interface DailyRation {
+  biomassKg: number | null;
+  consumptionPct: number | null;
+  rationKg: number | null;
+}
+
+/**
+ * How much to feed today: the live biomass — stocked animals that survived,
+ * times their current weight — at the rate the table sets for that weight.
+ * The number holds until someone changes it, which is why it is a suggestion
+ * on the launch form rather than something written automatically.
+ */
+export function calculateDailyRation({
+  plCount,
+  averageWeightG,
+  survivalPct,
+  reference = DEFAULT_CONSUMPTION_REFERENCE,
+}: DailyRationInput): DailyRation {
+  const weightG = clampWeight(averageWeightG);
+  const stocked = clampWeight(plCount);
+  const survival = survivalPct == null ? 100 : clampPct(survivalPct);
+
+  if (weightG <= 0 || stocked <= 0) {
+    return { biomassKg: null, consumptionPct: null, rationKg: null };
+  }
+
+  const biomassKg = (stocked * (survival / 100) * weightG) / 1000;
+  const consumptionPct = getConsumptionPctForWeight(weightG, reference);
+
+  if (!consumptionPct || consumptionPct <= 0) {
+    return { biomassKg: Number(biomassKg.toFixed(2)), consumptionPct, rationKg: null };
+  }
+
+  return {
+    biomassKg: Number(biomassKg.toFixed(2)),
+    consumptionPct,
+    rationKg: Number(((biomassKg * consumptionPct) / 100).toFixed(2)),
+  };
+}
+
 export function calculateBiometricsOperationalEstimate({
   averageWeightG,
   racaoConsumidaKg,
