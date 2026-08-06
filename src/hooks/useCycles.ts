@@ -53,6 +53,12 @@ interface CreateCycleDto {
   /** Genetic line of the batch, as the hatchery identifies it. */
   geneticCode?: string;
   larvaeStage?: string;
+  /** Day of stage at stocking time (day 1 = arrival). */
+  stageDay?: number;
+  /** Projected/actual date the batch transfers out of this stage. */
+  transferDate?: string;
+  /** Post-larvae per gram at stocking. */
+  plPerGram?: number;
   /** Berçário(s) this viveiro was stocked from, when applicable. */
   origins?: CreateCycleOriginInput[];
 }
@@ -71,6 +77,9 @@ export function useCreateCycle() {
         ...(dto.larvaeLotCode ? { larvaeLotCode: dto.larvaeLotCode } : {}),
         ...(dto.larvaeStage ? { larvaeStage: dto.larvaeStage } : {}),
         ...(dto.geneticCode ? { geneticCode: dto.geneticCode } : {}),
+        ...(dto.stageDay ? { stageDay: dto.stageDay } : {}),
+        ...(dto.transferDate ? { transferDate: new Date(dto.transferDate).toISOString() } : {}),
+        ...(dto.plPerGram ? { plPerGram: dto.plPerGram } : {}),
         ...(dto.origins && dto.origins.length > 0 ? { origins: dto.origins } : {}),
       };
       const { data } = await api.post('/v1/cycles', payload);
