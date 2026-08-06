@@ -12,6 +12,7 @@ import type { Cycle, CyclePhase, GrowthChartData, GrowthTarget } from '../types'
 interface CyclesFilter {
   status?: 'ativo' | 'encerrado';
   pondId?: string;
+  phase?: CyclePhase;
 }
 
 export function useCycles(filter?: CyclesFilter) {
@@ -35,6 +36,12 @@ export function useCycle(id: string) {
   });
 }
 
+export interface CreateCycleOriginInput {
+  label: string;
+  sourceCycleId?: string;
+  quantity: number;
+}
+
 interface CreateCycleDto {
   pondId: string;
   supplier: string;
@@ -46,6 +53,8 @@ interface CreateCycleDto {
   /** Genetic line of the batch, as the hatchery identifies it. */
   geneticCode?: string;
   larvaeStage?: string;
+  /** Berçário(s) this viveiro was stocked from, when applicable. */
+  origins?: CreateCycleOriginInput[];
 }
 
 export function useCreateCycle() {
@@ -62,6 +71,7 @@ export function useCreateCycle() {
         ...(dto.larvaeLotCode ? { larvaeLotCode: dto.larvaeLotCode } : {}),
         ...(dto.larvaeStage ? { larvaeStage: dto.larvaeStage } : {}),
         ...(dto.geneticCode ? { geneticCode: dto.geneticCode } : {}),
+        ...(dto.origins && dto.origins.length > 0 ? { origins: dto.origins } : {}),
       };
       const { data } = await api.post('/v1/cycles', payload);
       return data;
