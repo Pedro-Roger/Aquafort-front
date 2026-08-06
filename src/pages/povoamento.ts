@@ -3,6 +3,10 @@ import type { CyclePhase, PondType } from '../types';
 export interface AllocationRow {
   pondId: string;
   quantity: number;
+  /** Grams weighed out — only meaningful when PL/grama links it to quantity. */
+  weightG?: number;
+  /** Present only for viveiro rows stocked by transfer from berçário(s). */
+  origins?: OriginAllocation[];
 }
 
 export interface AllocationSummary {
