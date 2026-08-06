@@ -58,4 +58,59 @@ describe('useCreateCycle', () => {
       }),
     )
   })
+
+  it('includes origins in the payload when provided', async () => {
+    let mutationConfig: { mutationFn: (dto: any) => Promise<unknown> } | undefined
+
+    useMutationMock.mockImplementation((config: { mutationFn: (dto: any) => Promise<unknown> }) => {
+      mutationConfig = config
+      return { mutateAsync: vi.fn() }
+    })
+
+    postMock.mockResolvedValue({ data: {} })
+
+    const { useCreateCycle } = await import('./useCycles')
+    useCreateCycle()
+
+    await mutationConfig!.mutationFn({
+      pondId: 'pond-1',
+      supplier: 'Lavifort',
+      stockDate: '2026-07-05',
+      plCount: 342000,
+      initialPhase: 'ENGORDA',
+      origins: [{ label: 'Berçário 124', sourceCycleId: 'cycle-1', quantity: 200_000 }],
+    })
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/v1/cycles',
+      expect.objectContaining({
+        origins: [{ label: 'Berçário 124', sourceCycleId: 'cycle-1', quantity: 200_000 }],
+      }),
+    )
+  })
+
+  it('omits origins from the payload when not provided', async () => {
+    let mutationConfig: { mutationFn: (dto: any) => Promise<unknown> } | undefined
+
+    useMutationMock.mockImplementation((config: { mutationFn: (dto: any) => Promise<unknown> }) => {
+      mutationConfig = config
+      return { mutateAsync: vi.fn() }
+    })
+
+    postMock.mockResolvedValue({ data: {} })
+
+    const { useCreateCycle } = await import('./useCycles')
+    useCreateCycle()
+
+    await mutationConfig!.mutationFn({
+      pondId: 'pond-1',
+      supplier: 'Lavifort',
+      stockDate: '2026-07-05',
+      plCount: 342000,
+      initialPhase: 'ENGORDA',
+    })
+
+    const [, payload] = postMock.mock.calls[0]
+    expect(payload).not.toHaveProperty('origins')
+  })
 })
