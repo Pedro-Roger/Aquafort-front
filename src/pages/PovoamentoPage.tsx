@@ -155,8 +155,27 @@ export function PovoamentoPage() {
       setError('Selecione ao menos um tanque.');
       return;
     }
-    setAllocations(Array.from(selectedTankIds).map((pondId) => makeRow(pondId)));
+    setAllocations((current) => {
+      const currentByPond = new Map(current.map((row) => [row.pondId, row]));
+      return Array.from(selectedTankIds).map((pondId) => currentByPond.get(pondId) ?? makeRow(pondId));
+    });
     setError(null);
+  }
+
+  function switchMode(nextMode: StockingMode) {
+    if (allocations.length > 0 && !window.confirm('Trocar de modo vai limpar a distribuição atual. Continuar?')) return;
+    setMode(nextMode);
+    setAllocations([]);
+    setSelectedTankIds(new Set());
+  }
+
+  function switchSubMode(next: ViveiroSubMode) {
+    if (allocations.length > 0 && !window.confirm('Trocar o tipo de povoamento vai limpar a distribuição atual. Continuar?')) return;
+    setViveiroSubMode(next);
+    setAllocations([]);
+    if (next === 'TRANSFERENCIA') {
+      setForm((current) => ({ ...current, supplier: '' }));
+    }
   }
 
   function updateRow(id: string, patch: Partial<AllocationRowState>) {
@@ -275,20 +294,20 @@ export function PovoamentoPage() {
         </div>
 
         <div style={{ display: 'flex', gap: space.inline, marginTop: space.section }}>
-          <Button variant={mode === 'BERCARIO' ? 'primary' : 'secondary'} onClick={() => { setMode('BERCARIO'); setAllocations([]); setSelectedTankIds(new Set()); }}>
+          <Button variant={mode === 'BERCARIO' ? 'primary' : 'secondary'} onClick={() => switchMode('BERCARIO')}>
             Berçário
           </Button>
-          <Button variant={mode === 'VIVEIRO' ? 'primary' : 'secondary'} onClick={() => { setMode('VIVEIRO'); setAllocations([]); setSelectedTankIds(new Set()); }}>
+          <Button variant={mode === 'VIVEIRO' ? 'primary' : 'secondary'} onClick={() => switchMode('VIVEIRO')}>
             Viveiro
           </Button>
         </div>
 
         {mode === 'VIVEIRO' && (
           <div style={{ display: 'flex', gap: space.inline, marginTop: space.tile }}>
-            <Button size="sm" variant={viveiroSubMode === 'DIRETO' ? 'primary' : 'secondary'} onClick={() => { setViveiroSubMode('DIRETO'); setAllocations([]); }}>
+            <Button size="sm" variant={viveiroSubMode === 'DIRETO' ? 'primary' : 'secondary'} onClick={() => switchSubMode('DIRETO')}>
               Povoamento direto
             </Button>
-            <Button size="sm" variant={viveiroSubMode === 'TRANSFERENCIA' ? 'primary' : 'secondary'} onClick={() => { setViveiroSubMode('TRANSFERENCIA'); setAllocations([]); }}>
+            <Button size="sm" variant={viveiroSubMode === 'TRANSFERENCIA' ? 'primary' : 'secondary'} onClick={() => switchSubMode('TRANSFERENCIA')}>
               Transferência de berçário
             </Button>
           </div>
@@ -380,6 +399,12 @@ export function PovoamentoPage() {
             </div>
           )}
 
+          {isTransferMode && (
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 6 }}>
+              Fornecedor registrado automaticamente como "Transferência interna".
+            </div>
+          )}
+
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: space.section, marginTop: space.section }}>
             <h3 style={sectionTitle}>{mode === 'BERCARIO' ? 'Berçários' : 'Viveiros'} disponíveis</h3>
             <div style={{ ...sectionSubtitle, marginTop: 2, marginBottom: space.tile }}>
@@ -417,7 +442,15 @@ export function PovoamentoPage() {
                           options={pondOptions}
                           placeholder="Selecione"
                           value={row.pondId}
-                          onChange={(newValue) => updateRow(row.id, { pondId: newValue })}
+                          onChange={(newValue) => {
+                            setSelectedTankIds((current) => {
+                              const next = new Set(current);
+                              next.delete(row.pondId);
+                              next.add(newValue);
+                              return next;
+                            });
+                            updateRow(row.id, { pondId: newValue });
+                          }}
                         />
                         <button
                           type="button"
