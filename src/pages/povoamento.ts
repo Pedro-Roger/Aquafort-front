@@ -67,6 +67,31 @@ export function validateAllocationRows(rows: AllocationRow[], totalQuantity: num
   return { valid: true, message: null };
 }
 
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Day of stage, incrementing +1 per calendar day starting at 1 on the arrival
+ * (stockDate) day, capped at the transfer-day count once a transferDate is set.
+ */
+export function calculateStageDay(stockDate: string, transferDate: string | null | undefined, referenceDate: string): number {
+  const start = new Date(stockDate);
+  const today = new Date(referenceDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(today.getTime())) return 1;
+
+  const elapsedDays = Math.floor((today.getTime() - start.getTime()) / MS_PER_DAY);
+  let day = elapsedDays + 1;
+
+  if (transferDate) {
+    const transfer = new Date(transferDate);
+    if (!Number.isNaN(transfer.getTime())) {
+      const maxDay = Math.floor((transfer.getTime() - start.getTime()) / MS_PER_DAY) + 1;
+      day = Math.min(day, maxDay);
+    }
+  }
+
+  return Math.max(1, day);
+}
+
 export function weightFromQuantity(quantity: number, plPerGram: number): number {
   if (!Number.isFinite(plPerGram) || plPerGram <= 0) return 0;
   if (!Number.isFinite(quantity) || quantity < 0) return 0;
