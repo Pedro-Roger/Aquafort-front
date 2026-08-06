@@ -18,10 +18,11 @@ interface OriginPickerProps {
 
 /**
  * Multi-select of berçário origins for a viveiro stocked by transfer. Shows
- * the saldo disponível per berçário (backend allocation + what's already
- * picked in this same form, across every other row) and flags — never
+ * the saldo disponível per berçário (from the backend's already-saved
+ * allocations only — NOT reduced by quantities picked for the same
+ * berçário in other rows of this same unsaved form) and flags — never
  * blocks — a request above it, since real headcounts drift from what was
- * logged.
+ * logged and the whole check is advisory, not authoritative.
  */
 export function OriginPicker({ options, value, onChange }: OriginPickerProps) {
   const selectedIds = new Set(value.map((origin) => origin.sourceCycleId));

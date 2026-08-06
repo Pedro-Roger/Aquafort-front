@@ -174,7 +174,7 @@ export function PovoamentoPage() {
     setViveiroSubMode(next);
     setAllocations([]);
     if (next === 'TRANSFERENCIA') {
-      setForm((current) => ({ ...current, supplier: '' }));
+      setForm((current) => ({ ...current, supplier: '', geneticCode: '' }));
     }
   }
 
@@ -221,12 +221,12 @@ export function PovoamentoPage() {
             plCount: rowQuantity,
             initialPhase: getCyclePhaseForPondType(pond.type),
             larvaeSupplier: form.supplier.trim() || undefined,
-            geneticCode: form.geneticCode.trim() || undefined,
+            geneticCode: isTransferMode ? undefined : (form.geneticCode.trim() || undefined),
             larvaeLotCode: form.lotCode.trim() || undefined,
             larvaeStage: 'PL',
             stageDay: Number.isFinite(effectiveStageDay) && effectiveStageDay > 0 ? effectiveStageDay : undefined,
             transferDate: form.transferDate || undefined,
-            plPerGram: plPerGram > 0 ? plPerGram : undefined,
+            plPerGram: isTransferMode ? undefined : (plPerGram > 0 ? plPerGram : undefined),
             origins: isTransferMode
               ? (row.origins ?? []).filter((origin) => origin.quantity > 0)
               : undefined,
@@ -330,11 +330,6 @@ export function PovoamentoPage() {
           <StatCard label="Tanques aptos" value={isLoading ? '-' : targetPonds.length} />
           <StatCard label="Larvas alocadas" value={`${fmt(summary.allocated, 0)}`} />
           <StatCard label="Tanques selecionados" value={selectedTankIds.size} />
-          <StatCard
-            label="Distribuição"
-            value={summary.isOverallocated ? 'Excede o total' : 'Dentro do limite'}
-            tone={summary.isOverallocated ? 'danger' : 'ok'}
-          />
         </div>
       </div>
 
