@@ -4,7 +4,6 @@ import { ArrowRightLeft, Plus, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
-import { SelectablePondChips } from '../components/povoamento/SelectablePondChips';
 import { useCreateCycle } from '../hooks/useCycles';
 import { usePonds } from '../hooks/usePonds';
 import type { Pond } from '../types';
