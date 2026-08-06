@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { calculatePovoamentoQuantity, getAllocationSummary, validateAllocationRows } from './povoamento';
+import {
+  calculateOriginBalance,
+  calculatePovoamentoQuantity,
+  getAllocationSummary,
+  quantityFromWeight,
+  sumOriginQuantities,
+  validateAllocationRows,
+  weightFromQuantity,
+} from './povoamento';
 
 describe('povoamento allocations', () => {
   it('blocks totals above the available lot quantity', () => {
@@ -39,5 +47,43 @@ describe('povoamento allocations', () => {
     expect(calculation.baseLarvae).toBe(112000);
     expect(calculation.bonusLarvae).toBe(0);
     expect(calculation.totalLarvae).toBe(112000);
+  });
+});
+
+describe('povoamento weight/quantity conversion', () => {
+  it('converts quantity to weight using PL/grama', () => {
+    expect(weightFromQuantity(500_000, 250)).toBe(2000);
+  });
+
+  it('converts weight to quantity using PL/grama, rounded', () => {
+    expect(quantityFromWeight(2000, 250)).toBe(500_000);
+    expect(quantityFromWeight(7.3, 250)).toBe(1825);
+  });
+
+  it('returns 0 when PL/grama is missing or invalid', () => {
+    expect(weightFromQuantity(500_000, 0)).toBe(0);
+    expect(quantityFromWeight(2000, -1)).toBe(0);
+  });
+});
+
+describe('povoamento origin math', () => {
+  it('sums quantities across selected origins', () => {
+    const total = sumOriginQuantities([
+      { sourceCycleId: 'a', label: 'Berçário 124', quantity: 200_000 },
+      { sourceCycleId: 'b', label: 'Berçário 117', quantity: 100_000 },
+    ]);
+    expect(total).toBe(300_000);
+  });
+
+  it('flags a request above the remaining balance without throwing', () => {
+    const balance = calculateOriginBalance(500_000, 400_000, 150_000);
+    expect(balance.remaining).toBe(100_000);
+    expect(balance.isOverdrawn).toBe(true);
+  });
+
+  it('does not flag a request within the remaining balance', () => {
+    const balance = calculateOriginBalance(500_000, 200_000, 150_000);
+    expect(balance.remaining).toBe(300_000);
+    expect(balance.isOverdrawn).toBe(false);
   });
 });

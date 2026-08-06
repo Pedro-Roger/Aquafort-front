@@ -63,6 +63,43 @@ export function validateAllocationRows(rows: AllocationRow[], totalQuantity: num
   return { valid: true, message: null };
 }
 
+export function weightFromQuantity(quantity: number, plPerGram: number): number {
+  if (!Number.isFinite(plPerGram) || plPerGram <= 0) return 0;
+  if (!Number.isFinite(quantity) || quantity < 0) return 0;
+  return quantity / plPerGram;
+}
+
+export function quantityFromWeight(weightG: number, plPerGram: number): number {
+  if (!Number.isFinite(plPerGram) || plPerGram <= 0) return 0;
+  if (!Number.isFinite(weightG) || weightG < 0) return 0;
+  return Math.round(weightG * plPerGram);
+}
+
+export interface OriginAllocation {
+  sourceCycleId: string;
+  label: string;
+  quantity: number;
+}
+
+export function sumOriginQuantities(origins: OriginAllocation[]): number {
+  return origins.reduce((sum, origin) => sum + (Number.isFinite(origin.quantity) ? origin.quantity : 0), 0);
+}
+
+export interface OriginBalance {
+  remaining: number;
+  isOverdrawn: boolean;
+}
+
+/**
+ * Advisory only — the operator's headcount can legitimately beat what was
+ * logged for a berçário, so a request above `remaining` is flagged, never
+ * blocked.
+ */
+export function calculateOriginBalance(plCount: number, allocatedElsewhere: number, requested: number): OriginBalance {
+  const remaining = plCount - allocatedElsewhere;
+  return { remaining, isOverdrawn: requested > remaining };
+}
+
 export function getCyclePhaseForPondType(type: PondType): CyclePhase {
   if (type === 'PRE_BERCARIO') return 'PREPARACAO';
   if (type === 'BERCARIO') return 'BERCARIO';
