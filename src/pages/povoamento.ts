@@ -2,6 +2,7 @@ import type { CyclePhase, PondType } from '../types';
 
 export interface AllocationRow {
   pondId: string;
+  /** For transfer rows (origins present), callers must keep this equal to sumOriginQuantities(origins). */
   quantity: number;
   /** Grams weighed out — only meaningful when PL/grama links it to quantity. */
   weightG?: number;
