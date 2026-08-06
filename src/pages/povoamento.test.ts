@@ -57,12 +57,17 @@ describe('povoamento weight/quantity conversion', () => {
 
   it('converts weight to quantity using PL/grama, rounded', () => {
     expect(quantityFromWeight(2000, 250)).toBe(500_000);
-    expect(quantityFromWeight(7.3, 250)).toBe(1825);
+    expect(quantityFromWeight(7.301, 250)).toBe(1825); // 1825.25 rounds down to 1825
   });
 
   it('returns 0 when PL/grama is missing or invalid', () => {
     expect(weightFromQuantity(500_000, 0)).toBe(0);
     expect(quantityFromWeight(2000, -1)).toBe(0);
+  });
+
+  it('treats a zero quantity or weight as valid, not invalid', () => {
+    expect(weightFromQuantity(0, 250)).toBe(0);
+    expect(quantityFromWeight(0, 250)).toBe(0);
   });
 });
 
@@ -84,6 +89,12 @@ describe('povoamento origin math', () => {
   it('does not flag a request within the remaining balance', () => {
     const balance = calculateOriginBalance(500_000, 200_000, 150_000);
     expect(balance.remaining).toBe(300_000);
+    expect(balance.isOverdrawn).toBe(false);
+  });
+
+  it('does not flag a request exactly equal to the remaining balance', () => {
+    const balance = calculateOriginBalance(500_000, 350_000, 150_000);
+    expect(balance.remaining).toBe(150_000);
     expect(balance.isOverdrawn).toBe(false);
   });
 });
