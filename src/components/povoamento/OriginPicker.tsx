@@ -77,7 +77,7 @@ export function OriginPicker({ options, value, onChange }: OriginPickerProps) {
           : null;
 
         return (
-          <div key={origin.sourceCycleId} style={{ display: 'grid', gridTemplateColumns: '1fr 140px', gap: space.inline, alignItems: 'end' }}>
+          <div key={origin.sourceCycleId} style={{ display: 'grid', gridTemplateColumns: '1fr 140px 32px', gap: space.inline, alignItems: 'end' }}>
             <div>
               <div style={workspaceTileLabel}>{origin.label}</div>
               {balance?.isOverdrawn && (
@@ -87,13 +87,30 @@ export function OriginPicker({ options, value, onChange }: OriginPickerProps) {
               )}
             </div>
             <Input
-              label="Quantidade"
+              label={`Quantidade — ${origin.label}`}
               type="number"
               min={0}
               step="1"
               value={origin.quantity === 0 ? '' : origin.quantity}
               onChange={(e) => setQuantity(origin.sourceCycleId, Number(e.target.value || 0))}
             />
+            <button
+              type="button"
+              onClick={() => onChange(value.filter((o) => o.sourceCycleId !== origin.sourceCycleId))}
+              aria-label={`Remover ${origin.label}`}
+              style={{
+                border: '1px solid var(--border)',
+                backgroundColor: 'var(--bg-elevated)',
+                color: 'var(--text-secondary)',
+                borderRadius: radius.control,
+                cursor: 'pointer',
+                width: 32,
+                height: 32,
+                flexShrink: 0,
+              }}
+            >
+              ×
+            </button>
           </div>
         );
       })}
