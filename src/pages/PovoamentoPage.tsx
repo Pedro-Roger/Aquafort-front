@@ -1,9 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRightLeft, Plus, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Select } from '../components/ui/Select';
+import { SearchableSelect } from '../components/ui/SearchableSelect';
 import { useCreateCycle } from '../hooks/useCycles';
 import { usePonds } from '../hooks/usePonds';
 import type { Pond } from '../types';
@@ -28,6 +28,7 @@ import {
 import { EmptyState } from '../components/ui/EmptyState';
 import {
   calculatePovoamentoQuantity,
+  calculateStageDay,
   getAllocationSummary,
   getCyclePhaseForPondType,
   PovoamentoTankTypeLabels,
@@ -46,12 +47,17 @@ function fmt(value: number, digits = 0) {
   });
 }
 
-const ALLOWED_POND_TYPES = [PondType.PRE_BERCARIO, PondType.BERCARIO, PondType.ENGORDA] as const;
-type AllowedPondType = (typeof ALLOWED_POND_TYPES)[number];
-const STAGE_OPTIONS = [
-  { value: 'PL', label: 'PL' },
-  { value: 'PL_GRAMA', label: 'PL grama' },
-];
+const BERCARIO_POND_TYPES = [PondType.PRE_BERCARIO, PondType.BERCARIO] as const;
+const VIVEIRO_POND_TYPES = [PondType.ENGORDA] as const;
+const ALL_STOCKING_POND_TYPES = [...BERCARIO_POND_TYPES, ...VIVEIRO_POND_TYPES] as const;
+type StockingPondType = (typeof ALL_STOCKING_POND_TYPES)[number];
+
+type StockingMode = 'BERCARIO' | 'VIVEIRO';
+type ViveiroSubMode = 'DIRETO' | 'TRANSFERENCIA';
+
+function targetPondTypesForMode(mode: StockingMode): readonly StockingPondType[] {
+  return mode === 'BERCARIO' ? BERCARIO_POND_TYPES : VIVEIRO_POND_TYPES;
+}
 
 type PovoamentoForm = {
   geneticCode: string;
@@ -59,20 +65,17 @@ type PovoamentoForm = {
   lotCode: string;
   density: string;
   bonusPct: string;
-  totalQuantity: string;
   biometria: string;
-  stage: 'PL' | 'PL_GRAMA';
+  stageDayOverride: string;
+  transferDate: string;
+  plPerGram: string;
   stockDate: string;
 };
 
 type AllocationRowState = AllocationRow & { id: string };
 
-function makeRow(pondId = '', quantity = ''): AllocationRowState {
-  return {
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-    pondId,
-    quantity: quantity === '' ? 0 : Number(quantity),
-  };
+function makeRow(pondId = ''): AllocationRowState {
+  return { id: `${Date.now()}-${Math.random().toString(16).slice(2)}`, pondId, quantity: 0, weightG: 0 };
 }
 
 function asAllocationRows(rows: AllocationRowState[]): AllocationRow[] {
@@ -102,7 +105,9 @@ export function PovoamentoPage() {
     bonusPct: '',
     totalQuantity: '',
     biometria: '',
-    stage: 'PL',
+    stageDayOverride: '',
+    transferDate: '',
+    plPerGram: '',
     stockDate: todayIsoDate(),
   });
   const [allocations, setAllocations] = useState<AllocationRowState[]>([makeRow()]);
@@ -118,6 +123,8 @@ export function PovoamentoPage() {
   const selectedPonds = new Map(availablePonds.map((pond) => [pond.id, pond]));
   const density = Number(form.density || 0);
   const bonusPct = form.bonusPct.trim() === '' ? null : Number(form.bonusPct);
+  const autoStageDay = calculateStageDay(form.stockDate, form.transferDate || null, todayIsoDate());
+  const effectiveStageDay = form.stageDayOverride.trim() === '' ? autoStageDay : Number(form.stageDayOverride);
   const hasBonus = bonusPct !== null && Number.isFinite(bonusPct) && bonusPct > 0;
 
   const allocationCalculations = useMemo(() => {
@@ -147,6 +154,35 @@ export function PovoamentoPage() {
     },
     { areaHa: 0, baseLarvae: 0, bonusLarvae: 0, totalLarvae: 0 },
   );
+
+  // Autofill: viveiro selecionado + densidade -> quantidade = área do viveiro (m²) * densidade (+ bônus).
+  const pondIdsKey = allocations.map((allocation) => allocation.pondId).join('|');
+  useEffect(() => {
+    if (!Number.isFinite(density) || density <= 0) return;
+
+    setAllocations((current) =>
+      current.map((allocation) => {
+        const pond = selectedPonds.get(allocation.pondId);
+        if (!pond) return allocation;
+        const calc = calculatePovoamentoQuantity(pond.areaHa, density, bonusPct);
+        return { ...allocation, quantity: calc.totalLarvae };
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pondIdsKey, density, bonusPct]);
+
+  useEffect(() => {
+    if (!Number.isFinite(density) || density <= 0) return;
+    const calculatedTotal = allocations.reduce((sum, allocation) => {
+      const pond = selectedPonds.get(allocation.pondId);
+      if (!pond) return sum;
+      return sum + calculatePovoamentoQuantity(pond.areaHa, density, bonusPct).totalLarvae;
+    }, 0);
+    if (calculatedTotal > 0) {
+      setForm((current) => ({ ...current, totalQuantity: String(calculatedTotal) }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pondIdsKey, density, bonusPct]);
 
   const pondOptions = availablePonds.map((pond) => ({
     value: pond.id,
@@ -216,7 +252,10 @@ export function PovoamentoPage() {
             larvaeSupplier: form.supplier.trim(),
             geneticCode: form.geneticCode.trim() || undefined,
             larvaeLotCode: form.lotCode.trim() || undefined,
-            larvaeStage: form.stage === 'PL_GRAMA' ? 'PL grama' : 'PL',
+            larvaeStage: 'PL',
+            stageDay: Number.isFinite(effectiveStageDay) && effectiveStageDay > 0 ? effectiveStageDay : undefined,
+            transferDate: form.transferDate || undefined,
+            plPerGram: form.plPerGram.trim() !== '' && Number.isFinite(Number(form.plPerGram)) ? Number(form.plPerGram) : undefined,
           });
         }),
       );
@@ -239,6 +278,9 @@ export function PovoamentoPage() {
         lotCode: '',
         totalQuantity: '',
         biometria: '',
+        stageDayOverride: '',
+        transferDate: '',
+        plPerGram: '',
         stockDate: todayIsoDate(),
       }));
       setAllocations([makeRow(availablePonds[0]?.id ?? '')]);
@@ -312,7 +354,7 @@ export function PovoamentoPage() {
             <Input label="Fornecedor" value={form.supplier} onChange={(e) => setForm((current) => ({ ...current, supplier: e.target.value }))} />
             <Input label="Lote / código" value={form.lotCode} onChange={(e) => setForm((current) => ({ ...current, lotCode: e.target.value }))} />
             <Input
-              label="Densidade (PL/m²)"
+              label="Densidade (PL/m²) opcional"
               type="number"
               min={0}
               step="0.1"
@@ -328,8 +370,34 @@ export function PovoamentoPage() {
               onChange={(e) => setForm((current) => ({ ...current, bonusPct: e.target.value }))}
             />
             <Input label="Quantidade total" type="number" min={0} step="1" value={form.totalQuantity} onChange={(e) => setForm((current) => ({ ...current, totalQuantity: e.target.value }))} />
-            <Input label="Biometria" type="number" min={0} step="0.01" value={form.biometria} onChange={(e) => setForm((current) => ({ ...current, biometria: e.target.value }))} />
-            <Select label="Estágio" options={STAGE_OPTIONS} value={form.stage} onChange={(e) => setForm((current) => ({ ...current, stage: e.target.value as PovoamentoForm['stage'] }))} />
+            <Input label="Biometria opcional" type="number" min={0} step="0.01" value={form.biometria} onChange={(e) => setForm((current) => ({ ...current, biometria: e.target.value }))} />
+            <Input
+              label="Dia do estágio"
+              type="number"
+              min={1}
+              step="1"
+              placeholder={String(autoStageDay)}
+              value={form.stageDayOverride}
+              onChange={(e) => setForm((current) => ({ ...current, stageDayOverride: e.target.value }))}
+            />
+            <Input
+              label="Transferência prevista"
+              type="date"
+              value={form.transferDate}
+              onChange={(e) => setForm((current) => ({ ...current, transferDate: e.target.value }))}
+            />
+            <Input
+              label="PL/grama opcional"
+              type="number"
+              min={0}
+              step="1"
+              placeholder="Pós-larvas por grama"
+              value={form.plPerGram}
+              onChange={(e) => setForm((current) => ({ ...current, plPerGram: e.target.value }))}
+            />
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 6 }}>
+            Estágio calculado automaticamente: dia {autoStageDay} desde o povoamento{form.transferDate ? ' (limitado pela transferência prevista)' : ''}. Preencha "Dia do estágio" para sobrescrever.
           </div>
 
           <div style={{ ...workspaceTile, padding: 14 }}>
@@ -365,12 +433,12 @@ export function PovoamentoPage() {
             <div style={{ display: 'grid', gap: space.tile }}>
               {allocations.map((allocation, index) => (
                 <div key={allocation.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 140px 44px', gap: space.inline, alignItems: 'end' }}>
-                  <Select
+                  <SearchableSelect
                     label={`Viveiro ${index + 1}`}
                     options={pondOptions}
                     placeholder="Selecione"
                     value={allocation.pondId}
-                    onChange={(e) => setAllocations((current) => current.map((row) => (row.id === allocation.id ? { ...row, pondId: e.target.value } : row)))}
+                    onChange={(newValue) => setAllocations((current) => current.map((row) => (row.id === allocation.id ? { ...row, pondId: newValue } : row)))}
                   />
                   <Input
                     label="Quantidade"
@@ -440,13 +508,8 @@ export function PovoamentoPage() {
                       <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{card.activeCount} povoados</div>
                     </div>
                   </div>
-                  <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: space.inline }}>
-                    {card.ponds.slice(0, 4).map((pond) => (
-                      <span key={pond.id} style={{ padding: '5px 10px', borderRadius: radius.pill, backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: 12 }}>
-                        {pond.code}
-                      </span>
-                    ))}
-                    {card.ponds.length === 0 && <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>Sem viveiros cadastrados.</span>}
+                  <div style={{ marginTop: 10 }}>
+                    <PondChips ponds={card.ponds} />
                   </div>
                 </div>
               ))}
