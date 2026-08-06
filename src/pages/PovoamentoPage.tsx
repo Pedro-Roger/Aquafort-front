@@ -4,7 +4,9 @@ import { ArrowRightLeft, Plus, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { SearchableSelect } from '../components/ui/SearchableSelect';
-import { useCreateCycle } from '../hooks/useCycles';
+import { OriginPicker, type OriginOption } from '../components/povoamento/OriginPicker';
+import { QuantityWeightInput } from '../components/povoamento/QuantityWeightInput';
+import { useCreateCycle, useCycles } from '../hooks/useCycles';
 import { usePonds } from '../hooks/usePonds';
 import type { Pond } from '../types';
 import { PondType } from '../types';
@@ -31,9 +33,10 @@ import {
   calculateStageDay,
   getAllocationSummary,
   getCyclePhaseForPondType,
-  PovoamentoTankTypeLabels,
+  sumOriginQuantities,
   validateAllocationRows,
   type AllocationRow,
+  type OriginAllocation,
 } from './povoamento';
 
 function todayIsoDate() {
@@ -97,175 +100,140 @@ export function PovoamentoPage() {
   const createCycle = useCreateCycle();
   const [error, setError] = useState<string | null>(null);
   const [savedLots, setSavedLots] = useState<Array<{ pond: string; quantity: number; geneticCode: string; supplier: string }>>([]);
+  const [mode, setMode] = useState<StockingMode>('BERCARIO');
+  const [viveiroSubMode, setViveiroSubMode] = useState<ViveiroSubMode>('DIRETO');
+  const [selectedTankIds, setSelectedTankIds] = useState<Set<string>>(new Set());
   const [form, setForm] = useState<PovoamentoForm>({
     geneticCode: '',
     supplier: '',
     lotCode: '',
     density: '',
     bonusPct: '',
-    totalQuantity: '',
     biometria: '',
     stageDayOverride: '',
     transferDate: '',
     plPerGram: '',
     stockDate: todayIsoDate(),
   });
-  const [allocations, setAllocations] = useState<AllocationRowState[]>([makeRow()]);
+  const [allocations, setAllocations] = useState<AllocationRowState[]>([]);
 
-  const availablePonds = useMemo(
-    () => ponds.filter((pond) => ALLOWED_POND_TYPES.includes(pond.type as AllowedPondType)),
-    [ponds],
+  const isTransferMode = mode === 'VIVEIRO' && viveiroSubMode === 'TRANSFERENCIA';
+
+  const targetPonds = useMemo(
+    () => ponds.filter((pond) => targetPondTypesForMode(mode).includes(pond.type as StockingPondType)),
+    [ponds, mode],
   );
+  const selectedPonds = new Map(ponds.map((pond) => [pond.id, pond]));
 
-  const totalQuantity = Number(form.totalQuantity || 0);
+  const { data: bercarioOrigins = [] } = useCycles({ status: 'ativo', phase: 'BERCARIO' });
+
+  const originOptions: OriginOption[] = bercarioOrigins.map((cycle) => ({
+    cycleId: cycle.id,
+    label: `${cycle.pond?.code ?? cycle.pondId} · ${fmt(cycle.plCount, 0)} PL`,
+    plCount: cycle.plCount,
+    allocatedElsewhere: (cycle as unknown as { originAllocated?: number }).originAllocated ?? 0,
+  }));
+
+  const totalQuantity = allocations.reduce((sum, row) => sum + (isTransferMode ? sumOriginQuantities(row.origins ?? []) : row.quantity), 0);
   const summary = getAllocationSummary(asAllocationRows(allocations), totalQuantity);
-  const validation = validateAllocationRows(asAllocationRows(allocations), totalQuantity);
-  const selectedPonds = new Map(availablePonds.map((pond) => [pond.id, pond]));
   const density = Number(form.density || 0);
   const bonusPct = form.bonusPct.trim() === '' ? null : Number(form.bonusPct);
+  const plPerGram = Number(form.plPerGram || 0);
   const autoStageDay = calculateStageDay(form.stockDate, form.transferDate || null, todayIsoDate());
   const effectiveStageDay = form.stageDayOverride.trim() === '' ? autoStageDay : Number(form.stageDayOverride);
   const hasBonus = bonusPct !== null && Number.isFinite(bonusPct) && bonusPct > 0;
 
-  const allocationCalculations = useMemo(() => {
-    return allocations.map((allocation) => {
-      const pond = selectedPonds.get(allocation.pondId);
-      if (!pond || !Number.isFinite(density) || density <= 0) {
-        return { allocationId: allocation.id, pond, calculation: null };
-      }
+  function asAllocationRows(rows: AllocationRowState[]): AllocationRow[] {
+    return rows.map((row) => ({
+      pondId: row.pondId,
+      quantity: isTransferMode ? sumOriginQuantities(row.origins ?? []) : row.quantity,
+    }));
+  }
 
-      return {
-        allocationId: allocation.id,
-        pond,
-        calculation: calculatePovoamentoQuantity(pond.areaHa, density, bonusPct),
-      };
+  const validation = validateAllocationRows(asAllocationRows(allocations), totalQuantity || 1);
+
+  function toggleTank(pondId: string) {
+    setSelectedTankIds((current) => {
+      const next = new Set(current);
+      if (next.has(pondId)) next.delete(pondId);
+      else next.add(pondId);
+      return next;
     });
-  }, [allocations, bonusPct, density, selectedPonds]);
+  }
 
-  const calculationSummary = allocationCalculations.reduce(
-    (acc, item) => {
-      if (!item.calculation) return acc;
-      return {
-        areaHa: acc.areaHa + (item.pond?.areaHa ?? 0),
-        baseLarvae: acc.baseLarvae + item.calculation.baseLarvae,
-        bonusLarvae: acc.bonusLarvae + item.calculation.bonusLarvae,
-        totalLarvae: acc.totalLarvae + item.calculation.totalLarvae,
-      };
-    },
-    { areaHa: 0, baseLarvae: 0, bonusLarvae: 0, totalLarvae: 0 },
-  );
-
-  // Autofill: viveiro selecionado + densidade -> quantidade = área do viveiro (m²) * densidade (+ bônus).
-  const pondIdsKey = allocations.map((allocation) => allocation.pondId).join('|');
-  useEffect(() => {
-    if (!Number.isFinite(density) || density <= 0) return;
-
-    setAllocations((current) =>
-      current.map((allocation) => {
-        const pond = selectedPonds.get(allocation.pondId);
-        if (!pond) return allocation;
-        const calc = calculatePovoamentoQuantity(pond.areaHa, density, bonusPct);
-        return { ...allocation, quantity: calc.totalLarvae };
-      }),
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pondIdsKey, density, bonusPct]);
-
-  useEffect(() => {
-    if (!Number.isFinite(density) || density <= 0) return;
-    const calculatedTotal = allocations.reduce((sum, allocation) => {
-      const pond = selectedPonds.get(allocation.pondId);
-      if (!pond) return sum;
-      return sum + calculatePovoamentoQuantity(pond.areaHa, density, bonusPct).totalLarvae;
-    }, 0);
-    if (calculatedTotal > 0) {
-      setForm((current) => ({ ...current, totalQuantity: String(calculatedTotal) }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pondIdsKey, density, bonusPct]);
-
-  const pondOptions = availablePonds.map((pond) => ({
-    value: pond.id,
-    label: `${pond.code} · ${pond.name}`,
-  }));
-
-  const cards = ALLOWED_POND_TYPES.map((type) => {
-    const rows = availablePonds.filter((pond) => pond.type === type);
-    const activeCount = rows.filter((pond) => pond.status === 'POVOADO' || pond.status === 'DESPESCANDO').length;
-
-    return {
-      type,
-      label: PovoamentoTankTypeLabels[type],
-      title: typeLabel(type),
-      count: rows.length,
-      activeCount,
-      ponds: rows,
-    };
-  });
-
-  function applyCalculatedDistribution() {
-    if (!Number.isFinite(density) || density <= 0) {
-      setError('Informe a densidade de povoamento.');
+  function createRowsForSelection() {
+    if (selectedTankIds.size === 0) {
+      setError('Selecione ao menos um tanque.');
       return;
     }
-
-    const updatedAllocations = allocations.map((allocation) => {
-      const pond = selectedPonds.get(allocation.pondId);
-      if (!pond) return allocation;
-      const calculation = calculatePovoamentoQuantity(pond.areaHa, density, bonusPct);
-      return { ...allocation, quantity: calculation.totalLarvae };
-    });
-
-    const calculatedTotal = updatedAllocations.reduce((sum, allocation) => sum + allocation.quantity, 0);
-    setAllocations(updatedAllocations);
-    setForm((current) => ({ ...current, totalQuantity: String(calculatedTotal) }));
+    setAllocations(Array.from(selectedTankIds).map((pondId) => makeRow(pondId)));
     setError(null);
   }
 
+  function updateRow(id: string, patch: Partial<AllocationRowState>) {
+    setAllocations((current) => current.map((row) => (row.id === id ? { ...row, ...patch } : row)));
+  }
+
+  // Viveiro Direto ainda usa a meta área × densidade como sugestão, igual ao fluxo antigo.
+  const directoSuggestions = useMemo(() => {
+    if (mode !== 'VIVEIRO' || viveiroSubMode !== 'DIRETO' || !Number.isFinite(density) || density <= 0) {
+      return new Map<string, ReturnType<typeof calculatePovoamentoQuantity>>();
+    }
+    const map = new Map<string, ReturnType<typeof calculatePovoamentoQuantity>>();
+    allocations.forEach((row) => {
+      const pond = selectedPonds.get(row.pondId);
+      if (pond) map.set(row.id, calculatePovoamentoQuantity(pond.areaHa, density, bonusPct));
+    });
+    return map;
+  }, [mode, viveiroSubMode, density, bonusPct, allocations, selectedPonds]);
+
   async function handleSave() {
     setError(null);
-    const result = validateAllocationRows(asAllocationRows(allocations), totalQuantity);
+    const rows = asAllocationRows(allocations);
+    const result = validateAllocationRows(rows, totalQuantity);
     if (!result.valid) {
       setError(result.message);
       return;
     }
-
-    if (!form.supplier.trim()) {
+    if (!form.supplier.trim() && !isTransferMode) {
       setError('Informe o fornecedor.');
       return;
     }
 
     try {
       await Promise.all(
-        allocations.map((allocation) => {
-          const pond = selectedPonds.get(allocation.pondId);
-          if (!pond) {
-            throw new Error('Selecione um viveiro válido.');
-          }
+        allocations.map((row) => {
+          const pond = selectedPonds.get(row.pondId);
+          if (!pond) throw new Error('Selecione um tanque válido.');
+
+          const rowQuantity = isTransferMode ? sumOriginQuantities(row.origins ?? []) : row.quantity;
 
           return createCycle.mutateAsync({
-            pondId: allocation.pondId,
-            supplier: form.supplier.trim(),
+            pondId: row.pondId,
+            supplier: form.supplier.trim() || 'Transferência interna',
             stockDate: form.stockDate,
-            plCount: allocation.quantity,
+            plCount: rowQuantity,
             initialPhase: getCyclePhaseForPondType(pond.type),
-            larvaeSupplier: form.supplier.trim(),
+            larvaeSupplier: form.supplier.trim() || undefined,
             geneticCode: form.geneticCode.trim() || undefined,
             larvaeLotCode: form.lotCode.trim() || undefined,
             larvaeStage: 'PL',
             stageDay: Number.isFinite(effectiveStageDay) && effectiveStageDay > 0 ? effectiveStageDay : undefined,
             transferDate: form.transferDate || undefined,
-            plPerGram: form.plPerGram.trim() !== '' && Number.isFinite(Number(form.plPerGram)) ? Number(form.plPerGram) : undefined,
+            plPerGram: plPerGram > 0 ? plPerGram : undefined,
+            origins: isTransferMode
+              ? (row.origins ?? []).filter((origin) => origin.quantity > 0)
+              : undefined,
           });
         }),
       );
 
       setSavedLots((current) => [
-        ...allocations.map((allocation) => {
-          const pond = selectedPonds.get(allocation.pondId);
+        ...allocations.map((row) => {
+          const pond = selectedPonds.get(row.pondId);
           return {
-            pond: pond ? pondLabel(pond) : allocation.pondId,
-            quantity: allocation.quantity,
+            pond: pond ? pondLabel(pond) : row.pondId,
+            quantity: isTransferMode ? sumOriginQuantities(row.origins ?? []) : row.quantity,
             geneticCode: form.geneticCode,
             supplier: form.supplier,
           };
@@ -276,14 +244,14 @@ export function PovoamentoPage() {
       setForm((current) => ({
         ...current,
         lotCode: '',
-        totalQuantity: '',
         biometria: '',
         stageDayOverride: '',
         transferDate: '',
         plPerGram: '',
         stockDate: todayIsoDate(),
       }));
-      setAllocations([makeRow(availablePonds[0]?.id ?? '')]);
+      setAllocations([]);
+      setSelectedTankIds(new Set());
     } catch (saveError: unknown) {
       const errorMessage = typeof saveError === 'object' && saveError !== null && 'response' in saveError
         ? (saveError as { response?: { data?: { message?: string } } }).response?.data?.message
