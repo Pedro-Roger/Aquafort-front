@@ -189,10 +189,8 @@ export function PovoamentoPage() {
 
   async function handleSave() {
     setError(null);
-    const rows = asAllocationRows(allocations);
-    const result = validateAllocationRows(rows, totalQuantity);
-    if (!result.valid) {
-      setError(result.message);
+    if (!validation.valid) {
+      setError(validation.message);
       return;
     }
     if (!form.supplier.trim() && !isTransferMode) {
