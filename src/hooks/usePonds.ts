@@ -7,12 +7,29 @@ interface PondsFilter {
   type?: PondType;
 }
 
+/**
+ * The endpoint paginates (max 100 per page) even though every caller here
+ * wants the full farm roster — dropdowns, the registry table, the dashboard
+ * pond picker. Walk every page rather than hardcoding a limit, so a farm
+ * that grows past what fits on one page doesn't quietly lose ponds again.
+ */
 export function usePonds(filter?: PondsFilter) {
   return useQuery<Pond[]>({
     queryKey: ['ponds', filter],
     queryFn: async () => {
-      const { data } = await api.get('/v1/ponds', { params: filter });
-      return data.data ?? data;
+      const first = await api.get('/v1/ponds', { params: { ...filter, page: 1, limit: 100 } });
+      const ponds: Pond[] = first.data.data ?? first.data;
+      const totalPages: number = first.data.totalPages ?? 1;
+
+      if (totalPages <= 1) return ponds;
+
+      const rest = await Promise.all(
+        Array.from({ length: totalPages - 1 }, (_, index) =>
+          api.get('/v1/ponds', { params: { ...filter, page: index + 2, limit: 100 } }),
+        ),
+      );
+
+      return [...ponds, ...rest.flatMap((response) => response.data.data ?? response.data)];
     },
   });
 }
