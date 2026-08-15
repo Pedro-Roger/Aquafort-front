@@ -19,6 +19,8 @@ import { ConsumptionChartPage } from './pages/ConsumptionChartPage';
 import { AutoFeedersPage } from './pages/AutoFeedersPage';
 import { SettingsPage } from './pages/SettingsPage'
 import { OperationalReportsPage } from './pages/OperationalReportsPage'
+import { MortalidadePage } from './pages/MortalidadePage'
+import { CustomDashboardsPage } from './pages/CustomDashboardsPage'
 
 function RootRedirect() {
   const { isAuthenticated } = useAuth()
@@ -54,6 +56,8 @@ function App() {
           <Route path="/stock" element={<InventoryPage />} />
           <Route path="/biometrias" element={<BiometricsPage />} />
           <Route path="/biometrics" element={<RedirectTo to="/biometrias" />} />
+          <Route path="/mortalidade" element={<MortalidadePage />} />
+          <Route path="/paineis" element={<CustomDashboardsPage />} />
           <Route path="/water-quality" element={<WaterQualityPage />} />
           <Route path="/despesca" element={<HarvestPlanningPage />} />
           <Route path="/despesca-calendario" element={<HarvestCalendarPage />} />
