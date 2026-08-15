@@ -66,6 +66,10 @@ export interface Cycle {
   pond?: Pond;
   lotCode?: string;
   larvaeLotCode?: string | null;
+  larvaeStage?: string | null;
+  stageDay?: number | null;
+  transferDate?: string | null;
+  plPerGram?: number | null;
   supplier: string;
   phase: CyclePhase;
   status?: 'ATIVO' | 'ENCERRADO';
@@ -241,6 +245,9 @@ export interface Biometric {
   averageWeightG: number;
   survivalRatePct?: number | null;
   estimatedBiomass?: number | null;
+  responsibleId?: string | null;
+  /** RF-12: quem coletou a biometria — nulo em leituras antigas, sem responsável selecionado. */
+  responsible?: { id: string; name: string } | null;
   createdAt: string;
 }
 
@@ -548,4 +555,115 @@ export interface HarvestSchedule {
   pond: Pick<Pond, 'id' | 'code' | 'name' | 'areaHa'>;
   cycle: Pick<Cycle, 'id' | 'larvaeLotCode' | 'plCount'> | null;
   participants: HarvestScheduleParticipant[];
+}
+
+/** Um registro de mortalidade lançado em campo. */
+export interface MortalityRecord {
+  id: string;
+  cycleId: string;
+  pondId: string;
+  quantity: number;
+  recordedAt: string;
+  cause?: string | null;
+  observation?: string | null;
+  pond: Pond;
+  responsible: User;
+  cycle?: { larvaeLotCode?: string | null; supplier?: string | null };
+}
+
+/** Linha da tela de mortalidade: população e sobrevivência derivadas. */
+export interface MortalityTableRow {
+  pondId: string;
+  pondCode: string;
+  cycleId: string;
+  lotCode: string;
+  lastRecordAt: string | null;
+  lastQuantity: number;
+  /** Quem lançou o último registro de mortalidade deste ciclo (RF-12). */
+  lastResponsibleName: string | null;
+  totalMortality: number;
+  survivalEstPct: number | null;
+  initialPopulation: number;
+  currentPopulation: number;
+  biomassKg: number | null;
+}
+
+export interface MortalityTableResponse {
+  rows: MortalityTableRow[];
+  totals: {
+    totalMortality: number;
+    initialPopulation: number;
+    currentPopulation: number;
+    survivalEstPct: number | null;
+  };
+}
+
+export interface MortalitySeriesPoint {
+  date: string;
+  quantity: number;
+  accumulated: number;
+  survivalPct: number | null;
+}
+
+export interface MortalitySeries {
+  cycleId: string;
+  initialPopulation: number;
+  points: MortalitySeriesPoint[];
+}
+
+/** Ponto da série de FCA de um ciclo (uma leitura de biometria). */
+export interface FcaSeriesPoint {
+  date: string;
+  week: number;
+  racaoAcumuladaKg: number;
+  biomassaKg: number;
+  fca: number | null;
+}
+
+export interface FcaSeries {
+  cycleId: string;
+  pondCode: string | null;
+  points: FcaSeriesPoint[];
+}
+
+/** Métrica disponível para os painéis customizáveis. */
+export interface DashboardMetric {
+  key: string;
+  label: string;
+  unit: string;
+  group: string;
+}
+
+/** Série de uma métrica para um viveiro, no eixo temporal. */
+export interface MetricSeries {
+  pondId: string;
+  pondCode: string;
+  points: { date: string; value: number }[];
+}
+
+export type DashboardChartType = 'line' | 'bar' | 'area';
+
+/** Eixo X do gráfico: tempo, semana de cultivo ou comparação entre viveiros. */
+export type DashboardXAxis = 'date' | 'week' | 'pond';
+
+/** Especificação de um gráfico salvo num dashboard customizável. */
+export interface DashboardPanel {
+  id: string;
+  title: string;
+  chartType: DashboardChartType;
+  metric: string;
+  /** Ausente em painéis salvos antes do seletor de eixo X — tratar como 'date'. */
+  xAxis?: DashboardXAxis;
+  pondIds: string[];
+  from?: string | null;
+  to?: string | null;
+}
+
+export interface DashboardConfig {
+  id: string;
+  name: string;
+  panels: DashboardPanel[];
+  createdAt: string;
+  updatedAt: string;
+  creator?: { id: string; name: string } | null;
 }
