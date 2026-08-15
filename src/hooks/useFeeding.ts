@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import type { FeedingRecord, FeedingTableResponse, FeedProduct } from '../types';
+import type { FcaSeries, FeedingRecord, FeedingTableResponse, FeedProduct } from '../types';
 
 interface FeedingListParams {
   cycleId?: string | null;
   pondId?: string | null;
+  from?: string;
+  to?: string;
   page?: number;
   limit?: number;
 }
@@ -58,6 +60,17 @@ export function useFeedingList(params: FeedingListParams) {
     queryKey: ['feeding', 'list', params],
     queryFn: async () => {
       const { data } = await api.get('/v1/feeding', { params });
+      return data;
+    },
+  });
+}
+
+export function useFcaSeries(cycleId: string | null) {
+  return useQuery<FcaSeries>({
+    queryKey: ['feeding', 'fca-series', cycleId],
+    enabled: Boolean(cycleId),
+    queryFn: async () => {
+      const { data } = await api.get('/v1/feeding/fca-series', { params: { cycleId } });
       return data;
     },
   });

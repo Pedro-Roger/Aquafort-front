@@ -4,6 +4,8 @@ import {
   Activity,
   CalendarDays,
   Clock3,
+  Download,
+  History,
   Layers,
   Package,
   Plus,
@@ -20,7 +22,7 @@ import {
 } from 'recharts';
 import { useAuth } from '../hooks/useAuth';
 import { useCycles } from '../hooks/useCycles';
-import { useCreateExpressFeeding, useFeedingList, useFeedingTable, useFeedProducts } from '../hooks/useFeeding';
+import { useCreateExpressFeeding, useFcaSeries, useFeedingList, useFeedingTable, useFeedProducts } from '../hooks/useFeeding';
 import { useBiometricKpis } from '../hooks/useBiometrics';
 import { useFarmBiometricsReference } from '../hooks/useFarmBiometricsReference';
 import { calculateDailyRation } from '../lib/biometricsReference';
@@ -68,6 +70,11 @@ export function NutritionPage() {
   const [date, setDate] = useState(todayIsoDate());
   const [cycleFilter, setCycleFilter] = useState('');
   const [launchOpen, setLaunchOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyFrom, setHistoryFrom] = useState('');
+  const [historyTo, setHistoryTo] = useState('');
+  const [historyCycleId, setHistoryCycleId] = useState('');
+  const [fcaCycleId, setFcaCycleId] = useState('');
   const [form, setForm] = useState({
     cycleId: '',
     productId: '',
@@ -80,6 +87,15 @@ export function NutritionPage() {
   const { reference } = useFarmBiometricsReference();
   const history = useFeedingList({ cycleId: cycleFilter || undefined, limit: 12 });
   const createFeeding = useCreateExpressFeeding();
+
+  const fcaSelectedCycleId = fcaCycleId || cycles[0]?.id || null;
+  const fcaSeries = useFcaSeries(fcaSelectedCycleId);
+  const fullHistory = useFeedingList({
+    cycleId: historyCycleId || undefined,
+    from: historyFrom ? `${historyFrom}T00:00:00.000Z` : undefined,
+    to: historyTo ? `${historyTo}T23:59:59.999Z` : undefined,
+    limit: 100,
+  });
 
   const selectedCycleId = form.cycleId || cycles[0]?.id || '';
   const selectedProductId = form.productId || products[0]?.id || '';
@@ -115,6 +131,34 @@ export function NutritionPage() {
       }))
       .slice(-8);
   }, [history.data?.items]);
+
+  function exportHistoryCsv() {
+    const items = fullHistory.data?.items ?? [];
+    if (!items.length) return;
+
+    const header = ['data', 'viveiro', 'produto', 'quantidade_kg', 'custo', 'responsavel', 'observacao'];
+    const lines = items.map((item) => [
+      new Date(item.fedAt).toLocaleString('pt-BR'),
+      item.pond.code,
+      item.product?.name ?? 'Mistura',
+      String(item.feedKg).replace('.', ','),
+      String(item.feedCost ?? 0).replace('.', ','),
+      item.responsible?.name ?? '',
+      item.observation ?? '',
+    ]);
+
+    const csv = [header, ...lines]
+      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
+      .join('\n');
+
+    const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `historico-nutricao-${historyFrom || 'inicio'}-a-${historyTo || 'hoje'}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function handleLaunch() {
     if (!user?.id || !selectedCycle || !selectedProductId || !form.feedKg || !form.fedAt) return;
@@ -258,13 +302,21 @@ export function NutritionPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: space.section }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: space.section, alignItems: 'flex-end', justifyContent: 'space-between' }}>
             <div style={workspaceEyebrow}>Arraçoamento</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 280px) 170px auto', gap: space.inline, alignItems: 'end' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(200px, 280px) 170px auto auto', gap: space.inline, alignItems: 'end' }}>
               <div style={{ minWidth: 0 }}>
               <Select label="Filtro ciclo" options={cycleOptions} value={cycleFilter} onChange={(e) => setCycleFilter(e.target.value)} />
               </div>
               <div style={{ minWidth: 0 }}>
                 <Input label="Data base" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
               </div>
+              <Button
+                variant="secondary"
+                icon={<History size={16} />}
+                onClick={() => setHistoryOpen(true)}
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                Histórico
+              </Button>
               <Button
                 icon={<Plus size={16} />}
                 onClick={() => setLaunchOpen(true)}
@@ -438,6 +490,111 @@ export function NutritionPage() {
           </div>
         </div>
       </section>
+
+      <section style={workspaceCard}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.inline, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div>
+            <h2 style={sectionTitle}>FCA por tanque</h2>
+            <div style={{ ...sectionSubtitle, marginTop: 2 }}>
+              Conversão alimentar a cada biometria: ração acumulada sobre biomassa ganha.
+            </div>
+          </div>
+          <div style={{ minWidth: 240 }}>
+            <Select
+              label="Tanque"
+              options={launchOptions}
+              value={fcaSelectedCycleId ?? ''}
+              onChange={(e) => setFcaCycleId(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {(fcaSeries.data?.points ?? []).length === 0 ? (
+          <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+            Sem biometrias suficientes neste ciclo para calcular o FCA.
+          </div>
+        ) : (
+          <div style={{ height: 280 }}>
+            <ResponsiveContainer>
+              <ComposedChart
+                data={(fcaSeries.data?.points ?? []).map((point) => ({
+                  semana: `S${point.week}`,
+                  fca: point.fca,
+                  biomassa: point.biomassaKg,
+                  racao: point.racaoAcumuladaKg,
+                }))}
+                margin={{ top: 10, right: 12, left: -10, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.22)" />
+                <XAxis dataKey="semana" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
+                <YAxis yAxisId="left" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickFormatter={(value) => `${value}kg`} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} domain={[0, 'auto']} />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: radius.tile,
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg-card)',
+                    boxShadow: shadow.raised,
+                  }}
+                />
+                <Bar yAxisId="left" dataKey="racao" fill="#94a3b8" radius={[8, 8, 2, 2]} barSize={18} name="Ração acumulada (kg)" />
+                <Bar yAxisId="left" dataKey="biomassa" fill="#0284c7" radius={[8, 8, 2, 2]} barSize={18} name="Biomassa (kg)" />
+                <Line yAxisId="right" dataKey="fca" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4 }} name="FCA" />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </section>
+
+      <Modal open={historyOpen} onClose={() => setHistoryOpen(false)} title="Histórico de nutrição" width={780}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 150px 150px auto', gap: 10, alignItems: 'end' }}>
+            <Select
+              label="Viveiro / ciclo"
+              options={cycleOptions}
+              value={historyCycleId}
+              onChange={(e) => setHistoryCycleId(e.target.value)}
+            />
+            <Input label="De" type="date" value={historyFrom} onChange={(e) => setHistoryFrom(e.target.value)} />
+            <Input label="Até" type="date" value={historyTo} onChange={(e) => setHistoryTo(e.target.value)} />
+            <Button
+              variant="secondary"
+              icon={<Download size={16} />}
+              onClick={exportHistoryCsv}
+              disabled={!(fullHistory.data?.items ?? []).length}
+              style={{ whiteSpace: 'nowrap' }}
+            >
+              Exportar CSV
+            </Button>
+          </div>
+
+          <div style={{ maxHeight: 420, overflowY: 'auto' }}>
+            <Table
+              columns={[
+                ...historyColumns,
+                {
+                  key: 'responsible',
+                  header: 'Responsável',
+                  render: (row: FeedingRecord) => row.responsible?.name ?? '—',
+                },
+                {
+                  key: 'observation',
+                  header: 'Observação',
+                  render: (row: FeedingRecord) => row.observation ?? '—',
+                },
+              ]}
+              data={fullHistory.data?.items ?? []}
+              rowKey={(row) => row.id}
+              loading={fullHistory.isLoading}
+              emptyMessage="Nenhum lançamento no período"
+            />
+          </div>
+
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            {fullHistory.data ? `${fullHistory.data.items.length} de ${fullHistory.data.total} lançamentos` : ''}
+          </div>
+        </div>
+      </Modal>
 
       <Modal open={launchOpen} onClose={() => setLaunchOpen(false)} title="Novo trato" width={560}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
