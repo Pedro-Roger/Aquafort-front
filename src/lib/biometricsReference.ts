@@ -60,20 +60,24 @@ export const DEFAULT_CONSUMPTION_REFERENCE: ConsumptionReferenceRow[] = [
   { weightG: 22, consumptionPct: 2 },
 ];
 
-const REFERENCE_WEIGHTS = DEFAULT_CONSUMPTION_REFERENCE.map((row) => row.weightG);
-const MIN_REFERENCE_WEIGHT = Math.min(...REFERENCE_WEIGHTS);
-const MAX_REFERENCE_WEIGHT = Math.max(...REFERENCE_WEIGHTS);
-
 function roundWeight(weightG: number) {
   return Number(clampWeight(weightG).toFixed(1));
 }
 
+/** Weights the default table covers; rows past them are farm additions. */
+export const DEFAULT_REFERENCE_WEIGHTS = new Set(DEFAULT_CONSUMPTION_REFERENCE.map((row) => row.weightG));
+
 export function normalizeConsumptionReference(reference: ConsumptionReferenceRow[]): ConsumptionReferenceRow[] {
   const byWeight = new Map<number, ConsumptionReferenceRow>();
 
+  // The default table is the floor: the base range is always covered. The
+  // farm's own rows win over it and may go past the last default weight —
+  // the table is open-ended upward (23 g, 24 g, 25 g, ...).
+  DEFAULT_CONSUMPTION_REFERENCE.forEach((row) => byWeight.set(row.weightG, row));
+
   reference.forEach((row) => {
     const weightG = roundWeight(row.weightG);
-    if (weightG < MIN_REFERENCE_WEIGHT || weightG > MAX_REFERENCE_WEIGHT) return;
+    if (weightG <= 0) return;
 
     byWeight.set(weightG, {
       weightG,
@@ -81,7 +85,7 @@ export function normalizeConsumptionReference(reference: ConsumptionReferenceRow
     });
   });
 
-  return DEFAULT_CONSUMPTION_REFERENCE.map((fallback) => byWeight.get(fallback.weightG) ?? fallback);
+  return Array.from(byWeight.values()).sort((a, b) => a.weightG - b.weightG);
 }
 
 /**
