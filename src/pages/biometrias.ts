@@ -45,6 +45,25 @@ export type BiometriaSnapshot = {
   detail?: string;
 };
 
+/** Shape shared by the sidebar form and the modal form once their string inputs are parsed. */
+export type BiometricFormValues = {
+  measuredAt: string;
+  sampleCount: number;
+  averageWeightG: number;
+  survivalRatePct?: number;
+  estimatedBiomass?: number;
+};
+
+export type BiometricPayload = {
+  cycleId: string;
+  measuredAt: string;
+  sampleCount: number;
+  averageWeightG: number;
+  survivalRatePct?: number;
+  estimatedBiomass?: number;
+  responsibleId?: string;
+};
+
 export const BIOMETRIA_CONSUMPTION_REFERENCE = DEFAULT_CONSUMPTION_REFERENCE;
 
 export type { BiometricsOperationalEstimate, ConsumptionReferenceRow };
@@ -96,6 +115,27 @@ export function buildBiometriaSnapshot(input: BiometriaSnapshotInput): Biometria
     { label: 'Peso recente', value: input.latestWeightG == null ? '—' : `${fmt(input.latestWeightG, 2)} g`, detail: 'último ponto coletado' },
     { label: 'Sobrevivência', value: input.survivalPct == null ? '—' : `${fmt(input.survivalPct, 1)} %`, detail: 'índice do ciclo' },
   ];
+}
+
+/** Same "has enough data to save" rule the sidebar form and the modal form both apply. */
+export function isBiometricFormValid(values: Pick<BiometricFormValues, 'measuredAt' | 'sampleCount' | 'averageWeightG'>): boolean {
+  return Boolean(values.measuredAt && values.sampleCount && values.averageWeightG);
+}
+
+export function buildBiometricPayload(
+  cycleId: string,
+  values: BiometricFormValues,
+  responsibleId?: string,
+): BiometricPayload {
+  return {
+    cycleId,
+    measuredAt: values.measuredAt,
+    sampleCount: values.sampleCount,
+    averageWeightG: values.averageWeightG,
+    survivalRatePct: values.survivalRatePct,
+    estimatedBiomass: values.estimatedBiomass,
+    responsibleId,
+  };
 }
 
 export { calculateBiometricsOperationalEstimate, getConsumptionPctForWeight };

@@ -5,8 +5,10 @@ import {
   buildBiometriaPath,
   buildBiometriaQuickActions,
   buildBiometriaSnapshot,
+  buildBiometricPayload,
   calculateBiometricsOperationalEstimate,
   getConsumptionPctForWeight,
+  isBiometricFormValid,
 } from './biometrias';
 
 describe('buildBiometriaCards', () => {
@@ -72,5 +74,57 @@ describe('buildBiometriaCards', () => {
     expect(estimate.biomassKg).toBe(4615.38);
     expect(estimate.shrimpCount).toBe(256410.26);
     expect(estimate.survivalPct).toBe(320.51);
+  });
+});
+
+describe('isBiometricFormValid', () => {
+  it('requires a date, a sample count and an average weight', () => {
+    expect(isBiometricFormValid({ measuredAt: '2026-07-09', sampleCount: 15, averageWeightG: 12.5 })).toBe(true);
+    expect(isBiometricFormValid({ measuredAt: '', sampleCount: 15, averageWeightG: 12.5 })).toBe(false);
+    expect(isBiometricFormValid({ measuredAt: '2026-07-09', sampleCount: 0, averageWeightG: 12.5 })).toBe(false);
+    expect(isBiometricFormValid({ measuredAt: '2026-07-09', sampleCount: 15, averageWeightG: 0 })).toBe(false);
+  });
+});
+
+describe('buildBiometricPayload', () => {
+  it('attaches the cycle id to the parsed form values', () => {
+    expect(
+      buildBiometricPayload('cycle-123', {
+        measuredAt: '2026-07-09',
+        sampleCount: 15,
+        averageWeightG: 12.5,
+        survivalRatePct: 95.5,
+        estimatedBiomass: 1250,
+      }),
+    ).toEqual({
+      cycleId: 'cycle-123',
+      measuredAt: '2026-07-09',
+      sampleCount: 15,
+      averageWeightG: 12.5,
+      survivalRatePct: 95.5,
+      estimatedBiomass: 1250,
+    });
+  });
+
+  it('leaves optional fields undefined when not provided', () => {
+    const payload = buildBiometricPayload('cycle-123', {
+      measuredAt: '2026-07-09',
+      sampleCount: 15,
+      averageWeightG: 12.5,
+    });
+
+    expect(payload.survivalRatePct).toBeUndefined();
+    expect(payload.estimatedBiomass).toBeUndefined();
+    expect(payload.responsibleId).toBeUndefined();
+  });
+
+  it('attaches the responsible id when the caller is logged in (RF-12)', () => {
+    const payload = buildBiometricPayload(
+      'cycle-123',
+      { measuredAt: '2026-07-09', sampleCount: 15, averageWeightG: 12.5 },
+      'user-1',
+    );
+
+    expect(payload.responsibleId).toBe('user-1');
   });
 });

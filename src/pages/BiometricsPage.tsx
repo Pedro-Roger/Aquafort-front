@@ -10,6 +10,7 @@ import {
   LineChart as RechartsLineChart,
 } from 'recharts';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import { useCycles } from '../hooks/useCycles';
 import { usePonds } from '../hooks/usePonds';
 import { useBiometricKpis, useBiometrics, useBiometricSeries, useCreateBiometric, useDeleteBiometric, useLatestBiometricsByPond } from '../hooks/useBiometrics';
@@ -40,8 +41,11 @@ import {
   buildBiometriaPath,
   buildBiometriaQuickActions,
   buildBiometriaSnapshot,
+  buildBiometricPayload,
   calculateBiometricsOperationalEstimate,
   getConsumptionPctForWeight,
+  isBiometricFormValid,
+  type BiometricFormValues,
 } from './biometrias';
 import { buildDespescaPath } from './despesca';
 import { calculateProductivity, daysSince } from '../lib/productivity';
@@ -55,8 +59,19 @@ function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function emptySidebarForm() {
+  return {
+    measuredAt: todayIsoDate(),
+    sampleCount: '',
+    averageWeightG: '',
+    survivalRatePct: '',
+    estimatedBiomass: '',
+  };
+}
+
 export function BiometricsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const formRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -68,13 +83,7 @@ export function BiometricsPage() {
   const selectedCycle = cycles.find((cycle) => cycle.id === selectedCycleId) ?? null;
   const focusParam = searchParams.get('focus');
   const { reference } = useFarmBiometricsReference();
-  const [form, setForm] = useState({
-    measuredAt: todayIsoDate(),
-    sampleCount: '',
-    averageWeightG: '',
-    survivalRatePct: '',
-    estimatedBiomass: '',
-  });
+  const [form, setForm] = useState(emptySidebarForm);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPond, setSelectedPond] = useState<Pond | null>(null);
 
@@ -84,60 +93,26 @@ export function BiometricsPage() {
   const createBiometric = useCreateBiometric();
   const deleteBiometric = useDeleteBiometric();
 
-  async function handleSave() {
-    if (!selectedCycleId || !form.measuredAt || !form.sampleCount || !form.averageWeightG) return;
+  /** Shared by the sidebar form and the modal form — both submit the same DTO to the same mutation. */
+  async function submitBiometric(values: BiometricFormValues) {
+    if (!selectedCycleId || !isBiometricFormValid(values)) return;
 
-    await createBiometric.mutateAsync({
-      cycleId: selectedCycleId,
+    await createBiometric.mutateAsync(buildBiometricPayload(selectedCycleId, values, user?.id));
+    setForm(emptySidebarForm());
+  }
+
+  async function handleSave() {
+    await submitBiometric({
       measuredAt: form.measuredAt,
       sampleCount: Number(form.sampleCount),
       averageWeightG: Number(form.averageWeightG),
       survivalRatePct: form.survivalRatePct ? Number(form.survivalRatePct) : undefined,
       estimatedBiomass: form.estimatedBiomass ? Number(form.estimatedBiomass) : undefined,
     });
-
-    setForm({
-      measuredAt: todayIsoDate(),
-      sampleCount: '',
-      averageWeightG: '',
-      survivalRatePct: '',
-      estimatedBiomass: '',
-    });
   }
 
-  async function handleModalSubmit(data: {
-    measuredAt: string;
-    sampleCount: number;
-    averageWeightG: number;
-    survivalRatePct?: number;
-    estimatedBiomass?: number;
-  }) {
-    setForm({
-      measuredAt: data.measuredAt,
-      sampleCount: String(data.sampleCount),
-      averageWeightG: String(data.averageWeightG),
-      survivalRatePct: data.survivalRatePct ? String(data.survivalRatePct) : '',
-      estimatedBiomass: data.estimatedBiomass ? String(data.estimatedBiomass) : '',
-    });
-
-    if (!selectedCycleId || !data.measuredAt || !data.sampleCount || !data.averageWeightG) return;
-
-    await createBiometric.mutateAsync({
-      cycleId: selectedCycleId,
-      measuredAt: data.measuredAt,
-      sampleCount: data.sampleCount,
-      averageWeightG: data.averageWeightG,
-      survivalRatePct: data.survivalRatePct,
-      estimatedBiomass: data.estimatedBiomass,
-    });
-
-    setForm({
-      measuredAt: todayIsoDate(),
-      sampleCount: '',
-      averageWeightG: '',
-      survivalRatePct: '',
-      estimatedBiomass: '',
-    });
+  async function handleModalSubmit(data: BiometricFormValues) {
+    await submitBiometric(data);
     setModalOpen(false);
   }
 
@@ -234,6 +209,11 @@ export function BiometricsPage() {
       header: 'Biomassa',
       align: 'right' as const,
       render: (row: Biometric) => row.estimatedBiomass != null ? `${fmt(Number(row.estimatedBiomass), 2)} kg` : '—',
+    },
+    {
+      key: 'responsible',
+      header: 'Responsável',
+      render: (row: Biometric) => <span>{row.responsible?.name ?? '—'}</span>,
     },
     {
       key: 'actions',
@@ -368,6 +348,7 @@ export function BiometricsPage() {
             <Input label="Peso médio (g)" type="number" step="0.01" value={form.averageWeightG} onChange={(e) => setForm((current) => ({ ...current, averageWeightG: e.target.value }))} />
             <Input label="Sobrevivência (%)" type="number" step="0.01" value={form.survivalRatePct} onChange={(e) => setForm((current) => ({ ...current, survivalRatePct: e.target.value }))} />
             <Input label="Biomassa (kg) opcional" type="number" step="0.01" value={form.estimatedBiomass} onChange={(e) => setForm((current) => ({ ...current, estimatedBiomass: e.target.value }))} />
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Responsável: {user?.name ?? 'Sem usuário'}</div>
             <Button loading={createBiometric.isPending} onClick={handleSave} disabled={!selectedCycleId || !form.sampleCount || !form.averageWeightG}>
               Salvar biometria
             </Button>

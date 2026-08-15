@@ -92,6 +92,9 @@ vi.mock('../pages/biometrias', () => ({
     survivalPct: 57.07,
   }),
   getConsumptionPctForWeight: () => 1,
+  isBiometricFormValid: (values: { measuredAt: string; sampleCount: number; averageWeightG: number }) =>
+    Boolean(values.measuredAt && values.sampleCount && values.averageWeightG),
+  buildBiometricPayload: (cycleId: string, values: Record<string, unknown>) => ({ cycleId, ...values }),
 }))
 
 vi.mock('../pages/despesca', () => ({
