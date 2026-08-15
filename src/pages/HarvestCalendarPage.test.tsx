@@ -3,15 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { HarvestCalendarPage } from './HarvestCalendarPage';
+import { pad } from './harvestCalendar';
 import { queryClient } from '../lib/queryClient';
 
 const now = new Date();
 const year = now.getFullYear();
 const month = now.getMonth();
-
-function pad(value: number) {
-  return String(value).padStart(2, '0');
-}
 
 function isoKey(day: number) {
   return `${year}-${pad(month + 1)}-${pad(day)}`;

@@ -30,6 +30,7 @@ import {
   useUpdateHarvestSchedule,
   type HarvestScheduleParticipantInput,
 } from '../hooks/useHarvestSchedules';
+import { brDate, buildMonthGrid, dateKey, groupSchedulesByDay, summarizeMonthSchedules, timeKey } from './harvestCalendar';
 import type { HarvestSchedule, HarvestScheduleStatus } from '../types';
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -60,30 +61,6 @@ const statusChipStyle: Record<HarvestScheduleStatus, CSSProperties> = {
     textDecoration: 'line-through',
   },
 };
-
-function pad(value: number) {
-  return String(value).padStart(2, '0');
-}
-
-/** Chave local YYYY-MM-DD. Usa o fuso do navegador, igual ao que o usuário vê. */
-function dateKey(date: Date) {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
-function timeKey(date: Date) {
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
-function brDate(key: string) {
-  const [year, month, day] = key.split('-');
-  return `${day}/${month}/${year}`;
-}
-
-/** 6 semanas de domingo a sábado cobrindo o mês inteiro. */
-function buildMonthGrid(year: number, month: number) {
-  const firstWeekday = new Date(year, month, 1).getDay();
-  return Array.from({ length: 42 }, (_, index) => new Date(year, month, 1 - firstWeekday + index));
-}
 
 interface ScheduleForm {
   id: string | null;
@@ -122,33 +99,9 @@ export function HarvestCalendarPage() {
 
   const pondOptions = ponds.map((pond) => ({ value: pond.id, label: `${pond.code} · ${pond.name}` }));
 
-  const byDay = useMemo(() => {
-    const map = new Map<string, HarvestSchedule[]>();
-    for (const schedule of schedules) {
-      const key = dateKey(new Date(schedule.scheduledAt));
-      const list = map.get(key);
-      if (list) list.push(schedule);
-      else map.set(key, [schedule]);
-    }
-    for (const list of map.values()) {
-      list.sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt));
-    }
-    return map;
-  }, [schedules]);
+  const byDay = useMemo(() => groupSchedulesByDay(schedules), [schedules]);
 
-  const monthSchedules = useMemo(
-    () => schedules.filter((schedule) => new Date(schedule.scheduledAt).getMonth() === cursor.month),
-    [schedules, cursor.month],
-  );
-
-  const summary = {
-    total: monthSchedules.length,
-    agendadas: monthSchedules.filter((item) => item.status === 'AGENDADA').length,
-    concluidas: monthSchedules.filter((item) => item.status === 'CONCLUIDA').length,
-    pessoas: new Set(
-      monthSchedules.flatMap((item) => item.participants.map((person) => person.name.toLowerCase())),
-    ).size,
-  };
+  const summary = useMemo(() => summarizeMonthSchedules(schedules, cursor.month), [schedules, cursor.month]);
 
   const todayKey = dateKey(today);
 
