@@ -66,6 +66,10 @@ export interface Cycle {
   pond?: Pond;
   lotCode?: string;
   larvaeLotCode?: string | null;
+  /** Genetic line of the batch, as the hatchery identifies it — always present, not conditional like originAllocated/originRemaining. */
+  geneticCode?: string | null;
+  /** Hatchery/supplier that shipped the larvae — always present, not conditional like originAllocated/originRemaining. */
+  larvaeSupplier?: string | null;
   larvaeStage?: string | null;
   stageDay?: number | null;
   transferDate?: string | null;

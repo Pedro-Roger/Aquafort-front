@@ -1,9 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { PovoamentoPage } from './PovoamentoPage'
 
-const { mutateAsyncMock, useCyclesMock } = vi.hoisted(() => ({
+const { mutateAsyncMock, createBiometricMutateAsync, useCyclesMock } = vi.hoisted(() => ({
   mutateAsyncMock: vi.fn().mockResolvedValue({}),
+  createBiometricMutateAsync: vi.fn().mockResolvedValue({}),
   useCyclesMock: vi.fn().mockReturnValue({ data: [], isLoading: false }),
 }))
 
@@ -22,8 +23,19 @@ vi.mock('../hooks/useCycles', () => ({
   useCycles: (...args: unknown[]) => useCyclesMock(...args),
 }))
 
+vi.mock('../hooks/useBiometrics', () => ({
+  useCreateBiometric: () => ({ mutateAsync: createBiometricMutateAsync, isPending: false }),
+}))
+
+vi.mock('../hooks/useAuth', () => ({
+  useAuth: () => ({ user: { id: 'user-1', name: 'Operador Teste' } }),
+}))
+
 beforeEach(() => {
   mutateAsyncMock.mockClear()
+  mutateAsyncMock.mockResolvedValue({})
+  createBiometricMutateAsync.mockClear()
+  createBiometricMutateAsync.mockResolvedValue({})
   useCyclesMock.mockReset()
   useCyclesMock.mockReturnValue({ data: [], isLoading: false })
 })
@@ -77,7 +89,7 @@ describe('PovoamentoPage', () => {
     expect(screen.getByText('Salvar povoamento')).toBeInTheDocument()
   })
 
-  it('omits geneticCode and plPerGram from the payload when saving a transfer-mode cycle', async () => {
+  it('omits geneticCode always, and plPerGram when it was not informed, in a transfer-mode cycle', async () => {
     useCyclesMock.mockReturnValue({
       data: [
         { id: 'c1', pondId: 'p2', pond: { code: 'B-02' }, plCount: 100000, supplier: 'Lavifort', phase: 'BERCARIO', stockDate: '2026-07-01' },
@@ -110,5 +122,150 @@ describe('PovoamentoPage', () => {
     expect(payload.geneticCode).toBeUndefined()
     expect(payload.plPerGram).toBeUndefined()
     expect(payload.origins).toEqual([{ sourceCycleId: 'c1', label: expect.stringContaining('B-02'), quantity: 5000 }])
+  })
+
+  function renderTransferWithOrigin() {
+    useCyclesMock.mockReturnValue({
+      data: [
+        { id: 'c1', pondId: 'p2', pond: { code: 'B-02' }, plCount: 100000, supplier: 'Lavifort', phase: 'BERCARIO', stockDate: '2026-07-01' },
+      ],
+      isLoading: false,
+    })
+
+    render(
+      <MemoryRouter>
+        <PovoamentoPage />
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Viveiro' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Transferência de berçário' }))
+    fireEvent.click(screen.getByText('V-01'))
+    fireEvent.click(screen.getByRole('button', { name: /Criar povoamento/ }))
+    fireEvent.click(screen.getByRole('button', { name: /B-02/ }))
+    fireEvent.change(screen.getByLabelText(/Quantidade —/), { target: { value: '5000' } })
+  }
+
+  it('shows the PL/grama field in the transfer form (RF-13, previously absent)', () => {
+    renderTransferWithOrigin()
+
+    expect(screen.getByLabelText('PL/grama opcional')).toBeInTheDocument()
+  })
+
+  it('requires Amostras when PL/grama is informed on a transfer, without relaxing validation (RF-14)', () => {
+    renderTransferWithOrigin()
+
+    fireEvent.change(screen.getByLabelText('PL/grama opcional'), { target: { value: '250' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar povoamento' }))
+
+    expect(screen.getByText(/Informe as amostras/)).toBeInTheDocument()
+    expect(mutateAsyncMock).not.toHaveBeenCalled()
+    expect(createBiometricMutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('sends PL/grama on the destination cycle and creates a closing biometria on the origin cycle (RF-13)', async () => {
+    renderTransferWithOrigin()
+
+    fireEvent.change(screen.getByLabelText('PL/grama opcional'), { target: { value: '250' } })
+    fireEvent.change(screen.getByLabelText(/Amostras/), { target: { value: '20' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar povoamento' }))
+
+    await waitFor(() => expect(mutateAsyncMock).toHaveBeenCalledTimes(1))
+    const cyclePayload = mutateAsyncMock.mock.calls[0][0]
+    expect(cyclePayload.plPerGram).toBe(250)
+
+    expect(createBiometricMutateAsync).toHaveBeenCalledTimes(1)
+    const biometryPayload = createBiometricMutateAsync.mock.calls[0][0]
+    expect(biometryPayload.cycleId).toBe('c1')
+    expect(biometryPayload.sampleCount).toBe(20)
+    expect(biometryPayload.averageWeightG).toBeCloseTo(0.004, 6)
+    expect(biometryPayload.responsibleId).toBe('user-1')
+  })
+
+  it('still allows a transfer without PL/grama (field stays optional)', async () => {
+    renderTransferWithOrigin()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar povoamento' }))
+
+    await waitFor(() => expect(mutateAsyncMock).toHaveBeenCalledTimes(1))
+    expect(createBiometricMutateAsync).not.toHaveBeenCalled()
+  })
+
+  it('shows povoamentos that already exist on the server, without needing a save action first', () => {
+    // Regression test for the bug: the card used to rely on local state populated
+    // only inside handleSave, so a fresh mount (reload / new session) with real
+    // data already saved on the server showed "Nenhum povoamento salvo ainda."
+    useCyclesMock.mockImplementation((filter?: { status?: string; phase?: string }) => {
+      if (filter?.phase === 'BERCARIO') return { data: [], isLoading: false }
+      return {
+        data: [
+          {
+            id: 'c1',
+            pondId: 'p2',
+            pond: { code: 'B-02', type: 'BERCARIO' },
+            plCount: 250000,
+            supplier: 'LARVI FORT',
+            geneticCode: 'GEN-9',
+            phase: 'BERCARIO',
+            stockDate: '2026-08-01',
+          },
+        ],
+        isLoading: false,
+      }
+    })
+
+    render(
+      <MemoryRouter>
+        <PovoamentoPage />
+      </MemoryRouter>,
+    )
+
+    expect(screen.queryByText('Nenhum povoamento salvo ainda.')).not.toBeInTheDocument()
+    expect(screen.getByText('B-02 · Berçário 02')).toBeInTheDocument()
+    expect(screen.getByText(/GEN-9 · LARVI FORT · 250\.000 PL/)).toBeInTheDocument()
+    expect(mutateAsyncMock).not.toHaveBeenCalled()
+  })
+
+  it('filters the recent povoamentos card by the pond type of the current mode', () => {
+    useCyclesMock.mockImplementation((filter?: { status?: string; phase?: string }) => {
+      if (filter?.phase === 'BERCARIO') return { data: [], isLoading: false }
+      return {
+        data: [
+          {
+            id: 'c1',
+            pondId: 'p2',
+            pond: { code: 'B-02', type: 'BERCARIO' },
+            plCount: 100000,
+            supplier: 'Lavifort',
+            phase: 'BERCARIO',
+            stockDate: '2026-08-01',
+          },
+          {
+            id: 'c2',
+            pondId: 'p1',
+            pond: { code: 'V-01', type: 'ENGORDA' },
+            plCount: 300000,
+            supplier: 'Nutrimar',
+            phase: 'ENGORDA',
+            stockDate: '2026-08-05',
+          },
+        ],
+        isLoading: false,
+      }
+    })
+
+    render(
+      <MemoryRouter>
+        <PovoamentoPage />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText(/Lavifort/)).toBeInTheDocument()
+    expect(screen.queryByText(/Nutrimar/)).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Viveiro' }))
+
+    expect(screen.getByText(/Nutrimar/)).toBeInTheDocument()
+    expect(screen.queryByText(/Lavifort/)).not.toBeInTheDocument()
   })
 })

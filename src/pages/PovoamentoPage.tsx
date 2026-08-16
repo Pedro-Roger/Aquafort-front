@@ -8,7 +8,9 @@ import { OriginPicker, type OriginOption } from '../components/povoamento/Origin
 import { QuantityWeightInput } from '../components/povoamento/QuantityWeightInput';
 import { SelectablePondChips } from '../components/povoamento/SelectablePondChips';
 import { useCreateCycle, useCycles } from '../hooks/useCycles';
+import { useCreateBiometric } from '../hooks/useBiometrics';
 import { usePonds } from '../hooks/usePonds';
+import { useAuth } from '../hooks/useAuth';
 import type { Pond } from '../types';
 import { PondType } from '../types';
 import {
@@ -31,13 +33,16 @@ import { EmptyState } from '../components/ui/EmptyState';
 import {
   calculatePovoamentoQuantity,
   calculateStageDay,
+  collectTransferOriginCycleIds,
   getAllocationSummary,
   getCyclePhaseForPondType,
   sumOriginQuantities,
   validateAllocationRows,
+  validateTransferBiometry,
   type AllocationRow,
 } from './povoamento';
 import { getPondTypeLabel, getPondTypeShortLabel } from '../lib/pondLabels';
+import { plPerGramToAverageWeightG } from '../lib/plPerGram';
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -72,6 +77,8 @@ type PovoamentoForm = {
   stageDayOverride: string;
   transferDate: string;
   plPerGram: string;
+  /** RF-14: required alongside plPerGram in transfer mode — becomes sampleCount on the origin biometria. */
+  sampleCount: string;
   stockDate: string;
 };
 
@@ -86,10 +93,11 @@ function pondLabel(pond: Pond) {
 }
 
 export function PovoamentoPage() {
+  const { user } = useAuth();
   const { data: ponds = [], isLoading } = usePonds();
   const createCycle = useCreateCycle();
+  const createBiometric = useCreateBiometric();
   const [error, setError] = useState<string | null>(null);
-  const [savedLots, setSavedLots] = useState<Array<{ pond: string; quantity: number; geneticCode: string; supplier: string }>>([]);
   const [mode, setMode] = useState<StockingMode>('BERCARIO');
   const [viveiroSubMode, setViveiroSubMode] = useState<ViveiroSubMode>('DIRETO');
   const [selectedTankIds, setSelectedTankIds] = useState<Set<string>>(new Set());
@@ -103,6 +111,7 @@ export function PovoamentoPage() {
     stageDayOverride: '',
     transferDate: '',
     plPerGram: '',
+    sampleCount: '',
     stockDate: todayIsoDate(),
   });
   const [allocations, setAllocations] = useState<AllocationRowState[]>([]);
@@ -113,7 +122,7 @@ export function PovoamentoPage() {
     () => ponds.filter((pond) => targetPondTypesForMode(mode).includes(pond.type as StockingPondType)),
     [ponds, mode],
   );
-  const selectedPonds = new Map(ponds.map((pond) => [pond.id, pond]));
+  const selectedPonds = useMemo(() => new Map(ponds.map((pond) => [pond.id, pond])), [ponds]);
 
   const { data: bercarioOrigins = [] } = useCycles({ status: 'ativo', phase: 'BERCARIO' });
 
@@ -123,6 +132,28 @@ export function PovoamentoPage() {
     plCount: cycle.plCount,
     allocatedElsewhere: (cycle as unknown as { originAllocated?: number }).originAllocated ?? 0,
   }));
+
+  // Últimos povoamentos salvos — busca real no servidor (não só o que foi
+  // criado nesta sessão), filtrado pelo tipo de tanque do modo atual.
+  const { data: activeCyclesForMode = [] } = useCycles({ status: 'ativo' });
+
+  const recentPovoamentos = activeCyclesForMode
+    .filter((cycle) => {
+      const pondType = selectedPonds.get(cycle.pondId)?.type ?? cycle.pond?.type;
+      return pondType ? targetPondTypesForMode(mode).includes(pondType as StockingPondType) : false;
+    })
+    .slice()
+    .sort((a, b) => new Date(b.stockDate).getTime() - new Date(a.stockDate).getTime())
+    .slice(0, 5)
+    .map((cycle) => {
+      const pond = selectedPonds.get(cycle.pondId);
+      return {
+        pond: pond ? pondLabel(pond) : (cycle.pond?.code ?? cycle.pondId),
+        quantity: cycle.plCount,
+        geneticCode: cycle.geneticCode ?? '',
+        supplier: cycle.larvaeSupplier ?? cycle.supplier,
+      };
+    });
 
   const totalQuantity = allocations.reduce((sum, row) => sum + (isTransferMode ? sumOriginQuantities(row.origins ?? []) : row.quantity), 0);
   const summary = getAllocationSummary(asAllocationRows(allocations), totalQuantity);
@@ -206,9 +237,23 @@ export function PovoamentoPage() {
       return;
     }
 
+    const sampleCount = Number(form.sampleCount || 0);
+    if (isTransferMode) {
+      const transferBiometryValidation = validateTransferBiometry(plPerGram, sampleCount);
+      if (!transferBiometryValidation.valid) {
+        setError(transferBiometryValidation.message);
+        return;
+      }
+    }
+
     try {
-      await Promise.all(
-        allocations.map((row) => {
+      // RF-13: plPerGram informed on a transfer is never dropped — it goes onto
+      // the destination cycle (plPerGram below, same as direct stocking) and,
+      // separately, onto a closing biometria for every berçário it drew from.
+      const originCycleIds = isTransferMode ? collectTransferOriginCycleIds(allocations) : [];
+
+      await Promise.all([
+        ...allocations.map((row) => {
           const pond = selectedPonds.get(row.pondId);
           if (!pond) throw new Error('Selecione um tanque válido.');
 
@@ -226,27 +271,27 @@ export function PovoamentoPage() {
             larvaeStage: 'PL',
             stageDay: Number.isFinite(effectiveStageDay) && effectiveStageDay > 0 ? effectiveStageDay : undefined,
             transferDate: form.transferDate || undefined,
-            plPerGram: isTransferMode ? undefined : (plPerGram > 0 ? plPerGram : undefined),
+            plPerGram: plPerGram > 0 ? plPerGram : undefined,
             origins: isTransferMode
               ? (row.origins ?? []).filter((origin) => origin.quantity > 0)
               : undefined,
           });
         }),
-      );
-
-      setSavedLots((current) => [
-        ...allocations.map((row) => {
-          const pond = selectedPonds.get(row.pondId);
-          return {
-            pond: pond ? pondLabel(pond) : row.pondId,
-            quantity: isTransferMode ? sumOriginQuantities(row.origins ?? []) : row.quantity,
-            geneticCode: form.geneticCode,
-            supplier: form.supplier,
-          };
-        }),
-        ...current,
+        ...(isTransferMode && plPerGram > 0
+          ? originCycleIds.map((originCycleId) =>
+              createBiometric.mutateAsync({
+                cycleId: originCycleId,
+                measuredAt: form.stockDate,
+                sampleCount,
+                averageWeightG: plPerGramToAverageWeightG(plPerGram),
+                responsibleId: user?.id,
+              }),
+            )
+          : []),
       ]);
 
+      // useCreateCycle já invalida a query ['cycles'] no onSuccess, então
+      // recentPovoamentos (useCycles acima) revalida sozinho — sem estado local.
       setForm((current) => ({
         ...current,
         lotCode: '',
@@ -254,6 +299,7 @@ export function PovoamentoPage() {
         stageDayOverride: '',
         transferDate: '',
         plPerGram: '',
+        sampleCount: '',
         stockDate: todayIsoDate(),
       }));
       setAllocations([]);
@@ -391,12 +437,31 @@ export function PovoamentoPage() {
                 value={form.lotCode}
                 onChange={(e) => setForm((current) => ({ ...current, lotCode: e.target.value }))}
               />
+              <Input
+                label="PL/grama opcional"
+                type="number"
+                min={0}
+                step="1"
+                placeholder="Pós-larvas por grama"
+                value={form.plPerGram}
+                onChange={(e) => setForm((current) => ({ ...current, plPerGram: e.target.value }))}
+              />
+              <Input
+                label={plPerGram > 0 ? 'Amostras (obrigatório com PL/grama)' : 'Amostras opcional'}
+                type="number"
+                min={0}
+                step="1"
+                placeholder="Ex: 15"
+                value={form.sampleCount}
+                onChange={(e) => setForm((current) => ({ ...current, sampleCount: e.target.value }))}
+              />
             </div>
           )}
 
           {isTransferMode && (
             <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 6 }}>
               Fornecedor registrado automaticamente como "Transferência interna".
+              {plPerGram > 0 && ' O PL/grama informado vira uma biometria de fechamento no berçário de origem.'}
             </div>
           )}
 
@@ -531,7 +596,7 @@ export function PovoamentoPage() {
           <div style={workspaceCard}>
             <h2 style={sectionTitle}>Últimos povoamentos salvos</h2>
             <div style={{ display: 'grid', gap: space.inline }}>
-              {savedLots.length ? savedLots.map((item, index) => (
+              {recentPovoamentos.length ? recentPovoamentos.map((item, index) => (
                 <div key={`${item.pond}-${index}`} style={{ ...workspaceTile, padding: 12 }}>
                   <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{item.pond}</div>
                   <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>

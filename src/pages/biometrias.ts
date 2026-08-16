@@ -5,6 +5,8 @@ import {
   type BiometricsOperationalEstimate,
   type ConsumptionReferenceRow,
 } from '../lib/biometricsReference';
+import { averageWeightGToPlPerGram, isBercarioPondType, plPerGramToAverageWeightG } from '../lib/plPerGram';
+import type { PondType } from '../types';
 
 export type BiometriaKpisInput = {
   pesoMedioG?: number | null;
@@ -139,3 +141,13 @@ export function buildBiometricPayload(
 }
 
 export { calculateBiometricsOperationalEstimate, getConsumptionPctForWeight };
+export { averageWeightGToPlPerGram, isBercarioPondType, plPerGramToAverageWeightG };
+
+/**
+ * RF-10/RF-11: the sidebar and modal biometry forms both share this one rule —
+ * bercario cycles read their weight input as PL/g and the DTO always ends up
+ * with `averageWeightG` (RN-09 conversion); every other pond type is a no-op.
+ */
+export function resolveAverageWeightGInput(rawValue: number, pondType?: PondType | string | null): number {
+  return isBercarioPondType(pondType) ? plPerGramToAverageWeightG(rawValue) : rawValue;
+}

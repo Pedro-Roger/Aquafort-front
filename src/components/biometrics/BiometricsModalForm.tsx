@@ -8,6 +8,10 @@ interface BiometricsModalFormProps {
   onClose: () => void;
   pondCode: string;
   loading?: boolean;
+  /** RF-10/RN-10: the pond clicked into this modal is bercario — same field swap as the sidebar form. */
+  isBercario?: boolean;
+  /** Set when the clicked pond has no active cycle to save into — blocks the submit instead of silently writing to the wrong cycle. */
+  disabledReason?: string | null;
   onSubmit: (data: {
     measuredAt: string;
     sampleCount: number;
@@ -26,6 +30,8 @@ export function BiometricsModalForm({
   onClose,
   pondCode,
   loading = false,
+  isBercario = false,
+  disabledReason = null,
   onSubmit,
 }: BiometricsModalFormProps) {
   const [form, setForm] = React.useState({
@@ -83,12 +89,12 @@ export function BiometricsModalForm({
             placeholder="Ex: 15"
           />
           <Input
-            label="Peso médio (g)"
+            label={isBercario ? 'PL/grama' : 'Peso médio (g)'}
             type="number"
-            step="0.01"
+            step={isBercario ? '1' : '0.01'}
             value={form.averageWeightG}
             onChange={(e) => setForm((current) => ({ ...current, averageWeightG: e.target.value }))}
-            placeholder="Ex: 12.50"
+            placeholder={isBercario ? 'Pós-larvas por grama' : 'Ex: 12.50'}
           />
           <Input
             label="Sobrevivência (%)"
@@ -108,6 +114,10 @@ export function BiometricsModalForm({
           />
         </div>
 
+        {disabledReason && (
+          <div style={{ color: 'var(--danger)', fontSize: 13 }}>{disabledReason}</div>
+        )}
+
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 8 }}>
           <Button
             variant="ghost"
@@ -119,7 +129,7 @@ export function BiometricsModalForm({
           <Button
             loading={loading}
             onClick={handleSave}
-            disabled={!form.sampleCount || !form.averageWeightG}
+            disabled={!form.sampleCount || !form.averageWeightG || !!disabledReason}
           >
             Salvar leitura
           </Button>

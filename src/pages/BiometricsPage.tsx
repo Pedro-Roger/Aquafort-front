@@ -37,6 +37,7 @@ import { BiometricsPondsGrid } from '../components/biometrics/BiometricsPondsGri
 import { BiometricsModalForm } from '../components/biometrics/BiometricsModalForm';
 import type { Biometric, Pond } from '../types';
 import {
+  averageWeightGToPlPerGram,
   buildBiometriaCards,
   buildBiometriaPath,
   buildBiometriaQuickActions,
@@ -44,7 +45,9 @@ import {
   buildBiometricPayload,
   calculateBiometricsOperationalEstimate,
   getConsumptionPctForWeight,
+  isBercarioPondType,
   isBiometricFormValid,
+  resolveAverageWeightGInput,
   type BiometricFormValues,
 } from './biometrias';
 import { buildDespescaPath } from './despesca';
@@ -81,11 +84,17 @@ export function BiometricsPage() {
   const [cycleId, setCycleId] = useState(() => searchParams.get('cycleId') ?? '');
   const selectedCycleId = cycleId || cycles[0]?.id || '';
   const selectedCycle = cycles.find((cycle) => cycle.id === selectedCycleId) ?? null;
+  /** RF-10/RN-10: bercario cycles read biometry as PL/g; engorda/reprodutor keep grams. */
+  const isBercario = isBercarioPondType(selectedCycle?.pond?.type);
   const focusParam = searchParams.get('focus');
   const { reference } = useFarmBiometricsReference();
   const [form, setForm] = useState(emptySidebarForm);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPond, setSelectedPond] = useState<Pond | null>(null);
+  /** The active cycle of the pond that opened the modal — never the sidebar's selectedCycleId (bug: a click used to write into whatever cycle happened to be selected in the dropdown). */
+  const [modalCycleId, setModalCycleId] = useState<string | null>(null);
+  /** RF-10/RN-10: the pond that opened the modal decides its unit, straight off the pond object — same rule as the sidebar, just a different pond. */
+  const isModalBercario = isBercarioPondType(selectedPond?.type);
 
   const biometrics = useBiometrics(selectedCycleId || null);
   const series = useBiometricSeries(selectedCycleId || null);
@@ -93,31 +102,44 @@ export function BiometricsPage() {
   const createBiometric = useCreateBiometric();
   const deleteBiometric = useDeleteBiometric();
 
-  /** Shared by the sidebar form and the modal form — both submit the same DTO to the same mutation. */
-  async function submitBiometric(values: BiometricFormValues) {
-    if (!selectedCycleId || !isBiometricFormValid(values)) return;
+  /** Shared by the sidebar form and the modal form — both submit the same DTO to the same mutation, each against its own cycle. */
+  async function submitBiometric(cycleId: string | null, values: BiometricFormValues) {
+    if (!cycleId || !isBiometricFormValid(values)) return;
 
-    await createBiometric.mutateAsync(buildBiometricPayload(selectedCycleId, values, user?.id));
-    setForm(emptySidebarForm());
+    await createBiometric.mutateAsync(buildBiometricPayload(cycleId, values, user?.id));
   }
 
   async function handleSave() {
-    await submitBiometric({
+    await submitBiometric(selectedCycleId, {
       measuredAt: form.measuredAt,
       sampleCount: Number(form.sampleCount),
-      averageWeightG: Number(form.averageWeightG),
+      // RF-10/RF-11: for a bercario cycle the field above reads as PL/g — this
+      // converts it to avg_weight_g (RN-09) before it ever reaches the DTO.
+      averageWeightG: resolveAverageWeightGInput(Number(form.averageWeightG), selectedCycle?.pond?.type),
       survivalRatePct: form.survivalRatePct ? Number(form.survivalRatePct) : undefined,
       estimatedBiomass: form.estimatedBiomass ? Number(form.estimatedBiomass) : undefined,
     });
+    setForm(emptySidebarForm());
   }
 
   async function handleModalSubmit(data: BiometricFormValues) {
-    await submitBiometric(data);
+    // RF-10/RF-11: same conversion as the sidebar, keyed off the clicked
+    // pond's own type — never the sidebar's selected cycle/pond.
+    await submitBiometric(modalCycleId, {
+      ...data,
+      averageWeightG: resolveAverageWeightGInput(data.averageWeightG, selectedPond?.type),
+    });
     setModalOpen(false);
+    setSelectedPond(null);
+    setModalCycleId(null);
   }
 
   function handlePondClick(pond: Pond) {
+    // Bug fix: the modal used to save into the sidebar's selectedCycleId,
+    // not the clicked pond's own cycle — resolve it here instead.
+    const activeCycle = cycles.find((cycle) => cycle.pondId === pond.id) ?? null;
     setSelectedPond(pond);
+    setModalCycleId(activeCycle?.id ?? null);
     setModalOpen(true);
   }
 
@@ -198,6 +220,19 @@ export function BiometricsPage() {
       align: 'right' as const,
       render: (row: Biometric) => `${fmt(row.averageWeightG, 2)} g`,
     },
+    // RF-12: bercario cycles show the derived PL/g right next to the weight
+    // in grams, for the field operator to double-check the reading.
+    ...(isBercario
+      ? [
+          {
+            key: 'plPerGram',
+            header: 'PL/g',
+            align: 'right' as const,
+            render: (row: Biometric) =>
+              row.averageWeightG > 0 ? `${fmt(averageWeightGToPlPerGram(row.averageWeightG), 0)} PL/g` : '—',
+          },
+        ]
+      : []),
     {
       key: 'survivalRatePct',
       header: 'Sobrev.',
@@ -345,7 +380,14 @@ export function BiometricsPage() {
           <div style={{ display: 'grid', gap: space.tile }}>
             <Input label="Data" type="date" value={form.measuredAt} onChange={(e) => setForm((current) => ({ ...current, measuredAt: e.target.value }))} />
             <Input label="Amostras" type="number" value={form.sampleCount} onChange={(e) => setForm((current) => ({ ...current, sampleCount: e.target.value }))} />
-            <Input label="Peso médio (g)" type="number" step="0.01" value={form.averageWeightG} onChange={(e) => setForm((current) => ({ ...current, averageWeightG: e.target.value }))} />
+            <Input
+              label={isBercario ? 'PL/grama' : 'Peso médio (g)'}
+              type="number"
+              step={isBercario ? '1' : '0.01'}
+              placeholder={isBercario ? 'Pós-larvas por grama' : undefined}
+              value={form.averageWeightG}
+              onChange={(e) => setForm((current) => ({ ...current, averageWeightG: e.target.value }))}
+            />
             <Input label="Sobrevivência (%)" type="number" step="0.01" value={form.survivalRatePct} onChange={(e) => setForm((current) => ({ ...current, survivalRatePct: e.target.value }))} />
             <Input label="Biomassa (kg) opcional" type="number" step="0.01" value={form.estimatedBiomass} onChange={(e) => setForm((current) => ({ ...current, estimatedBiomass: e.target.value }))} />
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Responsável: {user?.name ?? 'Sem usuário'}</div>
@@ -380,9 +422,15 @@ export function BiometricsPage() {
                     <Tooltip
                       formatter={(value: unknown, name: unknown) => {
                         const numericValue = typeof value === 'number' ? value : Number(value ?? 0);
-                        return name === 'pesoMedioG'
-                          ? [`${fmt(numericValue, 2)} g`, 'Peso médio']
-                          : [`${fmt(numericValue, 2)} g`, 'Ganho semanal'];
+                        if (name === 'pesoMedioG') {
+                          // RF-12: bercario cycles show the derived PL/g next to the
+                          // weight in grams for every point on the growth curve.
+                          const weightLabel = isBercario && numericValue > 0
+                            ? `${fmt(numericValue, 2)} g (${fmt(averageWeightGToPlPerGram(numericValue), 0)} PL/g)`
+                            : `${fmt(numericValue, 2)} g`;
+                          return [weightLabel, 'Peso médio'];
+                        }
+                        return [`${fmt(numericValue, 2)} g`, 'Ganho semanal'];
                       }}
                       labelFormatter={(value) => `Semana ${value}`}
                     />
@@ -414,9 +462,12 @@ export function BiometricsPage() {
           onClose={() => {
             setModalOpen(false);
             setSelectedPond(null);
+            setModalCycleId(null);
           }}
           pondCode={selectedPond.code || selectedPond.name || '—'}
           loading={createBiometric.isPending}
+          isBercario={isModalBercario}
+          disabledReason={modalCycleId ? null : 'Este viveiro não tem ciclo ativo — não é possível registrar biometria.'}
           onSubmit={handleModalSubmit}
         />
       )}

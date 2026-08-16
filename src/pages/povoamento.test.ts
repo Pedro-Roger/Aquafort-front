@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   calculateOriginBalance,
   calculatePovoamentoQuantity,
+  collectTransferOriginCycleIds,
   getAllocationSummary,
   quantityFromWeight,
   sumOriginQuantities,
   validateAllocationRows,
+  validateTransferBiometry,
   weightFromQuantity,
 } from './povoamento';
 
@@ -96,5 +98,50 @@ describe('povoamento origin math', () => {
     const balance = calculateOriginBalance(500_000, 350_000, 150_000);
     expect(balance.remaining).toBe(150_000);
     expect(balance.isOverdrawn).toBe(false);
+  });
+});
+
+describe('collectTransferOriginCycleIds (RF-13)', () => {
+  it('collects the origin cycle ids drawn on across every destination row', () => {
+    const ids = collectTransferOriginCycleIds([
+      { origins: [{ sourceCycleId: 'a', label: 'Berçário A', quantity: 5000 }] },
+      { origins: [{ sourceCycleId: 'b', label: 'Berçário B', quantity: 3000 }] },
+    ]);
+    expect(ids).toEqual(['a', 'b']);
+  });
+
+  it('dedupes an origin drawn on by more than one destination row', () => {
+    const ids = collectTransferOriginCycleIds([
+      { origins: [{ sourceCycleId: 'a', label: 'Berçário A', quantity: 2000 }] },
+      { origins: [{ sourceCycleId: 'a', label: 'Berçário A', quantity: 1000 }] },
+    ]);
+    expect(ids).toEqual(['a']);
+  });
+
+  it('ignores an origin selected but left at zero quantity', () => {
+    const ids = collectTransferOriginCycleIds([
+      { origins: [{ sourceCycleId: 'a', label: 'Berçário A', quantity: 0 }] },
+    ]);
+    expect(ids).toEqual([]);
+  });
+
+  it('returns an empty list for rows without origins (non-transfer allocations)', () => {
+    expect(collectTransferOriginCycleIds([{}])).toEqual([]);
+  });
+});
+
+describe('validateTransferBiometry (RF-14)', () => {
+  it('requires sampleCount when plPerGram was informed', () => {
+    const result = validateTransferBiometry(250, 0);
+    expect(result.valid).toBe(false);
+    expect(result.message).toContain('amostras');
+  });
+
+  it('passes when plPerGram and sampleCount are both informed', () => {
+    expect(validateTransferBiometry(250, 20).valid).toBe(true);
+  });
+
+  it('does not require sampleCount when plPerGram was not informed (field stays optional)', () => {
+    expect(validateTransferBiometry(0, 0).valid).toBe(true);
   });
 });

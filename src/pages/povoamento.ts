@@ -109,6 +109,21 @@ export function sumOriginQuantities(origins: OriginAllocation[]): number {
   return origins.reduce((sum, origin) => sum + (Number.isFinite(origin.quantity) ? origin.quantity : 0), 0);
 }
 
+/**
+ * RF-13: every berçário drawn on by the transfer gets its own closing
+ * biometria. A berçário picked in more than one destination row (split
+ * across two viveiros) still gets exactly one — dedup by cycle id.
+ */
+export function collectTransferOriginCycleIds(rows: { origins?: OriginAllocation[] }[]): string[] {
+  const ids = new Set<string>();
+  rows.forEach((row) => {
+    (row.origins ?? []).forEach((origin) => {
+      if (origin.quantity > 0) ids.add(origin.sourceCycleId);
+    });
+  });
+  return Array.from(ids);
+}
+
 export interface OriginBalance {
   remaining: number;
   isOverdrawn: boolean;
@@ -122,6 +137,19 @@ export interface OriginBalance {
 export function calculateOriginBalance(plCount: number, allocatedElsewhere: number, requested: number): OriginBalance {
   const remaining = plCount - allocatedElsewhere;
   return { remaining, isOverdrawn: requested > remaining };
+}
+
+/**
+ * RF-14: the transfer form creates a real `biometrics` row (same DTO/contract
+ * as the weekly launch), so it can't relax validation just because it's
+ * triggered from a different screen — sampleCount is required whenever
+ * plPerGram was informed for the transfer.
+ */
+export function validateTransferBiometry(plPerGram: number, sampleCount: number): ValidationResult {
+  if (plPerGram > 0 && (!Number.isFinite(sampleCount) || sampleCount <= 0)) {
+    return { valid: false, message: 'Informe as amostras usadas para medir o PL/grama da transferência.' };
+  }
+  return { valid: true, message: null };
 }
 
 export function getCyclePhaseForPondType(type: PondType): CyclePhase {
