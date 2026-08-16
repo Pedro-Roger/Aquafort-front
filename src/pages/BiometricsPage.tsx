@@ -16,8 +16,6 @@ import { usePonds } from '../hooks/usePonds';
 import { useBiometricKpis, useBiometrics, useBiometricSeries, useCreateBiometric, useDeleteBiometric, useLatestBiometricsByPond } from '../hooks/useBiometrics';
 import { useFarmBiometricsReference } from '../hooks/useFarmBiometricsReference';
 import { KPICard } from '../components/ui/KPICard';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
 import { Table } from '../components/ui/Table';
 import {
   metricGrid,
@@ -58,25 +56,10 @@ function fmt(value: number | null | undefined, digits = 1) {
   return value.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
-function todayIsoDate() {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function emptySidebarForm() {
-  return {
-    measuredAt: todayIsoDate(),
-    sampleCount: '',
-    averageWeightG: '',
-    survivalRatePct: '',
-    estimatedBiomass: '',
-  };
-}
-
 export function BiometricsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  const formRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const { data: cycles = [] } = useCycles({ status: 'ativo' });
   const { data: ponds = [], isLoading: pondsLoading } = usePonds();
@@ -88,7 +71,6 @@ export function BiometricsPage() {
   const isBercario = isBercarioPondType(selectedCycle?.pond?.type);
   const focusParam = searchParams.get('focus');
   const { reference } = useFarmBiometricsReference();
-  const [form, setForm] = useState(emptySidebarForm);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPond, setSelectedPond] = useState<Pond | null>(null);
   /** The active cycle of the pond that opened the modal — never the sidebar's selectedCycleId (bug: a click used to write into whatever cycle happened to be selected in the dropdown). */
@@ -102,24 +84,10 @@ export function BiometricsPage() {
   const createBiometric = useCreateBiometric();
   const deleteBiometric = useDeleteBiometric();
 
-  /** Shared by the sidebar form and the modal form — both submit the same DTO to the same mutation, each against its own cycle. */
   async function submitBiometric(cycleId: string | null, values: BiometricFormValues) {
     if (!cycleId || !isBiometricFormValid(values)) return;
 
     await createBiometric.mutateAsync(buildBiometricPayload(cycleId, values, user?.id));
-  }
-
-  async function handleSave() {
-    await submitBiometric(selectedCycleId, {
-      measuredAt: form.measuredAt,
-      sampleCount: Number(form.sampleCount),
-      // RF-10/RF-11: for a bercario cycle the field above reads as PL/g — this
-      // converts it to avg_weight_g (RN-09) before it ever reaches the DTO.
-      averageWeightG: resolveAverageWeightGInput(Number(form.averageWeightG), selectedCycle?.pond?.type),
-      survivalRatePct: form.survivalRatePct ? Number(form.survivalRatePct) : undefined,
-      estimatedBiomass: form.estimatedBiomass ? Number(form.estimatedBiomass) : undefined,
-    });
-    setForm(emptySidebarForm());
   }
 
   async function handleModalSubmit(data: BiometricFormValues) {
@@ -194,13 +162,18 @@ export function BiometricsPage() {
   );
 
   useEffect(() => {
+    // The sidebar form this used to scroll to is gone — deep links with
+    // focus=form (e.g. from HarvestPlanningPage) now open the same
+    // pond-click modal instead, for the currently selected cycle's pond.
     if (focusParam === 'form') {
-      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const pond = cycles.find((cycle) => cycle.id === selectedCycleId)?.pond;
+      if (pond) handlePondClick(pond as Pond);
     }
     if (focusParam === 'chart') {
       chartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-  }, [focusParam]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusParam, selectedCycleId, cycles]);
 
   const columns = [
     {
@@ -209,30 +182,32 @@ export function BiometricsPage() {
       render: (row: Biometric) => new Date(row.measuredAt).toLocaleDateString('pt-BR'),
     },
     {
+      key: 'pond',
+      header: 'Viveiro',
+      render: () => selectedCycle?.pond?.code || selectedCycle?.pond?.name || '—',
+    },
+    {
       key: 'sampleCount',
       header: 'Amostras',
       align: 'right' as const,
       render: (row: Biometric) => row.sampleCount,
     },
-    {
-      key: 'averageWeightG',
-      header: 'Peso medio',
-      align: 'right' as const,
-      render: (row: Biometric) => `${fmt(row.averageWeightG, 2)} g`,
-    },
-    // RF-12: bercario cycles show the derived PL/g right next to the weight
-    // in grams, for the field operator to double-check the reading.
-    ...(isBercario
-      ? [
-          {
-            key: 'plPerGram',
-            header: 'PL/g',
-            align: 'right' as const,
-            render: (row: Biometric) =>
-              row.averageWeightG > 0 ? `${fmt(averageWeightGToPlPerGram(row.averageWeightG), 0)} PL/g` : '—',
-          },
-        ]
-      : []),
+    // RF-10/RN-10: bercario reads/reports in PL/g, not grams — showing both
+    // side by side asked the operator to convert one of them in their head.
+    isBercario
+      ? {
+          key: 'plPerGram',
+          header: 'PL/g',
+          align: 'right' as const,
+          render: (row: Biometric) =>
+            row.averageWeightG > 0 ? `${fmt(averageWeightGToPlPerGram(row.averageWeightG), 0)} PL/g` : '—',
+        }
+      : {
+          key: 'averageWeightG',
+          header: 'Peso médio',
+          align: 'right' as const,
+          render: (row: Biometric) => `${fmt(row.averageWeightG, 2)} g`,
+        },
     {
       key: 'survivalRatePct',
       header: 'Sobrev.',
@@ -288,7 +263,7 @@ export function BiometricsPage() {
               kind: action.kind,
               onClick: () => {
                 if (action.action === 'focus-form') {
-                  navigate(buildBiometriaPath(selectedCycleId, 'form'));
+                  if (selectedCycle?.pond) handlePondClick(selectedCycle.pond as Pond);
                   return;
                 }
                 if (action.action === 'focus-chart') {
@@ -371,32 +346,7 @@ export function BiometricsPage() {
         </div>
       </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '360px minmax(0, 1fr)', gap: space.page, minHeight: 0, flex: 1 }}>
-        <div ref={formRef} style={workspaceCard}>
-          <div>
-            <h2 style={sectionTitle}>Registrar biometria</h2>
-            <div style={{ ...sectionSubtitle, marginTop: 2 }}>Preencha a leitura para atualizar a curva operacional.</div>
-          </div>
-          <div style={{ display: 'grid', gap: space.tile }}>
-            <Input label="Data" type="date" value={form.measuredAt} onChange={(e) => setForm((current) => ({ ...current, measuredAt: e.target.value }))} />
-            <Input label="Amostras" type="number" value={form.sampleCount} onChange={(e) => setForm((current) => ({ ...current, sampleCount: e.target.value }))} />
-            <Input
-              label={isBercario ? 'PL/grama' : 'Peso médio (g)'}
-              type="number"
-              step={isBercario ? '1' : '0.01'}
-              placeholder={isBercario ? 'Pós-larvas por grama' : undefined}
-              value={form.averageWeightG}
-              onChange={(e) => setForm((current) => ({ ...current, averageWeightG: e.target.value }))}
-            />
-            <Input label="Sobrevivência (%)" type="number" step="0.01" value={form.survivalRatePct} onChange={(e) => setForm((current) => ({ ...current, survivalRatePct: e.target.value }))} />
-            <Input label="Biomassa (kg) opcional" type="number" step="0.01" value={form.estimatedBiomass} onChange={(e) => setForm((current) => ({ ...current, estimatedBiomass: e.target.value }))} />
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Responsável: {user?.name ?? 'Sem usuário'}</div>
-            <Button loading={createBiometric.isPending} onClick={handleSave} disabled={!selectedCycleId || !form.sampleCount || !form.averageWeightG}>
-              Salvar biometria
-            </Button>
-          </div>
-        </div>
-
+      <div style={{ display: 'grid', gap: space.page, minHeight: 0, flex: 1 }}>
         <div style={{ display: 'grid', gridTemplateRows: '280px minmax(0, 1fr)', gap: space.page, minHeight: 0 }}>
           <div ref={chartRef} style={workspaceCard}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: space.tile, flexWrap: 'wrap' }}>

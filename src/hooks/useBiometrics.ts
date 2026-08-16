@@ -25,6 +25,9 @@ export function useCreateBiometric() {
       qc.invalidateQueries({ queryKey: ['biometrics', 'series', data.cycleId] });
       qc.invalidateQueries({ queryKey: ['biometrics', 'kpis', data.cycleId] });
       qc.invalidateQueries({ queryKey: ['cycles', data.cycleId, 'growth-chart'] });
+      // Pond grid cards read from this query separately — missing this left
+      // a card showing "Nenhuma leitura registrada" after a real save.
+      qc.invalidateQueries({ queryKey: ['biometrics', 'latest-by-pond'] });
     },
   });
 }
@@ -40,6 +43,7 @@ export function useDeleteBiometric() {
       qc.invalidateQueries({ queryKey: ['biometrics', 'series', cycleId] });
       qc.invalidateQueries({ queryKey: ['biometrics', 'kpis', cycleId] });
       qc.invalidateQueries({ queryKey: ['cycles', cycleId, 'growth-chart'] });
+      qc.invalidateQueries({ queryKey: ['biometrics', 'latest-by-pond'] });
     },
   });
 }

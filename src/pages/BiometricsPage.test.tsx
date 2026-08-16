@@ -129,7 +129,6 @@ describe('BiometricsPage', () => {
     expect(screen.getByText('Povoamento')).toBeInTheDocument()
     expect(screen.getByText('Ração')).toBeInTheDocument()
     expect(screen.getByText('Qualidade')).toBeInTheDocument()
-    expect(screen.getByText('Salvar biometria')).toBeInTheDocument()
   })
 
   it('lists each pond as an entry point for a new reading', () => {
@@ -143,75 +142,9 @@ describe('BiometricsPage', () => {
     expect(screen.getByText(/Peso: 20,81 g/)).toBeInTheDocument()
   })
 
-  it('keeps "Peso médio (g)" as the entry field for an engorda cycle (RF-10)', () => {
-    useCyclesMock.mockReturnValue({
-      data: [{ ...defaultCycle, pond: { ...defaultCycle.pond, type: 'ENGORDA' } }],
-    })
-
-    render(
-      <MemoryRouter>
-        <BiometricsPage />
-      </MemoryRouter>,
-    )
-
-    expect(screen.getByLabelText('Peso médio (g)')).toBeInTheDocument()
-    expect(screen.queryByLabelText('PL/grama')).not.toBeInTheDocument()
-  })
-
-  it('swaps to "PL/grama" as the entry field for a bercario cycle (RF-10)', () => {
-    useCyclesMock.mockReturnValue({
-      data: [{ ...defaultCycle, pond: { ...defaultCycle.pond, type: 'BERCARIO' } }],
-    })
-
-    render(
-      <MemoryRouter>
-        <BiometricsPage />
-      </MemoryRouter>,
-    )
-
-    expect(screen.getByLabelText('PL/grama')).toBeInTheDocument()
-    expect(screen.queryByLabelText('Peso médio (g)')).not.toBeInTheDocument()
-  })
-
-  it('converts PL/g to avg_weight_g before saving a bercario cycle (RF-11/RN-09)', async () => {
-    useCyclesMock.mockReturnValue({
-      data: [{ ...defaultCycle, pond: { ...defaultCycle.pond, type: 'BERCARIO' } }],
-    })
-
-    render(
-      <MemoryRouter>
-        <BiometricsPage />
-      </MemoryRouter>,
-    )
-
-    fireEvent.change(screen.getByLabelText('Amostras'), { target: { value: '15' } })
-    fireEvent.change(screen.getByLabelText('PL/grama'), { target: { value: '250' } })
-    fireEvent.click(screen.getByText('Salvar biometria'))
-
-    await waitFor(() => expect(createBiometricMutateAsync).toHaveBeenCalledTimes(1))
-    const payload = createBiometricMutateAsync.mock.calls[0][0]
-    expect(payload.averageWeightG).toBeCloseTo(0.004, 6)
-  })
-
-  it('saves an engorda cycle weight untouched, no PL/g conversion applied (RF-10)', async () => {
-    useCyclesMock.mockReturnValue({
-      data: [{ ...defaultCycle, pond: { ...defaultCycle.pond, type: 'ENGORDA' } }],
-    })
-
-    render(
-      <MemoryRouter>
-        <BiometricsPage />
-      </MemoryRouter>,
-    )
-
-    fireEvent.change(screen.getByLabelText('Amostras'), { target: { value: '15' } })
-    fireEvent.change(screen.getByLabelText('Peso médio (g)'), { target: { value: '12.5' } })
-    fireEvent.click(screen.getByText('Salvar biometria'))
-
-    await waitFor(() => expect(createBiometricMutateAsync).toHaveBeenCalledTimes(1))
-    const payload = createBiometricMutateAsync.mock.calls[0][0]
-    expect(payload.averageWeightG).toBe(12.5)
-  })
+  // The sidebar form these used to test (RF-10 field swap, RF-11 PL/g
+  // conversion) was removed — every entry point is now the pond-click
+  // modal below, which already covers the same conversion rules.
 
   describe('pond-click modal (BiometricsModalForm)', () => {
     // Two ponds/cycles on screen at once: the sidebar dropdown defaults to
@@ -232,9 +165,6 @@ describe('BiometricsPage', () => {
           <BiometricsPage />
         </MemoryRouter>,
       )
-
-      // Sanity: the sidebar is still on the engorda cycle (c1/V-01), grams entry.
-      expect(screen.getByLabelText('Peso médio (g)')).toBeInTheDocument()
 
       fireEvent.click(screen.getByText('B-02'))
 
@@ -268,8 +198,8 @@ describe('BiometricsPage', () => {
       fireEvent.click(screen.getByText('V-01'))
 
       expect(await screen.findByText('Nova leitura — V-01')).toBeInTheDocument()
-      // The sidebar (still on the bercario cycle) legitimately shows "PL/grama" —
-      // what matters is the modal itself, which is engorda, shows grams.
+      // The clicked pond is engorda — the modal must show grams, regardless
+      // of which cycle the dropdown above happens to be on.
       expect(screen.getByLabelText('Peso médio (g)')).toBeInTheDocument()
 
       const amostrasInputs = screen.getAllByLabelText('Amostras')
@@ -300,6 +230,21 @@ describe('BiometricsPage', () => {
 
       expect(await screen.findByText(/não tem ciclo ativo/)).toBeInTheDocument()
       expect(screen.getByText('Salvar leitura')).toBeDisabled()
+    })
+
+    // The removed sidebar form used to be the target of ?focus=form deep
+    // links (e.g. from HarvestPlanningPage). It now opens this same modal,
+    // for whichever cycle is selected, instead of scrolling to nothing.
+    it('opens the modal for the selected cycle\'s pond when navigated to with ?focus=form', async () => {
+      render(
+        <MemoryRouter initialEntries={['/biometrias?focus=form']}>
+          <BiometricsPage />
+        </MemoryRouter>,
+      )
+
+      // cycles[0] in this describe block is the engorda cycle (c1/V-01).
+      expect(await screen.findByText('Nova leitura — V-01')).toBeInTheDocument()
+      expect(screen.getByLabelText('Peso médio (g)')).toBeInTheDocument()
     })
   })
 })
