@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react';
-import { Save, RotateCcw, Gauge, Plus, Shield, X } from 'lucide-react';
+import { Save, RotateCcw, Gauge, Plus, X } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useAuth } from '../hooks/useAuth';
@@ -91,7 +91,6 @@ export function SettingsPage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: space.tile, marginTop: space.section }}>
           <MiniStat icon={<Gauge size={16} />} label="Faixa cadastrada" value={`${fmtWeight(minWeight)}g até ${fmtWeight(maxWeight)}g`} />
-          <MiniStat icon={<Shield size={16} />} label="Edição" value={canEdit ? 'Liberada ao gerente' : 'Bloqueada'} />
           <MiniStat icon={<Save size={16} />} label="Estado" value={changed ? 'Há alterações' : 'Sincronizado'} />
         </div>
       </section>

@@ -1,5 +1,7 @@
 import type { Pond, PondStatus, PondType } from '../../types'
-import { STATUS_META, TYPE_LABELS } from './pondInsights'
+import { STATUS_META } from './pondInsights'
+import { getPondTypeLabel } from '../../lib/pondLabels'
+import { formatAreaHa } from '../../lib/format'
 
 interface PondCardSummary {
   cultivationDays?: number | null
@@ -30,17 +32,17 @@ function getStatusMeta(status: PondStatus) {
 }
 
 function getTypeLabel(type: PondType) {
-  return TYPE_LABELS[type] ?? type
+  return getPondTypeLabel(type)
 }
 
 export function PondCard({ pond, summary, onOpenCanvas }: Props) {
   const status = getStatusMeta(pond.status)
 
   const metricItems = [
-    { label: 'Area', value: `${fmt(pond.areaHa, 2)} ha` },
+    { label: 'Área', value: `${formatAreaHa(pond.areaHa)} ha` },
     { label: 'Cultivo', value: summary?.cultivationDays !== null && summary?.cultivationDays !== undefined ? `${summary.cultivationDays} dias` : '-' },
     { label: 'Peso', value: summary?.avgWeightG !== null && summary?.avgWeightG !== undefined ? `${fmt(summary.avgWeightG, 2)} g` : '-' },
-    { label: 'Racao hoje', value: summary?.feedTodayKg !== null && summary?.feedTodayKg !== undefined ? `${fmt(summary.feedTodayKg, 1)} kg` : '-' },
+    { label: 'Ração hoje', value: summary?.feedTodayKg !== null && summary?.feedTodayKg !== undefined ? `${fmt(summary.feedTodayKg, 1)} kg` : '-' },
   ]
 
   return (
@@ -143,7 +145,7 @@ export function PondCard({ pond, summary, onOpenCanvas }: Props) {
             {summary?.lotLabel ?? 'Sem lote ativo'}
           </div>
           <div style={{ display: 'flex', gap: 16, marginTop: 8, color: 'var(--text-secondary)', fontSize: 12 }}>
-            <span>Racao acum.: {summary?.feedAccumulatedKg !== null && summary?.feedAccumulatedKg !== undefined ? `${fmt(summary.feedAccumulatedKg, 1)} kg` : '-'}</span>
+            <span>Ração acum.: {summary?.feedAccumulatedKg !== null && summary?.feedAccumulatedKg !== undefined ? `${fmt(summary.feedAccumulatedKg, 1)} kg` : '-'}</span>
             <span>Densidade: {summary?.density !== null && summary?.density !== undefined ? `${fmt(summary.density, 1)} PL/m2` : '-'}</span>
           </div>
         </div>

@@ -59,12 +59,12 @@ export function PondListView({ onOpenCanvas }: Props) {
       tone: '#0284c7',
     },
     {
-      label: 'Area total',
+      label: 'Área total',
       value: `${fmt(ponds.reduce((sum, pond) => sum + Number(pond.areaHa ?? 0), 0), 2)} ha`,
       tone: '#38bdf8',
     },
     {
-      label: 'Racao hoje',
+      label: 'Ração hoje',
       value: `${fmt(activeRows.reduce((sum, row) => sum + row.dailyFeedKg, 0), 1)} kg`,
       tone: '#0ea5e9',
     },

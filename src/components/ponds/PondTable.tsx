@@ -1,13 +1,12 @@
 import type { Pond } from '../../types';
+import { getPondTypeLabel } from '../../lib/pondLabels';
+import { formatAreaHa } from '../../lib/format';
 
 const STATUS_COLORS: Record<string, string> = {
   VAZIO: '#94a3b8', PREPARANDO: '#7dd3fc', POVOADO: '#38bdf8', DESPESCANDO: '#0ea5e9', INATIVO: '#cbd5e1',
 };
 const STATUS_LABELS: Record<string, string> = {
   VAZIO: 'Vazio', PREPARANDO: 'Preparando', POVOADO: 'Povoado', DESPESCANDO: 'Despescando', INATIVO: 'Inativo',
-};
-const TYPE_LABELS: Record<string, string> = {
-  PRE_BERCARIO: 'Pré-berçário', BERCARIO: 'Berçário', ENGORDA: 'Engorda', REPRODUTOR: 'Reprodutor',
 };
 
 interface Props {
@@ -33,8 +32,8 @@ export function PondTable({ ponds, onEdit }: Props) {
             <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
               <td style={{ padding: '10px 12px', color: 'var(--text-primary)', fontFamily: 'monospace', fontWeight: 600 }}>{p.code}</td>
               <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{p.name}</td>
-              <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{TYPE_LABELS[p.type] ?? p.type}</td>
-              <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{p.areaHa} ha</td>
+              <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{getPondTypeLabel(p.type)}</td>
+              <td style={{ padding: '10px 12px', color: 'var(--text-secondary)' }}>{formatAreaHa(p.areaHa)} ha</td>
               <td style={{ padding: '10px 12px' }}>
                 <span style={{ backgroundColor: 'var(--bg-elevated)', color: STATUS_COLORS[p.status], border: `1px solid ${STATUS_COLORS[p.status]}`, borderRadius: 12, padding: '2px 10px', fontSize: 11 }}>
                   {STATUS_LABELS[p.status] ?? p.status}

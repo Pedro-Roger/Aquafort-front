@@ -20,24 +20,14 @@ import {
 } from '../components/ui/surfaces';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PondStatus, PondType, type Pond } from '../types';
+import { getPondTypeLabel, getPondTypeShortLabel } from '../lib/pondLabels';
+import { formatAreaHa } from '../lib/format';
 
 function fmt(value: number, digits = 0) {
   return value.toLocaleString('pt-BR', {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   });
-}
-
-function typeLabel(type: PondType) {
-  if (type === PondType.PRE_BERCARIO) return 'BRÇ';
-  if (type === PondType.BERCARIO) return 'PC';
-  return 'VE';
-}
-
-function longTypeLabel(type: PondType) {
-  if (type === PondType.PRE_BERCARIO) return 'Berçário';
-  if (type === PondType.BERCARIO) return 'Pré-cria';
-  return 'Viveiro de engorda';
 }
 
 const DRAG_MIME = 'application/x-aquafort-pond-id';
@@ -57,8 +47,8 @@ export function TanquesPage() {
       const items = ponds.filter((pond) => pond.type === type);
       return {
         type,
-        label: typeLabel(type),
-        title: longTypeLabel(type),
+        label: getPondTypeShortLabel(type),
+        title: getPondTypeLabel(type),
         items,
         active: items.filter((pond) => pond.status === PondStatus.POVOADO || pond.status === PondStatus.DESPESCANDO).length,
       };
@@ -117,7 +107,7 @@ export function TanquesPage() {
       updatePond.mutate(
         { id: pond.id, data: { type } },
         {
-          onSuccess: () => setFeedback({ text: `${pond.code} movido para ${longTypeLabel(type)}.`, tone: 'ok' }),
+          onSuccess: () => setFeedback({ text: `${pond.code} movido para ${getPondTypeLabel(type)}.`, tone: 'ok' }),
           onError: () => setFeedback({ text: `Não foi possível mover ${pond.code}.`, tone: 'error' }),
         },
       );
@@ -215,7 +205,7 @@ export function TanquesPage() {
                           </div>
                           <div style={{ textAlign: 'right', color: 'var(--text-secondary)', fontSize: 12 }}>
                             <div>{pond.status}</div>
-                            <div>{pond.areaHa} ha</div>
+                            <div>{formatAreaHa(pond.areaHa)} ha</div>
                           </div>
                         </div>
                       </div>

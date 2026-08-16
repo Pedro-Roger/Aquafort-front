@@ -1,4 +1,5 @@
 import { PondType } from '../types';
+import { POND_TYPE_LABELS, POND_TYPE_SHORT_LABELS } from '../lib/pondLabels';
 
 export type TankGroupKind = 'PRE_BERCARIO' | 'BERCARIO' | 'ENGORDA';
 
@@ -33,21 +34,19 @@ export interface GeneratedGroup {
 }
 
 export const DEFAULT_TANK_CONFIGS: TankGroupConfig[] = [
-  { kind: 'PRE_BERCARIO', label: 'Berçário', shortLabel: 'BRÇ', count: 4 },
-  { kind: 'BERCARIO', label: 'Pré-cria', shortLabel: 'PC', count: 4 },
-  { kind: 'ENGORDA', label: 'Viveiro de engorda', shortLabel: 'VE', count: 9 },
+  { kind: 'PRE_BERCARIO', label: POND_TYPE_LABELS.PRE_BERCARIO, shortLabel: POND_TYPE_SHORT_LABELS.PRE_BERCARIO, count: 4 },
+  { kind: 'BERCARIO', label: POND_TYPE_LABELS.BERCARIO, shortLabel: POND_TYPE_SHORT_LABELS.BERCARIO, count: 4 },
+  { kind: 'ENGORDA', label: POND_TYPE_LABELS.ENGORDA, shortLabel: POND_TYPE_SHORT_LABELS.ENGORDA, count: 9 },
 ];
 
 function prefixForKind(kind: TankGroupKind) {
-  if (kind === 'PRE_BERCARIO') return 'BRÇ';
-  if (kind === 'BERCARIO') return 'PC';
-  return 'VE';
+  return POND_TYPE_SHORT_LABELS[kind];
 }
 
 export function getPondTypeLabel(kind: TankGroupKind) {
-  if (kind === 'PRE_BERCARIO') return 'Pré-berçário';
-  if (kind === 'BERCARIO') return 'Pré-cria';
-  return 'Viveiro de engorda';
+  if (kind === 'PRE_BERCARIO') return POND_TYPE_LABELS.PRE_BERCARIO;
+  if (kind === 'BERCARIO') return POND_TYPE_LABELS.BERCARIO;
+  return POND_TYPE_LABELS.ENGORDA;
 }
 
 export function getPondType(kind: TankGroupKind): PondType {

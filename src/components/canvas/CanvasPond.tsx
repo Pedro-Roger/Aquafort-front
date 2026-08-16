@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { CanvasAerator } from './CanvasAerator';
 import type { Aerator, PondWithCanvas } from '../../types';
+import { formatAreaHa } from '../../lib/format';
 
 const STATUS_BG: Record<string, string> = {
   VAZIO: '#ffffff',
@@ -142,7 +143,7 @@ export function CanvasPond({ pond, scale, isSelected, onClick, onMove, onResize,
         fontFamily="monospace"
         style={{ pointerEvents: 'none', userSelect: 'none' }}
       >
-        {pond.areaHa}ha
+        {formatAreaHa(pond.areaHa)}ha
       </text>
       {activeCycle?.larvaeLotCode && (
         <>

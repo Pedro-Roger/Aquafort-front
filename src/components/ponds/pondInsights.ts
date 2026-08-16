@@ -1,4 +1,4 @@
-import type { Biometric, FeedingRecord, PondStatus, PondType } from '../../types'
+import type { Biometric, FeedingRecord, PondStatus } from '../../types'
 
 const MS_PER_DAY = 86_400_000
 
@@ -23,12 +23,9 @@ export const STATUS_META: Record<PondStatus, { label: string; accent: string; su
   INATIVO: { label: 'Inativo', accent: '#64748b', surface: 'rgba(100, 116, 139, 0.14)' },
 }
 
-export const TYPE_LABELS: Record<PondType, string> = {
-  PRE_BERCARIO: 'Pre-bercario',
-  BERCARIO: 'Bercario',
-  ENGORDA: 'Engorda',
-  REPRODUTOR: 'Reprodutor',
-}
+// TYPE_LABELS foi removido daqui — havia 5 mapas enum -> label espalhados
+// pelo código (dois com texto errado). Fonte única agora é
+// `POND_TYPE_LABELS` / `getPondTypeLabel` em `src/lib/pondLabels.ts`.
 
 export function buildBiometricFeedTimeline({
   biometrics,

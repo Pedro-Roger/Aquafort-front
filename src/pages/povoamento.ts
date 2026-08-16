@@ -28,12 +28,6 @@ export interface PovoamentoCalculation {
   totalLarvae: number;
 }
 
-export const PovoamentoTankTypeLabels: Record<Exclude<PondType, 'REPRODUTOR'>, string> = {
-  PRE_BERCARIO: 'BRÇ',
-  BERCARIO: 'PC',
-  ENGORDA: 'VE',
-};
-
 export function getAllocationSummary(rows: AllocationRow[], totalQuantity: number): AllocationSummary {
   const allocated = rows.reduce((sum, row) => sum + Number(row.quantity || 0), 0);
   return {

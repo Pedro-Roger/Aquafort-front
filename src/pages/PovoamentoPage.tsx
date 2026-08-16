@@ -33,11 +33,11 @@ import {
   calculateStageDay,
   getAllocationSummary,
   getCyclePhaseForPondType,
-  PovoamentoTankTypeLabels,
   sumOriginQuantities,
   validateAllocationRows,
   type AllocationRow,
 } from './povoamento';
+import { getPondTypeLabel, getPondTypeShortLabel } from '../lib/pondLabels';
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -273,8 +273,8 @@ export function PovoamentoPage() {
 
   const tankCards = targetPondTypesForMode(mode).map((type) => ({
     type,
-    label: PovoamentoTankTypeLabels[type],
-    title: type === PondType.PRE_BERCARIO ? 'Pré-berçário' : type === PondType.BERCARIO ? 'Berçário' : 'Engorda',
+    label: getPondTypeShortLabel(type),
+    title: getPondTypeLabel(type),
     ponds: targetPonds.filter((pond) => pond.type === type),
   }));
 

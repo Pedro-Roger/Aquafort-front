@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useCreatePond } from '../../hooks/usePonds';
 import type { PondType } from '../../types';
-import { TYPE_LABELS } from './pondInsights';
+import { POND_TYPE_LABELS, pondCodeTypeMismatch } from '../../lib/pondLabels';
+import { formatAreaHa } from '../../lib/format';
 
 interface Props {
   open: boolean;
@@ -11,7 +12,7 @@ interface Props {
 const TYPE_OPTIONS: Array<{ value: PondType; hint: string }> = [
   { value: 'ENGORDA', hint: 'Viveiro de produção principal' },
   { value: 'BERCARIO', hint: 'Fase inicial de crescimento' },
-  { value: 'PRE_BERCARIO', hint: 'Recepcao e adaptacao' },
+  { value: 'PRE_BERCARIO', hint: 'Recepção e adaptação' },
   { value: 'REPRODUTOR', hint: 'Matriz e manejo reprodutivo' },
 ];
 
@@ -27,6 +28,7 @@ export function PondFormModal({ open, onClose }: Props) {
 
   const normalizedCode = form.code.trim().toUpperCase();
   const suggestedName = form.name.trim() || (normalizedCode ? `Viveiro ${normalizedCode}` : 'Novo viveiro');
+  const codeTypeWarning = normalizedCode ? pondCodeTypeMismatch(normalizedCode, form.type) : null;
 
   if (!open) return null;
 
@@ -34,7 +36,13 @@ export function PondFormModal({ open, onClose }: Props) {
     e.preventDefault();
     setError(null);
     if (!normalizedCode || !form.areaHa) {
-      setError('Codigo e area sao obrigatorios.');
+      setError('Código e área são obrigatórios.');
+      return;
+    }
+
+    const mismatch = pondCodeTypeMismatch(normalizedCode, form.type);
+    if (mismatch) {
+      setError(mismatch);
       return;
     }
 
@@ -81,15 +89,11 @@ export function PondFormModal({ open, onClose }: Props) {
       >
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.05fr) minmax(320px, 0.95fr)' }}>
           <div style={{ padding: 30, color: '#f8fafc' }}>
-            <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.68 }}>Cadastro simples</div>
-            <h2 style={{ margin: '10px 0 0', fontSize: 34, lineHeight: 1.05, letterSpacing: '-0.05em' }}>Criar viveiro novo em menos de 1 minuto.</h2>
-            <p style={{ marginTop: 12, color: 'var(--text-muted)', maxWidth: 420 }}>
-              Fluxo reduzido para o operacional: codigo, area e tipo. O nome pode nascer automatico e depois voce ajusta no painel.
-            </p>
+            <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.12em', opacity: 0.68 }}>Cadastro de viveiro</div>
 
             <div
               style={{
-                marginTop: 26,
+                marginTop: 16,
                 borderRadius: 24,
                 padding: 20,
                 background: 'rgba(255,255,255,0.08)',
@@ -100,24 +104,40 @@ export function PondFormModal({ open, onClose }: Props) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                 <div>
                   <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Prévia do viveiro</div>
-                  <div style={{ marginTop: 10, fontSize: 24, fontWeight: 800 }}>{normalizedCode || 'VE-101'}</div>
+                  <div style={{ marginTop: 10, fontSize: 24, fontWeight: 800 }}>{normalizedCode || '—'}</div>
                   <div style={{ marginTop: 4, color: 'var(--text-muted)' }}>{suggestedName}</div>
                 </div>
                 <div style={{ padding: '7px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.12)', fontSize: 12, fontWeight: 700 }}>
-                  {TYPE_LABELS[form.type]}
+                  {POND_TYPE_LABELS[form.type]}
                 </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginTop: 18 }}>
                 <div style={{ borderRadius: 16, background: 'rgba(255,255,255,0.08)', padding: '12px 14px' }}>
-                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.68 }}>Area produtiva</div>
-                  <div style={{ marginTop: 6, fontSize: 18, fontWeight: 700 }}>{form.areaHa ? `${form.areaHa} ha` : '-'}</div>
+                  <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.68 }}>Área produtiva</div>
+                  <div style={{ marginTop: 6, fontSize: 18, fontWeight: 700 }}>{form.areaHa ? `${formatAreaHa(form.areaHa)} ha` : '-'}</div>
                 </div>
                 <div style={{ borderRadius: 16, background: 'rgba(255,255,255,0.08)', padding: '12px 14px' }}>
                   <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.68 }}>Status inicial</div>
                   <div style={{ marginTop: 6, fontSize: 18, fontWeight: 700 }}>Vazio</div>
                 </div>
               </div>
+
+              {codeTypeWarning && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    borderRadius: 14,
+                    padding: '10px 12px',
+                    background: 'rgba(248, 113, 113, 0.14)',
+                    border: '1px solid rgba(248, 113, 113, 0.3)',
+                    color: '#fecaca',
+                    fontSize: 12,
+                  }}
+                >
+                  {codeTypeWarning}
+                </div>
+              )}
             </div>
           </div>
 
@@ -125,29 +145,29 @@ export function PondFormModal({ open, onClose }: Props) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
               <div>
                 <div style={{ color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Novo viveiro</div>
-                <div style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: 24, marginTop: 4 }}>Dados minimos</div>
+                <div style={{ color: 'var(--text-primary)', fontWeight: 800, fontSize: 24, marginTop: 4 }}>Dados mínimos</div>
               </div>
               <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 24 }}>×</button>
             </div>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div>
-                <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Codigo *</div>
-                <input style={inputStyle} value={form.code} onChange={(e) => setForm((current) => ({ ...current, code: e.target.value }))} placeholder="VE-201" />
+                <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Código *</div>
+                <input style={inputStyle} value={form.code} onChange={(e) => setForm((current) => ({ ...current, code: e.target.value }))} placeholder="VE231" />
               </div>
 
               <div>
-                <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Nome de exibicao</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Nome de exibição</div>
                 <input
                   style={inputStyle}
                   value={form.name}
                   onChange={(e) => setForm((current) => ({ ...current, name: e.target.value }))}
-                  placeholder="Opcional. Se vazio, usamos o codigo."
+                  placeholder="Opcional. Se vazio, usamos o código."
                 />
               </div>
 
               <div>
-                <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Area (ha) *</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 6 }}>Área (ha) *</div>
                 <input
                   style={inputStyle}
                   type="number"
@@ -177,7 +197,7 @@ export function PondFormModal({ open, onClose }: Props) {
                           color: 'var(--text-primary)',
                         }}
                       >
-                        <div style={{ fontWeight: 700, fontSize: 14 }}>{TYPE_LABELS[option.value]}</div>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{POND_TYPE_LABELS[option.value]}</div>
                         <div style={{ marginTop: 4, color: 'var(--text-muted)', fontSize: 12 }}>{option.hint}</div>
                       </button>
                     );

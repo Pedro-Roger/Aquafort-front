@@ -44,12 +44,12 @@ export function PondPerformancePanel({ cycleId, stockDate }: Props) {
 
   const summaryCards = [
     {
-      label: 'Peso medio',
+      label: 'Peso médio',
       value: kpis?.pesoMedioG !== null && kpis?.pesoMedioG !== undefined ? `${fmt(kpis.pesoMedioG, 2)} g` : '-',
       tone: '#0284c7',
     },
     {
-      label: 'Racao acumulada',
+      label: 'Ração acumulada',
       value: `${fmt(kpis?.racaoConsumidaKg ?? 0, 1)} kg`,
       tone: '#38bdf8',
     },
@@ -59,7 +59,7 @@ export function PondPerformancePanel({ cycleId, stockDate }: Props) {
       tone: '#1d4ed8',
     },
     {
-      label: 'Sobrevivencia',
+      label: 'Sobrevivência',
       value: kpis?.survivalPct !== null && kpis?.survivalPct !== undefined ? `${fmt(kpis.survivalPct, 1)}%` : '-',
       tone: '#0ea5e9',
     },
@@ -68,8 +68,8 @@ export function PondPerformancePanel({ cycleId, stockDate }: Props) {
   const insight = lastPoint
     ? lastPoint.growthDeltaG && lastPoint.growthDeltaG > 0
       ? `${fmt(lastPoint.growthDeltaG, 2)} g de ganho com ${fmt(lastPoint.feedWindowKg, 1)} kg ofertados na janela.`
-      : `${fmt(lastPoint.feedWindowKg, 1)} kg ofertados ate ultima biometria, sem delta suficiente para comparar ganho.`
-    : 'Ainda nao ha biometria suficiente para cruzar crescimento com oferta de racao.'
+      : `${fmt(lastPoint.feedWindowKg, 1)} kg ofertados até última biometria, sem delta suficiente para comparar ganho.`
+    : 'Ainda não há biometria suficiente para cruzar crescimento com oferta de ração.'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -108,12 +108,12 @@ export function PondPerformancePanel({ cycleId, stockDate }: Props) {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
           <div>
-            <div style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 14 }}>Biometria x oferta de racao</div>
+            <div style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 14 }}>Biometria x oferta de ração</div>
             <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>Janela por biometria, usando os dias do cultivo como eixo.</div>
           </div>
           {lastPoint && (
             <div style={{ color: 'var(--text-secondary)', fontSize: 12, textAlign: 'right' }}>
-              <div>Ultima leitura</div>
+              <div>Última leitura</div>
               <div style={{ fontWeight: 700 }}>D{lastPoint.cultivationDay}</div>
             </div>
           )}
@@ -140,8 +140,8 @@ export function PondPerformancePanel({ cycleId, stockDate }: Props) {
                 }}
                 formatter={(value: any, name: any) => {
                   const numericValue = typeof value === 'number' ? value : Number(value ?? 0)
-                  if (name === 'feedWindowKg') return [`${fmt(numericValue, 1)} kg`, 'Racao na janela']
-                  if (name === 'averageWeightG') return [`${fmt(numericValue, 2)} g`, 'Peso medio']
+                  if (name === 'feedWindowKg') return [`${fmt(numericValue, 1)} kg`, 'Ração na janela']
+                  if (name === 'averageWeightG') return [`${fmt(numericValue, 2)} g`, 'Peso médio']
                   return [numericValue, String(name ?? '')]
                 }}
                 labelFormatter={(label) => `Biometria ${label}`}

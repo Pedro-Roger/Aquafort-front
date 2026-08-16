@@ -4,11 +4,9 @@ import { BiometricSection } from './BiometricSection';
 import { PondPerformancePanel } from './PondPerformancePanel';
 import { useUpdatePond } from '../../hooks/usePonds';
 import { useUpdateGrowthTarget } from '../../hooks/useCycles';
-import type { Aerator, PondWithCanvas } from '../../types';
+import type { Aerator, PondType, PondWithCanvas } from '../../types';
+import { POND_TYPE_LABELS, pondCodeTypeMismatch } from '../../lib/pondLabels';
 
-const TYPE_LABELS: Record<string, string> = {
-  PRE_BERCARIO: 'Pré-berçário', BERCARIO: 'Berçário', ENGORDA: 'Engorda', REPRODUTOR: 'Reprodutor',
-};
 const STATUS_LABELS: Record<string, string> = {
   VAZIO: 'Vazio', PREPARANDO: 'Preparando', POVOADO: 'Povoado', DESPESCANDO: 'Despescando', INATIVO: 'Inativo',
 };
@@ -25,11 +23,13 @@ export function PondDrawer({ pond, onClose, onAeratorsChange }: Props) {
   const [editedPond, setEditedPond] = useState<Partial<PondWithCanvas>>({});
   const [growthTarget, setGrowthTarget] = useState({ initialWeightG: '', targetWeightG: '', weeklyGrowthGTarget: '' });
   const [isDirty, setIsDirty] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!pond) return;
     setEditedPond({});
     setIsDirty(false);
+    setSaveError(null);
     const cycle = pond.cycles?.[0];
     setGrowthTarget({
       initialWeightG: cycle?.initialWeightG?.toString() ?? '',
@@ -51,6 +51,16 @@ export function PondDrawer({ pond, onClose, onAeratorsChange }: Props) {
 
   const savePond = async () => {
     if (!isDirty) return;
+
+    const code = editedPond.code ?? pond.code;
+    const type = ((editedPond as Partial<PondWithCanvas>).type ?? pond.type) as PondType;
+    const mismatch = pondCodeTypeMismatch(code, type);
+    if (mismatch) {
+      setSaveError(mismatch);
+      return;
+    }
+
+    setSaveError(null);
     await updatePond.mutateAsync({ id: pond.id, data: editedPond });
     setIsDirty(false);
   };
@@ -134,8 +144,11 @@ export function PondDrawer({ pond, onClose, onAeratorsChange }: Props) {
         {fieldEl('Tipo',
           <select style={{ ...inputStyle }} value={(editedPond as any).type ?? pond.type}
             onChange={e => { setEditedPond(p => ({ ...p, type: e.target.value as any })); setIsDirty(true); }}>
-            {Object.entries(TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            {Object.entries(POND_TYPE_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
+        )}
+        {saveError && (
+          <div style={{ color: 'var(--danger)', fontSize: 12, marginTop: -6, marginBottom: 12 }}>{saveError}</div>
         )}
         {fieldEl('Status',
           <select style={{ ...inputStyle }} value={(editedPond as any).status ?? pond.status}

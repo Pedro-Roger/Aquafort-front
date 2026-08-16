@@ -29,6 +29,15 @@ vi.mock('./hooks/useAuth', () => ({
   }),
 }));
 
+vi.mock('./hooks/useCycles', () => ({
+  useCycles: () => ({ data: [], isLoading: false }),
+}));
+
+vi.mock('./hooks/useHarvestProjection', () => ({
+  useHarvestProjection: () => ({ data: undefined, isLoading: false }),
+  useRecomputeHarvestProjection: () => ({ mutateAsync: vi.fn(), isPending: false }),
+}));
+
 describe('App routing', () => {
   it('opens the transfer page at /transferencia', () => {
     render(
@@ -61,5 +70,37 @@ describe('App routing', () => {
 
     expect(screen.getByText('Registrar transferência')).toBeInTheDocument();
     expect(screen.getByText('Movimente lotes entre viveiros sem cair no povoamento.')).toBeInTheDocument();
+  });
+
+  it('keeps /despesca routed and functional even though it is hidden from the sidebar', () => {
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AuthContext.Provider
+          value={{
+            token: 't',
+            refreshToken: 'r',
+            user: {
+              id: 'u1',
+              name: 'Op',
+              email: 'op@aq.com',
+              role: 'OPERADOR',
+              createdAt: '2026-01-01',
+            },
+            isAuthenticated: true,
+            isAdmin: false,
+            isTecnico: false,
+            isOperador: true,
+            setAuth: () => {},
+            clearAuth: () => {},
+          }}
+        >
+          <MemoryRouter initialEntries={['/despesca']}>
+            <App />
+          </MemoryRouter>
+        </AuthContext.Provider>
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByText('Painel de despesca')).toBeInTheDocument();
   });
 });
