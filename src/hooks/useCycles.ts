@@ -52,6 +52,8 @@ interface CreateCycleDto {
   larvaeLotCode?: string;
   /** Genetic line of the batch, as the hatchery identifies it. */
   geneticCode?: string;
+  /** Generation of the genetic line (RF-18/RN-11) — independent field from geneticCode. */
+  geneticGeneration?: number;
   larvaeStage?: string;
   /** Day of stage at stocking time (day 1 = arrival). */
   stageDay?: number;
@@ -77,6 +79,7 @@ export function useCreateCycle() {
         ...(dto.larvaeLotCode ? { larvaeLotCode: dto.larvaeLotCode } : {}),
         ...(dto.larvaeStage ? { larvaeStage: dto.larvaeStage } : {}),
         ...(dto.geneticCode ? { geneticCode: dto.geneticCode } : {}),
+        ...(dto.geneticGeneration ? { geneticGeneration: dto.geneticGeneration } : {}),
         ...(dto.stageDay ? { stageDay: dto.stageDay } : {}),
         ...(dto.transferDate ? { transferDate: new Date(dto.transferDate).toISOString() } : {}),
         ...(dto.plPerGram ? { plPerGram: dto.plPerGram } : {}),

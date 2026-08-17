@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatAreaHa, formatNumberPtBr } from './format';
+import { formatAreaHa, formatGeneticCode, formatNumberPtBr } from './format';
 
 describe('formatAreaHa', () => {
   it('uses a comma as the decimal separator (pt-BR), not a dot', () => {
@@ -33,5 +33,29 @@ describe('formatNumberPtBr', () => {
   it('respects custom min/max digit options', () => {
     expect(formatNumberPtBr(2, { minDigits: 0, maxDigits: 0 })).toBe('2');
     expect(formatNumberPtBr(2.5, { minDigits: 1, maxDigits: 1 })).toBe('2,5');
+  });
+});
+
+describe('formatGeneticCode', () => {
+  it('combines code and generation (RF-18): "{código} · geração {geração}"', () => {
+    expect(formatGeneticCode('APQS', 4)).toBe('APQS · geração 4');
+  });
+
+  it('falls back to just the code when generation is null', () => {
+    expect(formatGeneticCode('APQS', null)).toBe('APQS');
+  });
+
+  it('falls back to just the code when generation is undefined', () => {
+    expect(formatGeneticCode('APQS', undefined)).toBe('APQS');
+  });
+
+  it('returns an empty string when neither code nor generation is set', () => {
+    expect(formatGeneticCode(null, null)).toBe('');
+    expect(formatGeneticCode(undefined, undefined)).toBe('');
+  });
+
+  it('still shows the generation when the code is empty but generation is set', () => {
+    expect(formatGeneticCode('', 4)).toBe('geração 4');
+    expect(formatGeneticCode(null, 4)).toBe('geração 4');
   });
 });

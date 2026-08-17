@@ -226,6 +226,127 @@ describe('PovoamentoPage', () => {
     expect(mutateAsyncMock).not.toHaveBeenCalled()
   })
 
+  it('shows the optional Geração field alongside Código genético, and saves without it (RF-18)', async () => {
+    render(
+      <MemoryRouter>
+        <PovoamentoPage />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByLabelText('Geração opcional')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('B-02'))
+    fireEvent.click(screen.getByRole('button', { name: /Criar povoamento/ }))
+    fireEvent.change(screen.getByLabelText('Quantidade'), { target: { value: '5000' } })
+    fireEvent.change(screen.getByLabelText('Fornecedor'), { target: { value: 'Lavifort' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar povoamento' }))
+
+    await waitFor(() => expect(mutateAsyncMock).toHaveBeenCalledTimes(1))
+    const payload = mutateAsyncMock.mock.calls[0][0]
+    expect(payload.geneticGeneration).toBeUndefined()
+  })
+
+  it('marks the Geração field min=1 (backend requires @Min(1)) and blocks save with a visible error when 0 is typed, instead of silently dropping it', () => {
+    render(
+      <MemoryRouter>
+        <PovoamentoPage />
+      </MemoryRouter>,
+    )
+
+    const geracaoInput = screen.getByLabelText('Geração opcional') as HTMLInputElement
+    expect(geracaoInput).toHaveAttribute('min', '1')
+
+    fireEvent.change(screen.getByLabelText('Fornecedor'), { target: { value: 'Lavifort' } })
+    fireEvent.change(geracaoInput, { target: { value: '0' } })
+    fireEvent.click(screen.getByText('B-02'))
+    fireEvent.click(screen.getByRole('button', { name: /Criar povoamento/ }))
+    fireEvent.change(screen.getByLabelText('Quantidade'), { target: { value: '5000' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar povoamento' }))
+
+    expect(screen.getByText('Geração deve ser um número inteiro maior ou igual a 1.')).toBeInTheDocument()
+    expect(mutateAsyncMock).not.toHaveBeenCalled()
+  })
+
+  it('sends the numeric geneticGeneration value in the create-cycle payload when filled (RF-18)', async () => {
+    render(
+      <MemoryRouter>
+        <PovoamentoPage />
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(screen.getByLabelText('Código genético'), { target: { value: 'APQS' } })
+    fireEvent.change(screen.getByLabelText('Geração opcional'), { target: { value: '4' } })
+    fireEvent.change(screen.getByLabelText('Fornecedor'), { target: { value: 'Lavifort' } })
+    fireEvent.click(screen.getByText('B-02'))
+    fireEvent.click(screen.getByRole('button', { name: /Criar povoamento/ }))
+    fireEvent.change(screen.getByLabelText('Quantidade'), { target: { value: '5000' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar povoamento' }))
+
+    await waitFor(() => expect(mutateAsyncMock).toHaveBeenCalledTimes(1))
+    const payload = mutateAsyncMock.mock.calls[0][0]
+    expect(payload.geneticCode).toBe('APQS')
+    expect(payload.geneticGeneration).toBe(4)
+  })
+
+  it('omits geneticGeneration (like geneticCode) in transfer-mode cycles', async () => {
+    useCyclesMock.mockReturnValue({
+      data: [
+        { id: 'c1', pondId: 'p2', pond: { code: 'B-02' }, plCount: 100000, supplier: 'Lavifort', phase: 'BERCARIO', stockDate: '2026-07-01' },
+      ],
+      isLoading: false,
+    })
+
+    render(
+      <MemoryRouter>
+        <PovoamentoPage />
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Viveiro' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Transferência de berçário' }))
+
+    expect(screen.queryByLabelText('Geração opcional')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('V-01'))
+    fireEvent.click(screen.getByRole('button', { name: /Criar povoamento/ }))
+    fireEvent.click(screen.getByRole('button', { name: /B-02/ }))
+    fireEvent.change(screen.getByLabelText(/Quantidade —/), { target: { value: '5000' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar povoamento' }))
+
+    await waitFor(() => expect(mutateAsyncMock).toHaveBeenCalledTimes(1))
+    expect(mutateAsyncMock.mock.calls[0][0].geneticGeneration).toBeUndefined()
+  })
+
+  it('shows "código · geração N" in the recent povoamentos card when generation is filled, and falls back to the code alone otherwise', () => {
+    useCyclesMock.mockImplementation((filter?: { status?: string; phase?: string }) => {
+      if (filter?.phase === 'BERCARIO') return { data: [], isLoading: false }
+      return {
+        data: [
+          {
+            id: 'c1',
+            pondId: 'p2',
+            pond: { code: 'B-02', type: 'BERCARIO' },
+            plCount: 100000,
+            supplier: 'Lavifort',
+            geneticCode: 'APQS',
+            geneticGeneration: 4,
+            phase: 'BERCARIO',
+            stockDate: '2026-08-01',
+          },
+        ],
+        isLoading: false,
+      }
+    })
+
+    render(
+      <MemoryRouter>
+        <PovoamentoPage />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText(/APQS · geração 4 · Lavifort · 100\.000 PL/)).toBeInTheDocument()
+  })
+
   it('filters the recent povoamentos card by the pond type of the current mode', () => {
     useCyclesMock.mockImplementation((filter?: { status?: string; phase?: string }) => {
       if (filter?.phase === 'BERCARIO') return { data: [], isLoading: false }

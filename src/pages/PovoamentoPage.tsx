@@ -43,6 +43,7 @@ import {
 } from './povoamento';
 import { getPondTypeLabel, getPondTypeShortLabel } from '../lib/pondLabels';
 import { plPerGramToAverageWeightG } from '../lib/plPerGram';
+import { formatGeneticCode } from '../lib/format';
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -69,6 +70,8 @@ function targetPondTypesForMode(mode: StockingMode): readonly StockingPondType[]
 
 type PovoamentoForm = {
   geneticCode: string;
+  /** RF-18/RN-11: independent field from geneticCode, never merged into its free text. */
+  geneticGeneration: string;
   supplier: string;
   lotCode: string;
   density: string;
@@ -103,6 +106,7 @@ export function PovoamentoPage() {
   const [selectedTankIds, setSelectedTankIds] = useState<Set<string>>(new Set());
   const [form, setForm] = useState<PovoamentoForm>({
     geneticCode: '',
+    geneticGeneration: '',
     supplier: '',
     lotCode: '',
     density: '',
@@ -151,6 +155,7 @@ export function PovoamentoPage() {
         pond: pond ? pondLabel(pond) : (cycle.pond?.code ?? cycle.pondId),
         quantity: cycle.plCount,
         geneticCode: cycle.geneticCode ?? '',
+        geneticGeneration: cycle.geneticGeneration ?? null,
         supplier: cycle.larvaeSupplier ?? cycle.supplier,
       };
     });
@@ -205,7 +210,7 @@ export function PovoamentoPage() {
     setViveiroSubMode(next);
     setAllocations([]);
     if (next === 'TRANSFERENCIA') {
-      setForm((current) => ({ ...current, supplier: '', geneticCode: '' }));
+      setForm((current) => ({ ...current, supplier: '', geneticCode: '', geneticGeneration: '' }));
     }
   }
 
@@ -234,6 +239,14 @@ export function PovoamentoPage() {
     }
     if (!form.supplier.trim() && !isTransferMode) {
       setError('Informe o fornecedor.');
+      return;
+    }
+    // RF-18/RN-11: geração é opcional, mas quando preenchida precisa ser >= 1
+    // (mesma regra do backend, @Min(1)). Sem essa checagem, digitar "0" faz o
+    // valor sumir silenciosamente do payload (checagem truthy em useCycles.ts)
+    // sem nenhum aviso ao operador.
+    if (!isTransferMode && form.geneticGeneration.trim() !== '' && Number(form.geneticGeneration) < 1) {
+      setError('Geração deve ser um número inteiro maior ou igual a 1.');
       return;
     }
 
@@ -267,6 +280,9 @@ export function PovoamentoPage() {
             initialPhase: getCyclePhaseForPondType(pond.type),
             larvaeSupplier: form.supplier.trim() || undefined,
             geneticCode: isTransferMode ? undefined : (form.geneticCode.trim() || undefined),
+            geneticGeneration: isTransferMode
+              ? undefined
+              : (form.geneticGeneration.trim() === '' ? undefined : Number(form.geneticGeneration)),
             larvaeLotCode: form.lotCode.trim() || undefined,
             larvaeStage: 'PL',
             stageDay: Number.isFinite(effectiveStageDay) && effectiveStageDay > 0 ? effectiveStageDay : undefined,
@@ -388,6 +404,15 @@ export function PovoamentoPage() {
                 value={form.geneticCode}
                 onChange={(e) => setForm((current) => ({ ...current, geneticCode: e.target.value }))}
                 placeholder="Linhagem informada pela larvicultura"
+              />
+              <Input
+                label="Geração opcional"
+                type="number"
+                min={1}
+                step="1"
+                placeholder="Ex: 4"
+                value={form.geneticGeneration}
+                onChange={(e) => setForm((current) => ({ ...current, geneticGeneration: e.target.value }))}
               />
               <Input label="Fornecedor" value={form.supplier} onChange={(e) => setForm((current) => ({ ...current, supplier: e.target.value }))} />
               <Input label="Lote / código" value={form.lotCode} onChange={(e) => setForm((current) => ({ ...current, lotCode: e.target.value }))} />
@@ -600,7 +625,7 @@ export function PovoamentoPage() {
                 <div key={`${item.pond}-${index}`} style={{ ...workspaceTile, padding: 12 }}>
                   <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{item.pond}</div>
                   <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
-                    {item.geneticCode || 'Sem código genético'} · {item.supplier} · {fmt(item.quantity, 0)} PL
+                    {formatGeneticCode(item.geneticCode, item.geneticGeneration) || 'Sem código genético'} · {item.supplier} · {fmt(item.quantity, 0)} PL
                   </div>
                 </div>
               )) : (

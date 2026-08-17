@@ -16,3 +16,19 @@ export function formatNumberPtBr(
 export function formatAreaHa(value: number | string | null | undefined): string {
   return formatNumberPtBr(value, { minDigits: 2, maxDigits: 4 });
 }
+
+/**
+ * Combina código genético e geração no formato definido em RF-18/RN-11
+ * (spec de Viveiros e Ciclos, "Ajustes — campo geração"): `"{código} · geração
+ * {geração}"` quando a geração está preenchida, ou só o código quando não
+ * está. `geneticGeneration` é campo independente de `geneticCode` — nunca
+ * concatenado no texto livre, só combinado na exibição.
+ */
+export function formatGeneticCode(
+  geneticCode: string | null | undefined,
+  geneticGeneration: number | null | undefined,
+): string {
+  const code = geneticCode?.trim() || '';
+  if (geneticGeneration === null || geneticGeneration === undefined) return code;
+  return code ? `${code} · geração ${geneticGeneration}` : `geração ${geneticGeneration}`;
+}
