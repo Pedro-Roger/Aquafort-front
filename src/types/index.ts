@@ -247,7 +247,8 @@ export interface Biometric {
   id: string;
   cycleId: string;
   measuredAt: string;
-  sampleCount: number;
+  /** RN-13/RF-16: nullable in the backend since 2026-08-17 — no biometry form collects it anymore. A persisted reading is never `undefined`, only `null`. */
+  sampleCount: number | null;
   averageWeightG: number;
   survivalRatePct?: number | null;
   estimatedBiomass?: number | null;

@@ -38,7 +38,6 @@ import {
   getCyclePhaseForPondType,
   sumOriginQuantities,
   validateAllocationRows,
-  validateTransferBiometry,
   type AllocationRow,
 } from './povoamento';
 import { getPondTypeLabel, getPondTypeShortLabel } from '../lib/pondLabels';
@@ -80,8 +79,6 @@ type PovoamentoForm = {
   stageDayOverride: string;
   transferDate: string;
   plPerGram: string;
-  /** RF-14: required alongside plPerGram in transfer mode — becomes sampleCount on the origin biometria. */
-  sampleCount: string;
   stockDate: string;
 };
 
@@ -115,7 +112,6 @@ export function PovoamentoPage() {
     stageDayOverride: '',
     transferDate: '',
     plPerGram: '',
-    sampleCount: '',
     stockDate: todayIsoDate(),
   });
   const [allocations, setAllocations] = useState<AllocationRowState[]>([]);
@@ -250,15 +246,6 @@ export function PovoamentoPage() {
       return;
     }
 
-    const sampleCount = Number(form.sampleCount || 0);
-    if (isTransferMode) {
-      const transferBiometryValidation = validateTransferBiometry(plPerGram, sampleCount);
-      if (!transferBiometryValidation.valid) {
-        setError(transferBiometryValidation.message);
-        return;
-      }
-    }
-
     try {
       // RF-13: plPerGram informed on a transfer is never dropped — it goes onto
       // the destination cycle (plPerGram below, same as direct stocking) and,
@@ -298,7 +285,6 @@ export function PovoamentoPage() {
               createBiometric.mutateAsync({
                 cycleId: originCycleId,
                 measuredAt: form.stockDate,
-                sampleCount,
                 averageWeightG: plPerGramToAverageWeightG(plPerGram),
                 responsibleId: user?.id,
               }),
@@ -315,7 +301,6 @@ export function PovoamentoPage() {
         stageDayOverride: '',
         transferDate: '',
         plPerGram: '',
-        sampleCount: '',
         stockDate: todayIsoDate(),
       }));
       setAllocations([]);
@@ -470,15 +455,6 @@ export function PovoamentoPage() {
                 placeholder="Pós-larvas por grama"
                 value={form.plPerGram}
                 onChange={(e) => setForm((current) => ({ ...current, plPerGram: e.target.value }))}
-              />
-              <Input
-                label={plPerGram > 0 ? 'Amostras (obrigatório com PL/grama)' : 'Amostras opcional'}
-                type="number"
-                min={0}
-                step="1"
-                placeholder="Ex: 15"
-                value={form.sampleCount}
-                onChange={(e) => setForm((current) => ({ ...current, sampleCount: e.target.value }))}
               />
             </div>
           )}

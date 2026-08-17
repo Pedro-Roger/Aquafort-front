@@ -139,19 +139,6 @@ export function calculateOriginBalance(plCount: number, allocatedElsewhere: numb
   return { remaining, isOverdrawn: requested > remaining };
 }
 
-/**
- * RF-14: the transfer form creates a real `biometrics` row (same DTO/contract
- * as the weekly launch), so it can't relax validation just because it's
- * triggered from a different screen — sampleCount is required whenever
- * plPerGram was informed for the transfer.
- */
-export function validateTransferBiometry(plPerGram: number, sampleCount: number): ValidationResult {
-  if (plPerGram > 0 && (!Number.isFinite(sampleCount) || sampleCount <= 0)) {
-    return { valid: false, message: 'Informe as amostras usadas para medir o PL/grama da transferência.' };
-  }
-  return { valid: true, message: null };
-}
-
 export function getCyclePhaseForPondType(type: PondType): CyclePhase {
   if (type === 'PRE_BERCARIO') return 'PREPARACAO';
   if (type === 'BERCARIO') return 'BERCARIO';

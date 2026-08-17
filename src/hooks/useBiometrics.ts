@@ -13,9 +13,28 @@ export function useBiometrics(cycleId: string | null) {
   });
 }
 
+/**
+ * Dedicated create DTO, decoupled from the `Biometric` read shape — same
+ * pattern every other create hook in the project already follows (e.g.
+ * `CreateCycleDto` in useCycles.ts). `Biometric` is what the API returns for
+ * an already-persisted reading; the payload a form sends to create one is a
+ * different, narrower shape (no `id`/`createdAt`/`responsible`, and RF-16
+ * dropped `sampleCount` from every form that used to send it).
+ */
+export interface CreateBiometricDto {
+  cycleId: string;
+  measuredAt: string;
+  averageWeightG: number;
+  /** RN-13/RF-16: optional — no biometry form collects it anymore. */
+  sampleCount?: number;
+  survivalRatePct?: number;
+  estimatedBiomass?: number;
+  responsibleId?: string;
+}
+
 export function useCreateBiometric() {
   const qc = useQueryClient();
-  return useMutation<Biometric, Error, Omit<Biometric, 'id' | 'createdAt'>>({
+  return useMutation<Biometric, Error, CreateBiometricDto>({
     mutationFn: async (dto) => {
       const { data } = await api.post('/v1/biometrics', dto);
       return data;

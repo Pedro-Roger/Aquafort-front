@@ -109,8 +109,8 @@ vi.mock('../pages/biometrias', async (importOriginal) => ({
     survivalPct: 57.07,
   }),
   getConsumptionPctForWeight: () => 1,
-  isBiometricFormValid: (values: { measuredAt: string; sampleCount: number; averageWeightG: number }) =>
-    Boolean(values.measuredAt && values.sampleCount && values.averageWeightG),
+  isBiometricFormValid: (values: { measuredAt: string; averageWeightG: number }) =>
+    Boolean(values.measuredAt && values.averageWeightG),
   buildBiometricPayload: (cycleId: string, values: Record<string, unknown>) => ({ cycleId, ...values }),
 }))
 
@@ -173,9 +173,9 @@ describe('BiometricsPage', () => {
       // Bug 1: the modal must read PL/g for a bercario pond, not grams.
       expect(await screen.findByLabelText('PL/grama')).toBeInTheDocument()
       expect(screen.queryByText('Nova leitura — B-02')).toBeInTheDocument()
+      // RF-16: "Amostras" is gone from the modal.
+      expect(screen.queryByLabelText('Amostras')).not.toBeInTheDocument()
 
-      const amostrasInputs = screen.getAllByLabelText('Amostras')
-      fireEvent.change(amostrasInputs[amostrasInputs.length - 1], { target: { value: '20' } })
       fireEvent.change(screen.getByLabelText('PL/grama'), { target: { value: '250' } })
       fireEvent.click(screen.getByText('Salvar leitura'))
 
@@ -185,6 +185,8 @@ describe('BiometricsPage', () => {
       expect(payload.cycleId).toBe('c2')
       // Bug 1: 250 PL/g must convert to avg_weight_g, not be persisted as 250 g.
       expect(payload.averageWeightG).toBeCloseTo(0.004, 6)
+      // RF-16: no field collects sampleCount anymore.
+      expect(payload).not.toHaveProperty('sampleCount')
     })
 
     it('keeps grams (no conversion) when the clicked pond is engorda, even if a bercario cycle is selected in the sidebar', async () => {
@@ -204,8 +206,6 @@ describe('BiometricsPage', () => {
       // of which cycle the dropdown above happens to be on.
       expect(screen.getByLabelText('Peso médio (g)')).toBeInTheDocument()
 
-      const amostrasInputs = screen.getAllByLabelText('Amostras')
-      fireEvent.change(amostrasInputs[amostrasInputs.length - 1], { target: { value: '10' } })
       fireEvent.change(screen.getByLabelText('Peso médio (g)'), { target: { value: '12.5' } })
       fireEvent.click(screen.getByText('Salvar leitura'))
 

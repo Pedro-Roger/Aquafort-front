@@ -19,7 +19,6 @@ interface BiometricsModalFormProps {
   disabledReason?: string | null;
   onSubmit: (data: {
     measuredAt: string;
-    sampleCount: number;
     averageWeightG: number;
     survivalRatePct?: number;
     estimatedBiomass?: number;
@@ -47,7 +46,6 @@ export function BiometricsModalForm({
 }: BiometricsModalFormProps) {
   const [form, setForm] = React.useState({
     measuredAt: todayIsoDate(),
-    sampleCount: '',
     weightInput: '',
     survivalRatePct: '',
     estimatedBiomass: '',
@@ -77,7 +75,7 @@ export function BiometricsModalForm({
   }
 
   const handleSave = () => {
-    if (!form.measuredAt || !form.sampleCount || !form.weightInput) return;
+    if (!form.measuredAt || !form.weightInput) return;
     const rawValue = Number(form.weightInput);
     // RF-11/RF-15: avg_weight_g is always the persisted source of truth —
     // PL/g goes through the RN-09 formula, direct grams are stored as typed.
@@ -87,7 +85,6 @@ export function BiometricsModalForm({
 
     onSubmit({
       measuredAt: form.measuredAt,
-      sampleCount: Number(form.sampleCount),
       averageWeightG,
       survivalRatePct: form.survivalRatePct ? Number(form.survivalRatePct) : undefined,
       estimatedBiomass: form.estimatedBiomass ? Number(form.estimatedBiomass) : undefined,
@@ -95,7 +92,6 @@ export function BiometricsModalForm({
 
     setForm({
       measuredAt: todayIsoDate(),
-      sampleCount: '',
       weightInput: '',
       survivalRatePct: '',
       estimatedBiomass: '',
@@ -124,13 +120,6 @@ export function BiometricsModalForm({
             type="date"
             value={form.measuredAt}
             onChange={(e) => setForm((current) => ({ ...current, measuredAt: e.target.value }))}
-          />
-          <Input
-            label="Amostras"
-            type="number"
-            value={form.sampleCount}
-            onChange={(e) => setForm((current) => ({ ...current, sampleCount: e.target.value }))}
-            placeholder="Ex: 15"
           />
           {isBercario && (
             <div role="group" aria-label="Unidade de entrada" style={{ display: 'flex', gap: 8 }}>
@@ -205,7 +194,7 @@ export function BiometricsModalForm({
           <Button
             loading={loading}
             onClick={handleSave}
-            disabled={!form.sampleCount || !form.weightInput || !!disabledReason}
+            disabled={!form.weightInput || !!disabledReason}
           >
             Salvar leitura
           </Button>

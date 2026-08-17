@@ -3,9 +3,43 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { BiometricsModalForm } from './BiometricsModalForm';
 
-function fillCommonFields(sampleCount: string) {
-  return userEvent.type(screen.getByLabelText('Amostras'), sampleCount);
-}
+describe('BiometricsModalForm — RF-16: "Amostras" field removed', () => {
+  it('does not render an "Amostras" input anywhere in the modal', () => {
+    render(
+      <BiometricsModalForm
+        open
+        onClose={vi.fn()}
+        pondCode="B-02"
+        isBercario
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByLabelText('Amostras')).not.toBeInTheDocument();
+  });
+
+  it('saves without requiring "Amostras" and never sends sampleCount in the payload', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(
+      <BiometricsModalForm
+        open
+        onClose={vi.fn()}
+        pondCode="B-02"
+        isBercario
+        onSubmit={onSubmit}
+      />,
+    );
+
+    await user.type(screen.getByLabelText('PL/grama'), '250');
+    await user.click(screen.getByText('Salvar leitura'));
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    const payload = onSubmit.mock.calls[0][0];
+    expect(payload).not.toHaveProperty('sampleCount');
+    expect(payload.averageWeightG).toBeCloseTo(0.004, 6);
+  });
+});
 
 describe('BiometricsModalForm — RF-10 (revisado)/RN-12: toggle PL/g ⇄ Peso médio (g)', () => {
   it('opens a bercario cycle with PL/g pre-selected by default', () => {
@@ -65,7 +99,6 @@ describe('BiometricsModalForm — RF-10 (revisado)/RN-12: toggle PL/g ⇄ Peso m
       />,
     );
 
-    await fillCommonFields('20');
     await user.type(screen.getByLabelText('PL/grama'), '250');
     await user.click(screen.getByText('Salvar leitura'));
 
@@ -87,7 +120,6 @@ describe('BiometricsModalForm — RF-10 (revisado)/RN-12: toggle PL/g ⇄ Peso m
       />,
     );
 
-    await fillCommonFields('20');
     await user.click(screen.getByRole('button', { name: 'Peso (g)' }));
     await user.type(screen.getByLabelText('Peso médio (g)'), '0.29');
     await user.click(screen.getByText('Salvar leitura'));
@@ -127,7 +159,6 @@ describe('BiometricsModalForm — RF-10 (revisado)/RN-12: toggle PL/g ⇄ Peso m
       />,
     );
 
-    await fillCommonFields('10');
     await user.type(screen.getByLabelText('Peso médio (g)'), '12.5');
     await user.click(screen.getByText('Salvar leitura'));
 

@@ -49,7 +49,8 @@ export type BiometriaSnapshot = {
 /** Shape shared by the sidebar form and the modal form once their string inputs are parsed. */
 export type BiometricFormValues = {
   measuredAt: string;
-  sampleCount: number;
+  /** RF-16: no longer collected by any biometry form — kept optional for callers that still have it (e.g. historical payload shape). */
+  sampleCount?: number;
   averageWeightG: number;
   survivalRatePct?: number;
   estimatedBiomass?: number;
@@ -58,7 +59,7 @@ export type BiometricFormValues = {
 export type BiometricPayload = {
   cycleId: string;
   measuredAt: string;
-  sampleCount: number;
+  sampleCount?: number;
   averageWeightG: number;
   survivalRatePct?: number;
   estimatedBiomass?: number;
@@ -119,8 +120,8 @@ export function buildBiometriaSnapshot(input: BiometriaSnapshotInput): Biometria
 }
 
 /** Same "has enough data to save" rule the sidebar form and the modal form both apply. */
-export function isBiometricFormValid(values: Pick<BiometricFormValues, 'measuredAt' | 'sampleCount' | 'averageWeightG'>): boolean {
-  return Boolean(values.measuredAt && values.sampleCount && values.averageWeightG);
+export function isBiometricFormValid(values: Pick<BiometricFormValues, 'measuredAt' | 'averageWeightG'>): boolean {
+  return Boolean(values.measuredAt && values.averageWeightG);
 }
 
 export function buildBiometricPayload(

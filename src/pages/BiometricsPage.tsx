@@ -188,7 +188,7 @@ export function BiometricsPage() {
       key: 'sampleCount',
       header: 'Amostras',
       align: 'right' as const,
-      render: (row: Biometric) => row.sampleCount,
+      render: (row: Biometric) => row.sampleCount ?? '—',
     },
     // RF-10/RN-10: bercario reads/reports in PL/g, not grams — showing both
     // side by side asked the operator to convert one of them in their head.

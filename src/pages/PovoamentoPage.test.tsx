@@ -152,22 +152,26 @@ describe('PovoamentoPage', () => {
     expect(screen.getByLabelText('PL/grama opcional')).toBeInTheDocument()
   })
 
-  it('requires Amostras when PL/grama is informed on a transfer, without relaxing validation (RF-14)', () => {
+  it('does not render an "Amostras" field in the transfer form anymore (RF-14 revisado/RF-16)', () => {
+    renderTransferWithOrigin()
+
+    expect(screen.queryByLabelText(/Amostras/)).not.toBeInTheDocument()
+  })
+
+  it('saves a transfer with PL/grama informed without requiring Amostras (RF-14 revisado)', async () => {
     renderTransferWithOrigin()
 
     fireEvent.change(screen.getByLabelText('PL/grama opcional'), { target: { value: '250' } })
     fireEvent.click(screen.getByRole('button', { name: 'Salvar povoamento' }))
 
-    expect(screen.getByText(/Informe as amostras/)).toBeInTheDocument()
-    expect(mutateAsyncMock).not.toHaveBeenCalled()
-    expect(createBiometricMutateAsync).not.toHaveBeenCalled()
+    await waitFor(() => expect(mutateAsyncMock).toHaveBeenCalledTimes(1))
+    expect(createBiometricMutateAsync).toHaveBeenCalledTimes(1)
   })
 
-  it('sends PL/grama on the destination cycle and creates a closing biometria on the origin cycle (RF-13)', async () => {
+  it('sends PL/grama on the destination cycle and creates a closing biometria on the origin cycle, with no sampleCount in the payload (RF-13/RF-14 revisado)', async () => {
     renderTransferWithOrigin()
 
     fireEvent.change(screen.getByLabelText('PL/grama opcional'), { target: { value: '250' } })
-    fireEvent.change(screen.getByLabelText(/Amostras/), { target: { value: '20' } })
     fireEvent.click(screen.getByRole('button', { name: 'Salvar povoamento' }))
 
     await waitFor(() => expect(mutateAsyncMock).toHaveBeenCalledTimes(1))
@@ -177,7 +181,7 @@ describe('PovoamentoPage', () => {
     expect(createBiometricMutateAsync).toHaveBeenCalledTimes(1)
     const biometryPayload = createBiometricMutateAsync.mock.calls[0][0]
     expect(biometryPayload.cycleId).toBe('c1')
-    expect(biometryPayload.sampleCount).toBe(20)
+    expect(biometryPayload).not.toHaveProperty('sampleCount')
     expect(biometryPayload.averageWeightG).toBeCloseTo(0.004, 6)
     expect(biometryPayload.responsibleId).toBe('user-1')
   })

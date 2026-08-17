@@ -10,18 +10,17 @@ export function BiometricSection({ cycleId }: Props) {
   const createBio = useCreateBiometric();
   const deleteBio = useDeleteBiometric();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ measuredAt: '', sampleCount: '', averageWeightG: '', survivalRatePct: '' });
+  const [form, setForm] = useState({ measuredAt: '', averageWeightG: '', survivalRatePct: '' });
 
   const handleSubmit = async () => {
-    if (!form.measuredAt || !form.sampleCount || !form.averageWeightG) return;
+    if (!form.measuredAt || !form.averageWeightG) return;
     await createBio.mutateAsync({
       cycleId,
       measuredAt: form.measuredAt,
-      sampleCount: Number(form.sampleCount),
       averageWeightG: Number(form.averageWeightG),
       survivalRatePct: form.survivalRatePct ? Number(form.survivalRatePct) : undefined,
     });
-    setForm({ measuredAt: '', sampleCount: '', averageWeightG: '', survivalRatePct: '' });
+    setForm({ measuredAt: '', averageWeightG: '', survivalRatePct: '' });
     setShowForm(false);
   };
 
@@ -53,10 +52,6 @@ export function BiometricSection({ cycleId }: Props) {
               <input type="date" style={inputStyle} value={form.measuredAt} onChange={e => setForm(f => ({ ...f, measuredAt: e.target.value }))} />
             </div>
             <div>
-              <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 4 }}>AMOSTRAS</div>
-              <input type="number" style={inputStyle} value={form.sampleCount} onChange={e => setForm(f => ({ ...f, sampleCount: e.target.value }))} placeholder="30" />
-            </div>
-            <div>
               <div style={{ color: 'var(--text-muted)', fontSize: 10, marginBottom: 4 }}>PESO MÉDIO (g)</div>
               <input type="number" step="0.01" style={inputStyle} value={form.averageWeightG} onChange={e => setForm(f => ({ ...f, averageWeightG: e.target.value }))} placeholder="5.5" />
             </div>
@@ -79,7 +74,7 @@ export function BiometricSection({ cycleId }: Props) {
         <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', backgroundColor: 'var(--bg-card)', borderRadius: 6, marginBottom: 4, fontSize: 12, border: '1px solid var(--border)' }}>
           <div>
             <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{Number(b.averageWeightG).toFixed(2)}g</div>
-            <div style={{ color: 'var(--text-muted)' }}>{new Date(b.measuredAt).toLocaleDateString('pt-BR')} · {b.sampleCount} amostras</div>
+            <div style={{ color: 'var(--text-muted)' }}>{new Date(b.measuredAt).toLocaleDateString('pt-BR')}{b.sampleCount != null ? ` · ${b.sampleCount} amostras` : ''}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {b.survivalRatePct && <span style={{ color: '#0ea5e9' }}>{Number(b.survivalRatePct).toFixed(1)}% sobrev.</span>}

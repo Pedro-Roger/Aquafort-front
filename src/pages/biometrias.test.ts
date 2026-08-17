@@ -78,11 +78,10 @@ describe('buildBiometriaCards', () => {
 });
 
 describe('isBiometricFormValid', () => {
-  it('requires a date, a sample count and an average weight', () => {
-    expect(isBiometricFormValid({ measuredAt: '2026-07-09', sampleCount: 15, averageWeightG: 12.5 })).toBe(true);
-    expect(isBiometricFormValid({ measuredAt: '', sampleCount: 15, averageWeightG: 12.5 })).toBe(false);
-    expect(isBiometricFormValid({ measuredAt: '2026-07-09', sampleCount: 0, averageWeightG: 12.5 })).toBe(false);
-    expect(isBiometricFormValid({ measuredAt: '2026-07-09', sampleCount: 15, averageWeightG: 0 })).toBe(false);
+  it('requires a date and an average weight — sampleCount is no longer part of the check (RF-16)', () => {
+    expect(isBiometricFormValid({ measuredAt: '2026-07-09', averageWeightG: 12.5 })).toBe(true);
+    expect(isBiometricFormValid({ measuredAt: '', averageWeightG: 12.5 })).toBe(false);
+    expect(isBiometricFormValid({ measuredAt: '2026-07-09', averageWeightG: 0 })).toBe(false);
   });
 });
 
@@ -116,6 +115,15 @@ describe('buildBiometricPayload', () => {
     expect(payload.survivalRatePct).toBeUndefined();
     expect(payload.estimatedBiomass).toBeUndefined();
     expect(payload.responsibleId).toBeUndefined();
+  });
+
+  it('does not send sampleCount when the form values do not have it (RF-16: no biometry form collects it anymore)', () => {
+    const payload = buildBiometricPayload('cycle-123', {
+      measuredAt: '2026-07-09',
+      averageWeightG: 12.5,
+    });
+
+    expect(payload.sampleCount).toBeUndefined();
   });
 
   it('attaches the responsible id when the caller is logged in (RF-12)', () => {

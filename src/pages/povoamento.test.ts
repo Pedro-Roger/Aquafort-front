@@ -7,7 +7,6 @@ import {
   quantityFromWeight,
   sumOriginQuantities,
   validateAllocationRows,
-  validateTransferBiometry,
   weightFromQuantity,
 } from './povoamento';
 
@@ -127,21 +126,5 @@ describe('collectTransferOriginCycleIds (RF-13)', () => {
 
   it('returns an empty list for rows without origins (non-transfer allocations)', () => {
     expect(collectTransferOriginCycleIds([{}])).toEqual([]);
-  });
-});
-
-describe('validateTransferBiometry (RF-14)', () => {
-  it('requires sampleCount when plPerGram was informed', () => {
-    const result = validateTransferBiometry(250, 0);
-    expect(result.valid).toBe(false);
-    expect(result.message).toContain('amostras');
-  });
-
-  it('passes when plPerGram and sampleCount are both informed', () => {
-    expect(validateTransferBiometry(250, 20).valid).toBe(true);
-  });
-
-  it('does not require sampleCount when plPerGram was not informed (field stays optional)', () => {
-    expect(validateTransferBiometry(0, 0).valid).toBe(true);
   });
 });
