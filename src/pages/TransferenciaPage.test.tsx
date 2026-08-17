@@ -301,20 +301,29 @@ describe('TransferenciaPage - peso médio / PL-g opcional', () => {
   });
 });
 
-// RF-21/plano técnico: seletor "Tipo de transferência" (Parcial | Total)
-// envia closesOriginCycle só quando o operador de fato mexeu no seletor —
-// mesmo padrão visual de HarvestType/closesCycle em OperationalReportsPage.tsx,
-// mas sem pré-selecionar um valor fixo, já que esta tela não tem, hoje,
-// nenhuma consulta com a população restante do ciclo de origem calculada
-// (achado do revisor: um "Total" que esvazia o viveiro de origem, mas fica
-// sem o operador tocar no seletor, não pode virar silenciosamente
-// closesOriginCycle: false — repetiria o incidente VB104/VE204 por default
-// de UI). Quando o campo não é enviado, o backend aplica o próprio default
-// de RF-21 (quantity >= população restante -> true).
-describe('TransferenciaPage - seletor Parcial/Total (closesOriginCycle)', () => {
+// RF-21/plano técnico: seletor "Tipo de transferência" (Automático | Parcial
+// | Total) envia closesOriginCycle só quando o operador de fato escolhe
+// "Parcial" ou "Total" — mesmo padrão visual de HarvestType/closesCycle em
+// OperationalReportsPage.tsx, mas com um terceiro valor neutro (`AUTO`,
+// rotulado "Automático (recomendado)") como default visível, já que esta
+// tela não tem, hoje, nenhuma consulta com a população restante do ciclo de
+// origem calculada (achado do revisor: mostrar "Parcial" escrito na tela
+// quando isso pode não ser o que vai acontecer de fato é uma mentira visual
+// — quem decide, sem interação do operador, é o backend). Quando o campo não
+// é enviado, o backend aplica o próprio default de RF-21 (quantity >=
+// população restante -> true).
+describe('TransferenciaPage - seletor Automático/Parcial/Total (closesOriginCycle)', () => {
   beforeEach(() => {
     mutateAsync.mockClear();
     usePondsMock.mockReturnValue({ data: defaultPonds, isLoading: false });
+  });
+
+  it('shows "Automático (recomendado)" as the initial visible value of the "Tipo de transferência" selector', () => {
+    renderPage();
+
+    const select = screen.getByLabelText('Tipo de transferência') as HTMLSelectElement;
+    expect(select.value).toBe('AUTO');
+    expect(screen.getByRole('option', { name: 'Automático (recomendado)' })).toBeInTheDocument();
   });
 
   it('does not send closesOriginCycle when the operator never touched the "Tipo de transferência" selector', async () => {

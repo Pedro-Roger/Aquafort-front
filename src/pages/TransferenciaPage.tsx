@@ -25,8 +25,13 @@ import { averageWeightGToPlPerGram, isBercarioPondType, plPerGramToAverageWeight
 import type { Pond, PondTransfer } from '../types';
 import { PondStatus, PondType } from '../types';
 
-/** RF-21 (plano técnico de unificação): mesmo padrão de HarvestType/closesCycle em OperationalReportsPage.tsx. */
-type TransferType = 'PARTIAL' | 'TOTAL';
+/**
+ * RF-21 (plano técnico de unificação): mesmo padrão de HarvestType/closesCycle
+ * em OperationalReportsPage.tsx, com um terceiro valor neutro (`AUTO`) que
+ * representa "operador não decidiu" sem fingir ser uma decisão real — ver
+ * comentário em `TransferForm.transferType`.
+ */
+type TransferType = 'AUTO' | 'PARTIAL' | 'TOTAL';
 
 /** Mesma unidade de entrada usada em BiometricsModalForm.tsx (RN-10) — bercario entra em PL/g por padrão, os demais tipos em gramas. */
 type WeightEntryUnit = 'pl_per_gram' | 'grams';
@@ -60,19 +65,22 @@ type TransferForm = {
   weightInput: string;
   /**
    * RF-21: decisão explícita do operador — Parcial mantém o ciclo de origem
-   * ativo, Total encerra (closesOriginCycle). Valor inicial é só um estado de
-   * UI (não usado no payload a menos que `transferTypeTouched` seja true —
-   * ver handleSubmit): não temos, nesta tela, a população restante do ciclo
-   * de origem calculada em nenhuma consulta existente (usePonds/useTransfers
-   * não trazem isso), então não arriscamos inventar um valor pré-selecionado
-   * que pareça uma decisão e não seja. Se o operador não mexer no seletor, o
-   * campo simplesmente não é enviado e o backend aplica o próprio default de
-   * RF-21 (quantity >= população restante → true), que já faz essa conta
-   * corretamente no servidor.
+   * ativo, Total encerra (closesOriginCycle). `AUTO` é o valor inicial/neutro
+   * ("Automático (recomendado)" na tela) e representa "operador não decidiu
+   * ainda" — não temos, nesta tela, a população restante do ciclo de origem
+   * calculada em nenhuma consulta existente (usePonds/useTransfers não
+   * trazem isso), então não arriscamos pré-selecionar "Parcial" ou "Total"
+   * como se fosse uma decisão real quando não é. Enquanto `transferType` for
+   * `AUTO`, o campo simplesmente não é enviado no payload (ver handleSubmit)
+   * e o backend aplica o próprio default de RF-21 (quantity >= população
+   * restante → true), que já faz essa conta corretamente no servidor. Só
+   * quando o operador escolhe "Parcial" ou "Total" no Select é que
+   * `transferType` passa a refletir uma decisão de fato — o enum de 3
+   * valores já descreve sozinho as 3 situações possíveis (não decidido /
+   * decidido Parcial / decidido Total), então não precisamos de um booleano
+   * `touched` separado para isso.
    */
   transferType: TransferType;
-  /** True assim que o operador interage com o Select "Tipo de transferência" — ver handleSubmit. */
-  transferTypeTouched: boolean;
 };
 
 function pondLabel(pond: Pond) {
@@ -116,8 +124,7 @@ export function TransferenciaPage() {
     reason: '',
     note: '',
     weightInput: '',
-    transferType: 'PARTIAL',
-    transferTypeTouched: false,
+    transferType: 'AUTO',
   });
   // RF-13/plano técnico: berçário mede em PL/g (padrão do fluxo de campo),
   // os demais tipos de viveiro em gramas — mesma regra de BiometricsModalForm (RN-10).
@@ -295,15 +302,17 @@ export function TransferenciaPage() {
         reason: form.reason.trim() || 'Transferência operacional',
         note: form.note.trim() || undefined,
         // RF-21: só envia closesOriginCycle quando o operador de fato
-        // interagiu com o seletor "Tipo de transferência" — sem isso, um
-        // "PARTIAL" nunca tocado ia ser enviado como false mesmo numa
+        // escolheu "Parcial" ou "Total" no seletor — enquanto `transferType`
+        // for `AUTO` (valor inicial/neutro, nunca uma decisão real), o campo
+        // fica de fora do payload. Sem isso, um "Parcial" pré-selecionado
+        // sem o operador tocar ia ser enviado como false mesmo numa
         // transferência que esvaziou o viveiro de origem por completo,
         // deixando o ciclo de origem ativo com a contagem cheia (o mesmo
         // bug do VB104/VE204, só que por default de UI em vez de ausência de
         // funcionalidade). Ausente = backend aplica o próprio default de
         // RF-21 (quantity >= população restante → true), que já calcula essa
         // conta corretamente no servidor.
-        ...(form.transferTypeTouched ? { closesOriginCycle: form.transferType === 'TOTAL' } : {}),
+        ...(form.transferType !== 'AUTO' ? { closesOriginCycle: form.transferType === 'TOTAL' } : {}),
         ...(averageWeightG !== undefined ? { averageWeightG } : {}),
       });
     } catch {
@@ -320,8 +329,7 @@ export function TransferenciaPage() {
       reason: '',
       note: '',
       weightInput: '',
-      transferType: 'PARTIAL',
-      transferTypeTouched: false,
+      transferType: 'AUTO',
     }));
   }
 
@@ -393,6 +401,7 @@ export function TransferenciaPage() {
             <Select
               label="Tipo de transferência"
               options={[
+                { value: 'AUTO', label: 'Automático (recomendado)' },
                 { value: 'PARTIAL', label: 'Parcial' },
                 { value: 'TOTAL', label: 'Total' },
               ]}
@@ -401,7 +410,6 @@ export function TransferenciaPage() {
                 setForm((current) => ({
                   ...current,
                   transferType: e.target.value as TransferType,
-                  transferTypeTouched: true,
                 }))
               }
             />
