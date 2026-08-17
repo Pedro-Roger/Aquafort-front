@@ -75,8 +75,10 @@ vi.mock('../components/ui/Table', () => ({
 }))
 
 vi.mock('../pages/biometrias', async (importOriginal) => ({
-  // isBercarioPondType/resolveAverageWeightGInput/averageWeightGToPlPerGram
-  // stay real — that's the RF-10/RF-11 conversion under test here.
+  // isBercarioPondType/averageWeightGToPlPerGram stay real — the RF-10
+  // (revisado)/RF-11 unit conversion itself now lives inside
+  // BiometricsModalForm (see its own test file), this page just forwards
+  // whatever averageWeightG the modal already resolved.
   ...(await importOriginal<typeof import('./biometrias')>()),
   buildBiometriaCards: () => [
     { label: 'Peso médio', value: '18.4', unit: 'g', tone: 'blue' },

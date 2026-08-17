@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { PondType } from '../types';
 import {
   BIOMETRIA_CONSUMPTION_REFERENCE,
   buildBiometriaCards,
@@ -10,7 +9,6 @@ import {
   calculateBiometricsOperationalEstimate,
   getConsumptionPctForWeight,
   isBiometricFormValid,
-  resolveAverageWeightGInput,
 } from './biometrias';
 
 describe('buildBiometriaCards', () => {
@@ -131,20 +129,9 @@ describe('buildBiometricPayload', () => {
   });
 });
 
-describe('resolveAverageWeightGInput (RF-10/RF-11/RN-09/RN-10)', () => {
-  it('converts the raw field value from PL/g to avg_weight_g for a bercario cycle', () => {
-    expect(resolveAverageWeightGInput(250, PondType.BERCARIO)).toBeCloseTo(0.004, 6);
-  });
-
-  it('leaves the raw field value untouched (already grams) for engorda cycles', () => {
-    expect(resolveAverageWeightGInput(12.5, PondType.ENGORDA)).toBe(12.5);
-  });
-
-  it('leaves the raw field value untouched for reprodutor cycles', () => {
-    expect(resolveAverageWeightGInput(20, PondType.REPRODUTOR)).toBe(20);
-  });
-
-  it('leaves the raw field value untouched when the pond type is unknown', () => {
-    expect(resolveAverageWeightGInput(12.5, undefined)).toBe(12.5);
-  });
-});
+// resolveAverageWeightGInput (RF-10/RF-11/RN-09/RN-10) was removed
+// (2026-08-17): RF-10 was revised to let bercario cycles pick PL/g OR
+// direct grams per submit (RN-12), so a pondType-only resolver no longer
+// matches the real rule. The unit conversion now lives inside
+// BiometricsModalForm itself, next to the toggle state that decides which
+// unit was used — see BiometricsModalForm.test.tsx.

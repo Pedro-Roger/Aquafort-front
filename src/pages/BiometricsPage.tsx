@@ -45,7 +45,6 @@ import {
   getConsumptionPctForWeight,
   isBercarioPondType,
   isBiometricFormValid,
-  resolveAverageWeightGInput,
   type BiometricFormValues,
 } from './biometrias';
 import { buildDespescaPath } from './despesca';
@@ -91,12 +90,11 @@ export function BiometricsPage() {
   }
 
   async function handleModalSubmit(data: BiometricFormValues) {
-    // RF-10/RF-11: same conversion as the sidebar, keyed off the clicked
-    // pond's own type — never the sidebar's selected cycle/pond.
-    await submitBiometric(modalCycleId, {
-      ...data,
-      averageWeightG: resolveAverageWeightGInput(data.averageWeightG, selectedPond?.type),
-    });
+    // RF-10 (revisado)/RF-11: the modal already resolves averageWeightG to
+    // grams itself — PL/g vs. peso direto is now a per-submit toggle the
+    // operator picks inside the modal (RN-12), not something derivable from
+    // pond type alone, so no conversion happens again here.
+    await submitBiometric(modalCycleId, data);
     setModalOpen(false);
     setSelectedPond(null);
     setModalCycleId(null);
