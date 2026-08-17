@@ -14,6 +14,19 @@ export interface CreateTransferDto {
   responsible: string;
   reason?: string;
   note?: string;
+  /**
+   * RF-13/plano técnico de unificação (viveiros-e-ciclos/spec.md): peso
+   * médio (g) já convertido no cliente, nunca PL/grama cru. Opcional — vira
+   * biometria de fechamento no ciclo de origem e `plPerGram` no ciclo de
+   * destino quando informado.
+   */
+  averageWeightG?: number;
+  /**
+   * RF-21: decisão explícita do operador se esta transferência encerra o
+   * ciclo de origem. Ausente = backend aplica o default (quantity >= população
+   * restante).
+   */
+  closesOriginCycle?: boolean;
 }
 
 export function useTransfers(params: TransfersParams = {}) {

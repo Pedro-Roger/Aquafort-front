@@ -169,17 +169,16 @@ describe('TransferenciaPage - filtro e ordenação de Origem/Destino', () => {
   });
 });
 
-// RN-12 (spec viveiros-e-ciclos, "Ajustes — decisão sobre duplicação de
-// fluxo de transferência", 2026-08-17): reproduz o incidente real
-// (VB104 -> VE204, destino VAZIO ficou sem ciclo) e garante que a mitigação
-// de curto prazo (bloqueio + aviso) está em vigor.
-describe('TransferenciaPage - destino sem ciclo ativo (VAZIO)', () => {
+// RN-12/RF-20/RF-21 (spec viveiros-e-ciclos, "Ajustes — plano técnico de
+// unificação do fluxo de transferência", 2026-08-17): reproduz o incidente
+// real (VB104 -> VE204, destino VAZIO) e confirma que a mitigação de curto
+// prazo (bloqueio + aviso) saiu — o backend agora cria o ciclo de destino
+// automaticamente, então a submissão não pode mais ser barrada por isso.
+describe('TransferenciaPage - destino sem ciclo ativo (VAZIO) deixa de ser bloqueado', () => {
   const pondsWithEmptyDestination = [
     { id: 'origin', code: 'VB-104', name: 'Berçário 104', status: 'POVOADO', type: 'BERCARIO', areaHa: 0.5 },
     { id: 'empty-dest', code: 'VE-204', name: 'Viveiro 204', status: 'VAZIO', type: 'ENGORDA', areaHa: 1 },
     { id: 'populated-dest', code: 'VE-100', name: 'Viveiro 100', status: 'POVOADO', type: 'ENGORDA', areaHa: 1 },
-    { id: 'preparing-dest', code: 'VE-050', name: 'Viveiro 050', status: 'PREPARANDO', type: 'ENGORDA', areaHa: 1 },
-    { id: 'despescando-dest', code: 'VE-060', name: 'Viveiro 060', status: 'DESPESCANDO', type: 'ENGORDA', areaHa: 1 },
   ];
 
   beforeEach(() => {
@@ -191,41 +190,172 @@ describe('TransferenciaPage - destino sem ciclo ativo (VAZIO)', () => {
     usePondsMock.mockReturnValue({ data: defaultPonds, isLoading: false });
   });
 
-  it('shows a warning and disables submission when the selected destination is VAZIO (VB104 -> VE204 incident)', async () => {
+  it('no longer shows a warning or disables submission when the selected destination is VAZIO (VB104 -> VE204 incident)', async () => {
     const user = userEvent.setup();
     renderPage();
 
     await user.selectOptions(screen.getByLabelText('Destino'), 'empty-dest');
 
-    expect(await screen.findByText(/Destino sem ciclo ativo/i)).toBeInTheDocument();
-    expect(screen.getByText(/VE-204 está com status Vazio/i)).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Povoamento → Viveiro → Transferência/i })).toHaveAttribute(
-      'href',
-      '/povoamento',
-    );
+    expect(screen.queryByText(/Destino sem ciclo ativo/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Povoamento → Viveiro → Transferência/i })).not.toBeInTheDocument();
 
     const submitButtons = screen.getAllByRole('button', { name: /Registrar/i });
-    submitButtons.forEach((button) => expect(button).toBeDisabled());
+    submitButtons.forEach((button) => expect(button).not.toBeDisabled());
 
     await user.type(screen.getByLabelText('Quantidade'), '1000');
     await user.type(screen.getByLabelText('Responsável'), 'Yorvi');
     await user.click(screen.getByRole('button', { name: /Registrar transferência/i }));
 
-    expect(mutateAsync).not.toHaveBeenCalled();
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1));
+    expect(mutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ fromPondId: 'origin', toPondId: 'empty-dest', quantity: 1000 }),
+    );
+  });
+});
+
+// RF-13/plano técnico: campo de peso troca de unidade conforme o tipo do
+// viveiro de origem (RN-10) — bercario mede em PL/g, os demais tipos em
+// gramas — e nunca força um valor no payload quando não preenchido.
+describe('TransferenciaPage - peso médio / PL-g opcional', () => {
+  const pondsByOriginType = [
+    { id: 'bercario-origin', code: 'VB-01', name: 'Berçário 01', status: 'POVOADO', type: 'BERCARIO', areaHa: 0.5 },
+    { id: 'engorda-origin', code: 'VE-01', name: 'Engorda 01', status: 'POVOADO', type: 'ENGORDA', areaHa: 1 },
+    { id: 'dest', code: 'VE-02', name: 'Engorda 02', status: 'POVOADO', type: 'ENGORDA', areaHa: 1 },
+  ];
+
+  beforeEach(() => {
+    mutateAsync.mockClear();
+    usePondsMock.mockReturnValue({ data: pondsByOriginType, isLoading: false });
   });
 
-  it.each([
-    ['POVOADO', 'populated-dest'],
-    ['PREPARANDO', 'preparing-dest'],
-    ['DESPESCANDO', 'despescando-dest'],
-  ])('shows no warning when the destination status is %s', async (_status, pondId) => {
+  afterEach(() => {
+    usePondsMock.mockReturnValue({ data: defaultPonds, isLoading: false });
+  });
+
+  it('shows PL/grama as the weight label when the origin pond is BERCARIO', async () => {
+    renderPage();
+
+    await waitFor(() =>
+      expect((screen.getByLabelText('Origem') as HTMLSelectElement).value).toBe('bercario-origin'),
+    );
+
+    expect(screen.getByLabelText('PL/grama')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Peso médio (g)')).not.toBeInTheDocument();
+  });
+
+  it('shows Peso médio (g) as the weight label when the origin pond is not BERCARIO', async () => {
     const user = userEvent.setup();
     renderPage();
 
-    await user.selectOptions(screen.getByLabelText('Destino'), pondId);
+    await user.selectOptions(screen.getByLabelText('Origem'), 'engorda-origin');
 
-    expect(screen.queryByText(/Destino sem ciclo ativo/i)).not.toBeInTheDocument();
-    const submitButton = screen.getByRole('button', { name: /Registrar transferência/i });
-    expect(submitButton).not.toBeDisabled();
+    expect(screen.getByLabelText('Peso médio (g)')).toBeInTheDocument();
+    expect(screen.queryByLabelText('PL/grama')).not.toBeInTheDocument();
+  });
+
+  it('does not include averageWeightG in the payload when the weight field is left empty', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.selectOptions(screen.getByLabelText('Origem'), 'engorda-origin');
+    await user.selectOptions(screen.getByLabelText('Destino'), 'dest');
+    await user.type(screen.getByLabelText('Quantidade'), '500');
+    await user.type(screen.getByLabelText('Responsável'), 'Maria');
+    await user.click(screen.getByRole('button', { name: /Registrar transferência/i }));
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1));
+    expect(mutateAsync.mock.calls[0][0]).not.toHaveProperty('averageWeightG');
+  });
+
+  it('converts grams input to averageWeightG in the payload when the origin is not BERCARIO', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.selectOptions(screen.getByLabelText('Origem'), 'engorda-origin');
+    await user.selectOptions(screen.getByLabelText('Destino'), 'dest');
+    await user.type(screen.getByLabelText('Quantidade'), '500');
+    await user.type(screen.getByLabelText('Responsável'), 'Maria');
+    await user.type(screen.getByLabelText('Peso médio (g)'), '12.5');
+    await user.click(screen.getByRole('button', { name: /Registrar transferência/i }));
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1));
+    expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ averageWeightG: 12.5 }));
+  });
+
+  it('converts PL/grama input to averageWeightG in the payload when the origin is BERCARIO', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() =>
+      expect((screen.getByLabelText('Origem') as HTMLSelectElement).value).toBe('bercario-origin'),
+    );
+    await user.selectOptions(screen.getByLabelText('Destino'), 'dest');
+    await user.type(screen.getByLabelText('Quantidade'), '500');
+    await user.type(screen.getByLabelText('Responsável'), 'Maria');
+    await user.type(screen.getByLabelText('PL/grama'), '250');
+    await user.click(screen.getByRole('button', { name: /Registrar transferência/i }));
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1));
+    // RN-09: avg_weight_g = 1 / pl_por_grama -> 1 / 250 = 0.004
+    expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ averageWeightG: 0.004 }));
+  });
+});
+
+// RF-21/plano técnico: seletor "Tipo de transferência" (Parcial | Total)
+// envia closesOriginCycle só quando o operador de fato mexeu no seletor —
+// mesmo padrão visual de HarvestType/closesCycle em OperationalReportsPage.tsx,
+// mas sem pré-selecionar um valor fixo, já que esta tela não tem, hoje,
+// nenhuma consulta com a população restante do ciclo de origem calculada
+// (achado do revisor: um "Total" que esvazia o viveiro de origem, mas fica
+// sem o operador tocar no seletor, não pode virar silenciosamente
+// closesOriginCycle: false — repetiria o incidente VB104/VE204 por default
+// de UI). Quando o campo não é enviado, o backend aplica o próprio default
+// de RF-21 (quantity >= população restante -> true).
+describe('TransferenciaPage - seletor Parcial/Total (closesOriginCycle)', () => {
+  beforeEach(() => {
+    mutateAsync.mockClear();
+    usePondsMock.mockReturnValue({ data: defaultPonds, isLoading: false });
+  });
+
+  it('does not send closesOriginCycle when the operator never touched the "Tipo de transferência" selector', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.selectOptions(screen.getByLabelText('Destino'), 'p2');
+    await user.type(screen.getByLabelText('Quantidade'), '1200');
+    await user.type(screen.getByLabelText('Responsável'), 'Maria');
+    await user.click(screen.getByRole('button', { name: /Registrar transferência/i }));
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1));
+    expect(mutateAsync.mock.calls[0][0]).not.toHaveProperty('closesOriginCycle');
+  });
+
+  it('sends closesOriginCycle: false once the operator explicitly picks "Parcial"', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.selectOptions(screen.getByLabelText('Destino'), 'p2');
+    await user.selectOptions(screen.getByLabelText('Tipo de transferência'), 'TOTAL');
+    await user.selectOptions(screen.getByLabelText('Tipo de transferência'), 'PARTIAL');
+    await user.type(screen.getByLabelText('Quantidade'), '1200');
+    await user.type(screen.getByLabelText('Responsável'), 'Maria');
+    await user.click(screen.getByRole('button', { name: /Registrar transferência/i }));
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1));
+    expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ closesOriginCycle: false }));
+  });
+
+  it('sends closesOriginCycle: true when the operator explicitly picks "Total"', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.selectOptions(screen.getByLabelText('Destino'), 'p2');
+    await user.selectOptions(screen.getByLabelText('Tipo de transferência'), 'TOTAL');
+    await user.type(screen.getByLabelText('Quantidade'), '1200');
+    await user.type(screen.getByLabelText('Responsável'), 'Maria');
+    await user.click(screen.getByRole('button', { name: /Registrar transferência/i }));
+
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalledTimes(1));
+    expect(mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ closesOriginCycle: true }));
   });
 });

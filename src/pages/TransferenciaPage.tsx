@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ArrowRightLeft, CornerDownRight, Plus, RotateCw, ShieldAlert, Truck } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import {
   metricGrid,
@@ -19,10 +18,24 @@ import {
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Table } from '../components/ui/Table';
+import { UnitToggle } from '../components/ui/UnitToggle';
 import { usePonds } from '../hooks/usePonds';
 import { useCreateTransfer, useTransfers } from '../hooks/useTransfers';
+import { averageWeightGToPlPerGram, isBercarioPondType, plPerGramToAverageWeightG } from '../lib/plPerGram';
 import type { Pond, PondTransfer } from '../types';
 import { PondStatus, PondType } from '../types';
+
+/** RF-21 (plano técnico de unificação): mesmo padrão de HarvestType/closesCycle em OperationalReportsPage.tsx. */
+type TransferType = 'PARTIAL' | 'TOTAL';
+
+/** Mesma unidade de entrada usada em BiometricsModalForm.tsx (RN-10) — bercario entra em PL/g por padrão, os demais tipos em gramas. */
+type WeightEntryUnit = 'pl_per_gram' | 'grams';
+
+/** Keeps switch-triggered conversions readable, mesmo helper usado em BiometricsModalForm.tsx. */
+function formatConvertedValue(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return '';
+  return String(Number(value.toFixed(6)));
+}
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -43,6 +56,23 @@ type TransferForm = {
   responsible: string;
   reason: string;
   note: string;
+  /** RF-13/plano técnico: peso médio/PL-g opcional, sempre convertido para gramas antes de enviar (averageWeightG). */
+  weightInput: string;
+  /**
+   * RF-21: decisão explícita do operador — Parcial mantém o ciclo de origem
+   * ativo, Total encerra (closesOriginCycle). Valor inicial é só um estado de
+   * UI (não usado no payload a menos que `transferTypeTouched` seja true —
+   * ver handleSubmit): não temos, nesta tela, a população restante do ciclo
+   * de origem calculada em nenhuma consulta existente (usePonds/useTransfers
+   * não trazem isso), então não arriscamos inventar um valor pré-selecionado
+   * que pareça uma decisão e não seja. Se o operador não mexer no seletor, o
+   * campo simplesmente não é enviado e o backend aplica o próprio default de
+   * RF-21 (quantity >= população restante → true), que já faz essa conta
+   * corretamente no servidor.
+   */
+  transferType: TransferType;
+  /** True assim que o operador interage com o Select "Tipo de transferência" — ver handleSubmit. */
+  transferTypeTouched: boolean;
 };
 
 function pondLabel(pond: Pond) {
@@ -85,7 +115,13 @@ export function TransferenciaPage() {
     responsible: '',
     reason: '',
     note: '',
+    weightInput: '',
+    transferType: 'PARTIAL',
+    transferTypeTouched: false,
   });
+  // RF-13/plano técnico: berçário mede em PL/g (padrão do fluxo de campo),
+  // os demais tipos de viveiro em gramas — mesma regra de BiometricsModalForm (RN-10).
+  const [weightUnit, setWeightUnit] = useState<WeightEntryUnit>('grams');
 
   const activePonds = useMemo(
     () => ponds.filter((pond) => pond.status !== PondStatus.INATIVO),
@@ -127,13 +163,12 @@ export function TransferenciaPage() {
   const fromPond = activePonds.find((pond) => pond.id === form.fromPondId);
   const toPond = activePonds.find((pond) => pond.id === form.toPondId);
 
-  // RN-12 (spec viveiros-e-ciclos, "Ajustes — decisão sobre duplicação de
-  // fluxo de transferência", 2026-08-17): PondTransfer não cria Cycle. Se o
-  // destino estiver VAZIO (sem ciclo ativo), essa tela sozinha deixaria o
-  // viveiro populado sem rastreabilidade (biometria, FCA, etc). Mitigação de
-  // curto prazo: bloquear a submissão e orientar pro fluxo que já cria o
-  // ciclo de destino (PovoamentoPage / isTransferMode).
-  const destinationWithoutActiveCycle = toPond?.status === PondStatus.VAZIO;
+  // RN-12 (spec viveiros-e-ciclos, "Ajustes — plano técnico de unificação do
+  // fluxo de transferência", 2026-08-17): o bloqueio de curto prazo saiu daqui
+  // — o backend (TransfersService.create) agora cria o ciclo de destino
+  // automaticamente quando o viveiro de destino está VAZIO, então a tela não
+  // precisa mais barrar a submissão nesse caso.
+  const isOriginBercario = isBercarioPondType(fromPond?.type);
 
   useEffect(() => {
     if (!form.fromPondId && sortedOriginPonds[0]) {
@@ -146,6 +181,33 @@ export function TransferenciaPage() {
       setForm((current) => ({ ...current, toPondId: '' }));
     }
   }, [form.fromPondId, form.toPondId]);
+
+  // RF-13/plano técnico: a origem só é conhecida depois de selecionada — ao
+  // trocar de berçário para outro tipo (ou vice-versa), troca a unidade de
+  // entrada e limpa o valor digitado (evita number "PL/g" sendo enviado como
+  // se fosse grama, ou vice-versa).
+  useEffect(() => {
+    setWeightUnit(isOriginBercario ? 'pl_per_gram' : 'grams');
+    setForm((current) => (current.weightInput ? { ...current, weightInput: '' } : current));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOriginBercario]);
+
+  function handleWeightUnitChange(nextUnit: WeightEntryUnit) {
+    if (nextUnit === weightUnit) return;
+    setForm((current) => {
+      const rawValue = Number(current.weightInput);
+      if (!current.weightInput || !Number.isFinite(rawValue) || rawValue <= 0) {
+        return { ...current, weightInput: '' };
+      }
+      const converted = nextUnit === 'grams'
+        ? plPerGramToAverageWeightG(rawValue)
+        : averageWeightGToPlPerGram(rawValue);
+      return { ...current, weightInput: formatConvertedValue(converted) };
+    });
+    setWeightUnit(nextUnit);
+  }
+
+  const weightLabel = weightUnit === 'pl_per_gram' ? 'PL/grama' : 'Peso médio (g)';
 
   const summary = {
     totalTransfers: savedTransfers.length,
@@ -216,12 +278,12 @@ export function TransferenciaPage() {
       return;
     }
 
-    if (to.status === PondStatus.VAZIO) {
-      setError(
-        'Destino sem ciclo ativo: essa tela não cria ciclo no viveiro de destino. Use Povoamento → Viveiro → Transferência para mover o lote com biometria.',
-      );
-      return;
-    }
+    // RF-13/plano técnico: peso/PL-g é opcional — nunca força um valor no
+    // payload, só converte e envia quando o operador de fato digitou algo.
+    const rawWeight = Number(form.weightInput);
+    const averageWeightG = form.weightInput.trim() && Number.isFinite(rawWeight) && rawWeight > 0
+      ? (weightUnit === 'pl_per_gram' ? plPerGramToAverageWeightG(rawWeight) : rawWeight)
+      : undefined;
 
     try {
       await createTransfer.mutateAsync({
@@ -232,6 +294,17 @@ export function TransferenciaPage() {
         responsible: form.responsible.trim(),
         reason: form.reason.trim() || 'Transferência operacional',
         note: form.note.trim() || undefined,
+        // RF-21: só envia closesOriginCycle quando o operador de fato
+        // interagiu com o seletor "Tipo de transferência" — sem isso, um
+        // "PARTIAL" nunca tocado ia ser enviado como false mesmo numa
+        // transferência que esvaziou o viveiro de origem por completo,
+        // deixando o ciclo de origem ativo com a contagem cheia (o mesmo
+        // bug do VB104/VE204, só que por default de UI em vez de ausência de
+        // funcionalidade). Ausente = backend aplica o próprio default de
+        // RF-21 (quantity >= população restante → true), que já calcula essa
+        // conta corretamente no servidor.
+        ...(form.transferTypeTouched ? { closesOriginCycle: form.transferType === 'TOTAL' } : {}),
+        ...(averageWeightG !== undefined ? { averageWeightG } : {}),
       });
     } catch {
       setError('Não foi possível salvar a transferência. Tente novamente.');
@@ -246,6 +319,9 @@ export function TransferenciaPage() {
       responsible: '',
       reason: '',
       note: '',
+      weightInput: '',
+      transferType: 'PARTIAL',
+      transferTypeTouched: false,
     }));
   }
 
@@ -256,17 +332,18 @@ export function TransferenciaPage() {
           <div>
             <div style={workspaceEyebrow}>Transferência</div>
             <h1 style={{ margin: '8px 0 0', fontSize: 22, fontWeight: 700, lineHeight: 1.25, color: 'var(--text-primary)' }}>
-              Movimente lotes entre viveiros sem cair no povoamento.
+              Movimente lotes entre viveiros — o ciclo de destino é garantido automaticamente.
             </h1>
             <p style={{ ...sectionSubtitle, marginTop: 6, maxWidth: 760 }}>
-              Registre a saída de um viveiro e a entrada em outro com origem, destino, quantidade e responsável.
+              Registre a saída de um viveiro e a entrada em outro com origem, destino, quantidade e responsável. Se o
+              destino estiver vazio, um ciclo novo é criado para ele nesta mesma operação.
             </p>
           </div>
           <div style={{ display: 'flex', gap: space.inline, alignItems: 'end', flexWrap: 'wrap' }}>
             <div style={{ minWidth: 170 }}>
               <Input label="Data" type="date" value={form.transferDate} onChange={(e) => setForm((current) => ({ ...current, transferDate: e.target.value }))} />
             </div>
-            <Button icon={<Plus size={16} />} onClick={handleSubmit} disabled={destinationWithoutActiveCycle}>
+            <Button icon={<Plus size={16} />} onClick={handleSubmit}>
               Registrar
             </Button>
           </div>
@@ -291,6 +368,45 @@ export function TransferenciaPage() {
             <Input label="Observação" value={form.note} onChange={(e) => setForm((current) => ({ ...current, note: e.target.value }))} placeholder="Detalhes adicionais da movimentação" />
           </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {isOriginBercario && (
+                <UnitToggle
+                  ariaLabel="Unidade de entrada"
+                  value={weightUnit}
+                  onChange={handleWeightUnitChange}
+                  options={[
+                    { unit: 'pl_per_gram', label: 'PL/g' },
+                    { unit: 'grams', label: 'Peso (g)' },
+                  ]}
+                />
+              )}
+              <Input
+                label={weightLabel}
+                type="number"
+                step={weightUnit === 'pl_per_gram' ? '1' : '0.01'}
+                value={form.weightInput}
+                onChange={(e) => setForm((current) => ({ ...current, weightInput: e.target.value }))}
+                placeholder={weightUnit === 'pl_per_gram' ? 'Pós-larvas por grama (opcional)' : 'Peso médio em gramas (opcional)'}
+              />
+            </div>
+            <Select
+              label="Tipo de transferência"
+              options={[
+                { value: 'PARTIAL', label: 'Parcial' },
+                { value: 'TOTAL', label: 'Total' },
+              ]}
+              value={form.transferType}
+              onChange={(e) =>
+                setForm((current) => ({
+                  ...current,
+                  transferType: e.target.value as TransferType,
+                  transferTypeTouched: true,
+                }))
+              }
+            />
+          </div>
+
           <div style={{ display: 'flex', gap: space.tile, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border)', paddingTop: space.section }}>
             <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>
               {fromPond ? `Origem: ${pondLabel(fromPond)} (${statusLabel(fromPond.status)})` : 'Origem não selecionada'}
@@ -301,41 +417,10 @@ export function TransferenciaPage() {
               icon={<ArrowRightLeft size={16} />}
               onClick={handleSubmit}
               loading={createTransfer.isPending}
-              disabled={destinationWithoutActiveCycle}
             >
               Registrar transferência
             </Button>
           </div>
-
-          {destinationWithoutActiveCycle && (
-            <div
-              role="alert"
-              style={{
-                padding: '12px 14px',
-                borderRadius: radius.tile,
-                backgroundColor: 'rgba(217,119,6,0.1)',
-                color: 'var(--warning, #b45309)',
-                border: '1px solid rgba(217,119,6,0.25)',
-                fontSize: 13,
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 4,
-              }}
-            >
-              <strong>Destino sem ciclo ativo.</strong>
-              <span>
-                {toPond?.code} está com status Vazio: transferir para lá não cria um ciclo, e não vai ser possível
-                registrar biometria, FCA nem crescimento desse lote depois. Essa tela não pode ser usada nesse caso.
-              </span>
-              <span>
-                Para transferir criando o ciclo de destino corretamente, use{' '}
-                <Link to="/povoamento" style={{ color: 'inherit', fontWeight: 700, textDecoration: 'underline' }}>
-                  Povoamento → Viveiro → Transferência
-                </Link>
-                .
-              </span>
-            </div>
-          )}
 
           {error && (
             <div style={{ padding: '12px 14px', borderRadius: radius.tile, backgroundColor: 'rgba(220,38,38,0.08)', color: 'var(--danger)', border: '1px solid rgba(220,38,38,0.18)', fontSize: 13 }}>

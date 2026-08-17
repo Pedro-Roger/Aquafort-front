@@ -69,7 +69,9 @@ describe('App routing', () => {
     );
 
     expect(screen.getByText('Registrar transferência')).toBeInTheDocument();
-    expect(screen.getByText('Movimente lotes entre viveiros sem cair no povoamento.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Movimente lotes entre viveiros — o ciclo de destino é garantido automaticamente.'),
+    ).toBeInTheDocument();
   });
 
   it('keeps /despesca routed and functional even though it is hidden from the sidebar', () => {
