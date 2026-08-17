@@ -168,3 +168,64 @@ describe('TransferenciaPage - filtro e ordenação de Origem/Destino', () => {
     expect(destinationValues).toEqual(['ve050', 've100', 've242', 'vb02']);
   });
 });
+
+// RN-12 (spec viveiros-e-ciclos, "Ajustes — decisão sobre duplicação de
+// fluxo de transferência", 2026-08-17): reproduz o incidente real
+// (VB104 -> VE204, destino VAZIO ficou sem ciclo) e garante que a mitigação
+// de curto prazo (bloqueio + aviso) está em vigor.
+describe('TransferenciaPage - destino sem ciclo ativo (VAZIO)', () => {
+  const pondsWithEmptyDestination = [
+    { id: 'origin', code: 'VB-104', name: 'Berçário 104', status: 'POVOADO', type: 'BERCARIO', areaHa: 0.5 },
+    { id: 'empty-dest', code: 'VE-204', name: 'Viveiro 204', status: 'VAZIO', type: 'ENGORDA', areaHa: 1 },
+    { id: 'populated-dest', code: 'VE-100', name: 'Viveiro 100', status: 'POVOADO', type: 'ENGORDA', areaHa: 1 },
+    { id: 'preparing-dest', code: 'VE-050', name: 'Viveiro 050', status: 'PREPARANDO', type: 'ENGORDA', areaHa: 1 },
+    { id: 'despescando-dest', code: 'VE-060', name: 'Viveiro 060', status: 'DESPESCANDO', type: 'ENGORDA', areaHa: 1 },
+  ];
+
+  beforeEach(() => {
+    mutateAsync.mockClear();
+    usePondsMock.mockReturnValue({ data: pondsWithEmptyDestination, isLoading: false });
+  });
+
+  afterEach(() => {
+    usePondsMock.mockReturnValue({ data: defaultPonds, isLoading: false });
+  });
+
+  it('shows a warning and disables submission when the selected destination is VAZIO (VB104 -> VE204 incident)', async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.selectOptions(screen.getByLabelText('Destino'), 'empty-dest');
+
+    expect(await screen.findByText(/Destino sem ciclo ativo/i)).toBeInTheDocument();
+    expect(screen.getByText(/VE-204 está com status Vazio/i)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Povoamento → Viveiro → Transferência/i })).toHaveAttribute(
+      'href',
+      '/povoamento',
+    );
+
+    const submitButtons = screen.getAllByRole('button', { name: /Registrar/i });
+    submitButtons.forEach((button) => expect(button).toBeDisabled());
+
+    await user.type(screen.getByLabelText('Quantidade'), '1000');
+    await user.type(screen.getByLabelText('Responsável'), 'Yorvi');
+    await user.click(screen.getByRole('button', { name: /Registrar transferência/i }));
+
+    expect(mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['POVOADO', 'populated-dest'],
+    ['PREPARANDO', 'preparing-dest'],
+    ['DESPESCANDO', 'despescando-dest'],
+  ])('shows no warning when the destination status is %s', async (_status, pondId) => {
+    const user = userEvent.setup();
+    renderPage();
+
+    await user.selectOptions(screen.getByLabelText('Destino'), pondId);
+
+    expect(screen.queryByText(/Destino sem ciclo ativo/i)).not.toBeInTheDocument();
+    const submitButton = screen.getByRole('button', { name: /Registrar transferência/i });
+    expect(submitButton).not.toBeDisabled();
+  });
+});

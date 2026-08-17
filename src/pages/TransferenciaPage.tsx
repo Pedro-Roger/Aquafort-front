@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ArrowRightLeft, CornerDownRight, Plus, RotateCw, ShieldAlert, Truck } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import {
   metricGrid,
@@ -126,6 +127,14 @@ export function TransferenciaPage() {
   const fromPond = activePonds.find((pond) => pond.id === form.fromPondId);
   const toPond = activePonds.find((pond) => pond.id === form.toPondId);
 
+  // RN-12 (spec viveiros-e-ciclos, "Ajustes — decisão sobre duplicação de
+  // fluxo de transferência", 2026-08-17): PondTransfer não cria Cycle. Se o
+  // destino estiver VAZIO (sem ciclo ativo), essa tela sozinha deixaria o
+  // viveiro populado sem rastreabilidade (biometria, FCA, etc). Mitigação de
+  // curto prazo: bloquear a submissão e orientar pro fluxo que já cria o
+  // ciclo de destino (PovoamentoPage / isTransferMode).
+  const destinationWithoutActiveCycle = toPond?.status === PondStatus.VAZIO;
+
   useEffect(() => {
     if (!form.fromPondId && sortedOriginPonds[0]) {
       setForm((current) => ({ ...current, fromPondId: sortedOriginPonds[0].id }));
@@ -207,6 +216,13 @@ export function TransferenciaPage() {
       return;
     }
 
+    if (to.status === PondStatus.VAZIO) {
+      setError(
+        'Destino sem ciclo ativo: essa tela não cria ciclo no viveiro de destino. Use Povoamento → Viveiro → Transferência para mover o lote com biometria.',
+      );
+      return;
+    }
+
     try {
       await createTransfer.mutateAsync({
         fromPondId: from.id,
@@ -250,7 +266,7 @@ export function TransferenciaPage() {
             <div style={{ minWidth: 170 }}>
               <Input label="Data" type="date" value={form.transferDate} onChange={(e) => setForm((current) => ({ ...current, transferDate: e.target.value }))} />
             </div>
-            <Button icon={<Plus size={16} />} onClick={handleSubmit}>
+            <Button icon={<Plus size={16} />} onClick={handleSubmit} disabled={destinationWithoutActiveCycle}>
               Registrar
             </Button>
           </div>
@@ -281,10 +297,45 @@ export function TransferenciaPage() {
               {' · '}
               {toPond ? `Destino: ${pondLabel(toPond)} (${statusLabel(toPond.status)})` : 'Destino não selecionado'}
             </div>
-            <Button icon={<ArrowRightLeft size={16} />} onClick={handleSubmit} loading={createTransfer.isPending}>
+            <Button
+              icon={<ArrowRightLeft size={16} />}
+              onClick={handleSubmit}
+              loading={createTransfer.isPending}
+              disabled={destinationWithoutActiveCycle}
+            >
               Registrar transferência
             </Button>
           </div>
+
+          {destinationWithoutActiveCycle && (
+            <div
+              role="alert"
+              style={{
+                padding: '12px 14px',
+                borderRadius: radius.tile,
+                backgroundColor: 'rgba(217,119,6,0.1)',
+                color: 'var(--warning, #b45309)',
+                border: '1px solid rgba(217,119,6,0.25)',
+                fontSize: 13,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4,
+              }}
+            >
+              <strong>Destino sem ciclo ativo.</strong>
+              <span>
+                {toPond?.code} está com status Vazio: transferir para lá não cria um ciclo, e não vai ser possível
+                registrar biometria, FCA nem crescimento desse lote depois. Essa tela não pode ser usada nesse caso.
+              </span>
+              <span>
+                Para transferir criando o ciclo de destino corretamente, use{' '}
+                <Link to="/povoamento" style={{ color: 'inherit', fontWeight: 700, textDecoration: 'underline' }}>
+                  Povoamento → Viveiro → Transferência
+                </Link>
+                .
+              </span>
+            </div>
+          )}
 
           {error && (
             <div style={{ padding: '12px 14px', borderRadius: radius.tile, backgroundColor: 'rgba(220,38,38,0.08)', color: 'var(--danger)', border: '1px solid rgba(220,38,38,0.18)', fontSize: 13 }}>
