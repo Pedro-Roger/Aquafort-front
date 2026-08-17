@@ -5,15 +5,22 @@ import { MemoryRouter } from 'react-router-dom';
 import { TransferenciaPage } from './TransferenciaPage';
 import { queryClient } from '../lib/queryClient';
 
+const defaultPonds = [
+  { id: 'p1', code: 'V-01', name: 'Viveiro 01', status: 'POVOADO', type: 'ENGORDA', areaHa: 1.4 },
+  { id: 'p2', code: 'V-02', name: 'Viveiro 02', status: 'PREPARANDO', type: 'ENGORDA', areaHa: 1.2 },
+];
+
+const usePondsMock = vi.fn(() => ({ data: defaultPonds, isLoading: false }));
+
 vi.mock('../hooks/usePonds', () => ({
-  usePonds: () => ({
-    data: [
-      { id: 'p1', code: 'V-01', name: 'Viveiro 01', status: 'POVOADO', type: 'ENGORDA', areaHa: 1.4 },
-      { id: 'p2', code: 'V-02', name: 'Viveiro 02', status: 'PREPARANDO', type: 'ENGORDA', areaHa: 1.2 },
-    ],
-    isLoading: false,
-  }),
+  usePonds: () => usePondsMock(),
 }));
+
+function selectOptionValues(select: HTMLElement) {
+  return Array.from((select as HTMLSelectElement).options)
+    .map((opt) => opt.value)
+    .filter((value) => value !== '');
+}
 
 const mutateAsync = vi.fn().mockResolvedValue({ id: 'transfer-1' });
 
@@ -51,6 +58,7 @@ function renderPage() {
 describe('TransferenciaPage', () => {
   beforeEach(() => {
     mutateAsync.mockClear();
+    usePondsMock.mockReturnValue({ data: defaultPonds, isLoading: false });
   });
 
   it('renders the transfer flow instead of povoamento', () => {
@@ -101,5 +109,62 @@ describe('TransferenciaPage', () => {
     await user.click(screen.getByRole('button', { name: /Registrar transferência/i }));
 
     expect(await screen.findByText(/Não foi possível salvar a transferência/i)).toBeInTheDocument();
+  });
+});
+
+describe('TransferenciaPage - filtro e ordenação de Origem/Destino', () => {
+  // Reproduz o caso real de produção: VE-242 é um viveiro de engorda recém
+  // cadastrado, sem ciclo (VAZIO), que não deveria aparecer como origem.
+  const richPonds = [
+    { id: 've242', code: 'VE-242', name: 'Viveiro 242', status: 'VAZIO', type: 'ENGORDA', areaHa: 1 },
+    { id: 've100', code: 'VE-100', name: 'Viveiro 100', status: 'POVOADO', type: 'ENGORDA', areaHa: 1 },
+    { id: 'vb02', code: 'VB-02', name: 'Berçário 02', status: 'POVOADO', type: 'BERCARIO', areaHa: 0.5 },
+    { id: 'vb01', code: 'VB-01', name: 'Berçário 01', status: 'POVOADO', type: 'BERCARIO', areaHa: 0.5 },
+    { id: 've050', code: 'VE-050', name: 'Viveiro 050', status: 'PREPARANDO', type: 'ENGORDA', areaHa: 1 },
+  ];
+
+  beforeEach(() => {
+    mutateAsync.mockClear();
+    usePondsMock.mockReturnValue({ data: richPonds, isLoading: false });
+  });
+
+  afterEach(() => {
+    usePondsMock.mockReturnValue({ data: defaultPonds, isLoading: false });
+  });
+
+  it('does not list a VAZIO pond (VE-242) as an Origem option even though it exists in the ponds list', () => {
+    renderPage();
+
+    const originValues = selectOptionValues(screen.getByLabelText('Origem'));
+    expect(originValues).not.toContain('ve242');
+  });
+
+  it('does not pre-select a pond without an active cycle as the default Origem', () => {
+    renderPage();
+
+    const origin = screen.getByLabelText('Origem') as HTMLSelectElement;
+    expect(origin.value).not.toBe('ve242');
+    // Só há POVOADO no dataset além do VE-242 vazio: VE-100, VB-01, VB-02 —
+    // o default precisa ser um desses.
+    expect(['ve100', 'vb01', 'vb02']).toContain(origin.value);
+  });
+
+  it('lists every BERCARIO pond before any other type in fromOptions (Origem)', () => {
+    renderPage();
+
+    const originValues = selectOptionValues(screen.getByLabelText('Origem'));
+    // Origem só aceita POVOADO: ve100, vb02, vb01 — berçário deve vir primeiro.
+    expect(originValues).toEqual(['vb01', 'vb02', 've100']);
+  });
+
+  it('lists every ENGORDA pond before any other type in toOptions (Destino)', async () => {
+    renderPage();
+
+    // A origem é auto-selecionada (VB-01), então o destino exclui esse id
+    // mas mantém o resto ordenado com engorda primeiro.
+    await waitFor(() => expect((screen.getByLabelText('Origem') as HTMLSelectElement).value).toBe('vb01'));
+
+    const destinationValues = selectOptionValues(screen.getByLabelText('Destino'));
+    expect(destinationValues).toEqual(['ve050', 've100', 've242', 'vb02']);
   });
 });

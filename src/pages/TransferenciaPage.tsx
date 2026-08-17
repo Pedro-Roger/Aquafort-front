@@ -21,7 +21,7 @@ import { Table } from '../components/ui/Table';
 import { usePonds } from '../hooks/usePonds';
 import { useCreateTransfer, useTransfers } from '../hooks/useTransfers';
 import type { Pond, PondTransfer } from '../types';
-import { PondStatus } from '../types';
+import { PondStatus, PondType } from '../types';
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
@@ -46,6 +46,21 @@ type TransferForm = {
 
 function pondLabel(pond: Pond) {
   return `${pond.code} · ${pond.name}`;
+}
+
+/**
+ * Ordena viveiros colocando o `priorityType` no topo (ex.: berçário primeiro
+ * na Origem, engorda primeiro no Destino — fluxo real da fazenda é
+ * berçário -> engorda). Dentro de cada grupo, ordena por código para manter
+ * uma ordem estável e previsível.
+ */
+function sortPondsByPriorityType(ponds: Pond[], priorityType: PondType): Pond[] {
+  return [...ponds].sort((a, b) => {
+    const aPriority = a.type === priorityType ? 0 : 1;
+    const bPriority = b.type === priorityType ? 0 : 1;
+    if (aPriority !== bPriority) return aPriority - bPriority;
+    return a.code.localeCompare(b.code, 'pt-BR', { numeric: true });
+  });
 }
 
 function statusLabel(status: PondStatus) {
@@ -76,26 +91,46 @@ export function TransferenciaPage() {
     [ponds],
   );
 
-  const fromOptions = activePonds.map((pond) => ({
+  // Origem só faz sentido para viveiro com estoque de verdade (ciclo em
+  // andamento). VAZIO/PREPARANDO/DESPESCANDO não entram — evita origem
+  // "fantasma" sem lote pra transferir. Destino continua aceitando qualquer
+  // status ativo (inclusive VAZIO/PREPARANDO), já que transferir PARA um
+  // viveiro vazio é um caso válido.
+  const originCandidatePonds = useMemo(
+    () => activePonds.filter((pond) => pond.status === PondStatus.POVOADO),
+    [activePonds],
+  );
+
+  const sortedOriginPonds = useMemo(
+    () => sortPondsByPriorityType(originCandidatePonds, PondType.BERCARIO),
+    [originCandidatePonds],
+  );
+
+  const sortedDestinationPonds = useMemo(
+    () => sortPondsByPriorityType(activePonds, PondType.ENGORDA),
+    [activePonds],
+  );
+
+  const fromOptions = sortedOriginPonds.map((pond) => ({
     value: pond.id,
-    label: `${pond.code} · ${pond.name}`,
+    label: pondLabel(pond),
   }));
 
-  const toOptions = activePonds
+  const toOptions = sortedDestinationPonds
     .filter((pond) => pond.id !== form.fromPondId)
     .map((pond) => ({
       value: pond.id,
-      label: `${pond.code} · ${pond.name}`,
+      label: pondLabel(pond),
     }));
 
   const fromPond = activePonds.find((pond) => pond.id === form.fromPondId);
   const toPond = activePonds.find((pond) => pond.id === form.toPondId);
 
   useEffect(() => {
-    if (!form.fromPondId && activePonds[0]) {
-      setForm((current) => ({ ...current, fromPondId: activePonds[0].id }));
+    if (!form.fromPondId && sortedOriginPonds[0]) {
+      setForm((current) => ({ ...current, fromPondId: sortedOriginPonds[0].id }));
     }
-  }, [activePonds, form.fromPondId]);
+  }, [sortedOriginPonds, form.fromPondId]);
 
   useEffect(() => {
     if (form.fromPondId && form.fromPondId === form.toPondId) {
