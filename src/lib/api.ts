@@ -2,6 +2,14 @@ import axios from 'axios';
 
 const TOKEN_KEY = 'aquafort_token';
 const REFRESH_KEY = 'aquafort_refresh';
+/**
+ * Multi-fazenda (Entrega 4): fazenda ativa persistida aqui, no mesmo padrão do
+ * token. Todo endpoint de domínio agora exige o header `X-Farm-Id`
+ * (FarmScopeGuard no backend) — sem ele, tudo responde 403. Ver src/store/farm.tsx
+ * para quem escreve essa chave (login inicial ainda não tem fazenda ativa até
+ * `/me/farms` resolver, por isso o header só é enviado quando o valor existe).
+ */
+export const ACTIVE_FARM_KEY = 'aquafort_active_farm_id';
 
 function isNumericString(value: string): boolean {
   return /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/.test(value.trim());
@@ -40,6 +48,10 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem(TOKEN_KEY);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  const farmId = localStorage.getItem(ACTIVE_FARM_KEY);
+  if (farmId) {
+    config.headers['X-Farm-Id'] = farmId;
   }
   return config;
 });

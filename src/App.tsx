@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { AppLayout } from './components/layout/AppLayout'
+import { RequireAdmin } from './components/layout/RequireAdmin'
 import { LoginPage } from './pages/LoginPage'
 import { OperationsDashboardPage } from './pages/OperationsDashboardPage'
 import { WaterQualityPage } from './pages/WaterQualityPage'
@@ -21,6 +22,8 @@ import { SettingsPage } from './pages/SettingsPage'
 import { OperationalReportsPage } from './pages/OperationalReportsPage'
 import { MortalidadePage } from './pages/MortalidadePage'
 import { CustomDashboardsPage } from './pages/CustomDashboardsPage'
+import { FarmsAdminPage } from './pages/FarmsAdminPage'
+import { UserFarmRolesPage } from './pages/UserFarmRolesPage'
 
 function RootRedirect() {
   const { isAuthenticated } = useAuth()
@@ -69,6 +72,12 @@ function App() {
           <Route path="/consumo" element={<ConsumptionChartPage />} />
           <Route path="/alimentadores" element={<AutoFeedersPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+
+          {/* RN-04: admin global apenas — RequireAdmin redireciona quem não for. */}
+          <Route element={<RequireAdmin />}>
+            <Route path="/admin/fazendas" element={<FarmsAdminPage />} />
+            <Route path="/admin/vinculos" element={<UserFarmRolesPage />} />
+          </Route>
         </Route>
 
         <Route path="*" element={<NotFoundPage />} />

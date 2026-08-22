@@ -1,6 +1,14 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { LogOut, User } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import { useFarm } from '../../hooks/useFarm'
+import { FarmSwitcher } from './FarmSwitcher'
+
+const ROLE_LABEL: Record<string, string> = {
+  ADMIN: 'Admin',
+  TECNICO: 'Técnico',
+  OPERADOR: 'Operador',
+}
 
 const titles: Record<string, { title: string; subtitle: string }> = {
   '/dashboard': { title: 'Painel operacional', subtitle: 'Ações rápidas e acompanhamento do dia.' },
@@ -19,9 +27,13 @@ const titles: Record<string, { title: string; subtitle: string }> = {
 
 export function Header() {
   const { user, clearAuth } = useAuth()
+  const { activeFarmRole } = useFarm()
   const navigate = useNavigate()
   const location = useLocation()
   const current = titles[location.pathname] ?? { title: 'Aquafort', subtitle: 'Gestão operacional' }
+  // RN-03: papel efetivo é o da fazenda ativa, não o role global do JWT —
+  // só cai pro role global antes do /me/farms resolver a primeira vez.
+  const effectiveRole = activeFarmRole ?? user?.role
 
   function handleLogout() {
     clearAuth()
@@ -49,26 +61,32 @@ export function Header() {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <FarmSwitcher />
         {user && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <User size={15} color="#fff" />
+          <>
+            <div style={{ width: 1, height: 24, backgroundColor: 'var(--border)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <User size={15} color="#fff" />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{user.name}</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  {effectiveRole ? ROLE_LABEL[effectiveRole] ?? effectiveRole : ''}
+                </span>
+              </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{user.name}</span>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{user.role}</span>
-            </div>
-          </div>
+          </>
         )}
         <div style={{ width: 1, height: 24, backgroundColor: 'var(--border)' }} />
         <button

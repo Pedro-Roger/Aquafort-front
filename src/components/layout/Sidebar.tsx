@@ -8,7 +8,10 @@ import { ArrowRightLeft, ClipboardList, Droplets, FileSpreadsheet, Fish, FlaskCo
   CalendarDays,
   HeartPulse,
   BarChart3,
+  Building2,
+  ShieldCheck,
 } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 
 interface NavItem {
   to: string;
@@ -21,6 +24,8 @@ interface NavItem {
    * 2026-08-16: esconder, não remover).
    */
   hidden?: boolean;
+  /** RN-04: só aparece pra quem é admin global — o mesmo grupo de rotas atrás de RequireAdmin. */
+  adminOnly?: boolean;
 }
 
 interface NavGroup {
@@ -79,9 +84,18 @@ const navGroups: NavGroup[] = [
       { to: '/settings', label: 'Configurações', icon: <Settings2 size={18} /> },
     ],
   },
+  {
+    title: 'ADMIN',
+    items: [
+      { to: '/admin/fazendas', label: 'Fazendas', icon: <Building2 size={18} />, adminOnly: true },
+      { to: '/admin/vinculos', label: 'Vínculos', icon: <ShieldCheck size={18} />, adminOnly: true },
+    ],
+  },
 ];
 
 export function Sidebar() {
+  const { isAdmin } = useAuth();
+
   return (
     <aside
       style={{
@@ -111,7 +125,7 @@ export function Sidebar() {
       {/* Navigation */}
       <nav style={{ padding: '8px', flex: 1, overflow: 'auto' }}>
         {navGroups.map((group) => {
-          const items = group.items.filter((item) => !item.hidden);
+          const items = group.items.filter((item) => !item.hidden && (!item.adminOnly || isAdmin));
           if (!items.length) return null;
 
           return (

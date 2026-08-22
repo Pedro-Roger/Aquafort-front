@@ -3,6 +3,33 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockPost = vi.spyOn(axios, 'post')
 
+describe('api request interceptor · X-Farm-Id', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.resetModules()
+  })
+
+  it('injects X-Farm-Id when a farm is active', async () => {
+    localStorage.setItem('aquafort_active_farm_id', 'farm-1')
+
+    const { api } = await import('./api')
+    const fulfilled = (api.interceptors.request as any).handlers[0].fulfilled
+
+    const config = fulfilled({ headers: {} })
+
+    expect(config.headers['X-Farm-Id']).toBe('farm-1')
+  })
+
+  it('omits X-Farm-Id when there is no active farm', async () => {
+    const { api } = await import('./api')
+    const fulfilled = (api.interceptors.request as any).handlers[0].fulfilled
+
+    const config = fulfilled({ headers: {} })
+
+    expect(config.headers['X-Farm-Id']).toBeUndefined()
+  })
+})
+
 describe('api refresh interceptor', () => {
   beforeEach(() => {
     localStorage.clear()
