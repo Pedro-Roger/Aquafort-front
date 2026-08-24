@@ -170,7 +170,7 @@ export function BiometricsModalForm({
             placeholder="Ex: 95.50 (opcional)"
           />
           <Input
-            label="Biomassa (kg) opcional"
+            label="Biomassa (kg, opcional)"
             type="number"
             step="0.01"
             value={form.estimatedBiomass}

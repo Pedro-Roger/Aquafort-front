@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { ArrowRightLeft, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
@@ -23,7 +22,6 @@ import {
   space,
   workspaceCard,
   workspaceEyebrow,
-  workspaceLink,
   workspaceSurface,
   workspaceTile,
   workspaceTileLabel,
@@ -360,19 +358,6 @@ export function PovoamentoPage() {
           </div>
         )}
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: space.inline, marginTop: space.section }}>
-          {[
-            { to: '/dashboard', label: 'Voltar ao painel' },
-            { to: '/tanques', label: 'Viveiros' },
-            { to: '/nutrition', label: 'Ração' },
-            { to: '/biometrias', label: 'Biometrias' },
-          ].map((item) => (
-            <Link key={item.to} to={item.to} style={workspaceLink}>
-              {item.label}
-            </Link>
-          ))}
-        </div>
-
         <div style={{ ...metricGrid, marginTop: space.section }}>
           <StatCard label="Tanques aptos" value={isLoading ? '-' : targetPonds.length} />
           <StatCard label="Larvas alocadas" value={`${fmt(summary.allocated, 0)}`} />
@@ -380,93 +365,9 @@ export function PovoamentoPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 0.92fr) minmax(0, 1.08fr)', gap: space.page, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: space.page, alignItems: 'start' }}>
         <div style={workspaceCard}>
-          {!isTransferMode && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <Input
-                label="Código genético"
-                value={form.geneticCode}
-                onChange={(e) => setForm((current) => ({ ...current, geneticCode: e.target.value }))}
-                placeholder="Linhagem informada pela larvicultura"
-              />
-              <Input
-                label="Geração opcional"
-                type="number"
-                min={1}
-                step="1"
-                placeholder="Ex: 4"
-                value={form.geneticGeneration}
-                onChange={(e) => setForm((current) => ({ ...current, geneticGeneration: e.target.value }))}
-              />
-              <Input label="Fornecedor" value={form.supplier} onChange={(e) => setForm((current) => ({ ...current, supplier: e.target.value }))} />
-              <Input label="Lote / código" value={form.lotCode} onChange={(e) => setForm((current) => ({ ...current, lotCode: e.target.value }))} />
-              <Input
-                label="Dia do estágio"
-                type="number"
-                min={1}
-                step="1"
-                placeholder={String(autoStageDay)}
-                value={form.stageDayOverride}
-                onChange={(e) => setForm((current) => ({ ...current, stageDayOverride: e.target.value }))}
-              />
-              <Input
-                label="PL/grama opcional"
-                type="number"
-                min={0}
-                step="1"
-                placeholder="Pós-larvas por grama"
-                value={form.plPerGram}
-                onChange={(e) => setForm((current) => ({ ...current, plPerGram: e.target.value }))}
-              />
-              {mode === 'VIVEIRO' && (
-                <Input
-                  label="Densidade (PL/m²) opcional"
-                  type="number"
-                  min={0}
-                  step="0.1"
-                  value={form.density}
-                  onChange={(e) => setForm((current) => ({ ...current, density: e.target.value }))}
-                />
-              )}
-            </div>
-          )}
-
-          {isTransferMode && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-              <Input
-                label="Densidade (PL/m²) opcional"
-                type="number"
-                min={0}
-                step="0.1"
-                value={form.density}
-                onChange={(e) => setForm((current) => ({ ...current, density: e.target.value }))}
-              />
-              <Input
-                label="Lote / código opcional"
-                value={form.lotCode}
-                onChange={(e) => setForm((current) => ({ ...current, lotCode: e.target.value }))}
-              />
-              <Input
-                label="PL/grama opcional"
-                type="number"
-                min={0}
-                step="1"
-                placeholder="Pós-larvas por grama"
-                value={form.plPerGram}
-                onChange={(e) => setForm((current) => ({ ...current, plPerGram: e.target.value }))}
-              />
-            </div>
-          )}
-
-          {isTransferMode && (
-            <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 6 }}>
-              Fornecedor registrado automaticamente como "Transferência interna".
-              {plPerGram > 0 && ' O PL/grama informado vira uma biometria de fechamento no berçário de origem.'}
-            </div>
-          )}
-
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: space.section, marginTop: space.section }}>
+          <div>
             <h3 style={sectionTitle}>{mode === 'BERCARIO' ? 'Berçários' : 'Viveiros'} disponíveis</h3>
             <div style={{ ...sectionSubtitle, marginTop: 2, marginBottom: space.tile }}>
               Selecione um ou mais tanques e clique em "Criar povoamento".
@@ -568,11 +469,109 @@ export function PovoamentoPage() {
             </div>
           )}
 
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: space.section, marginTop: space.section }}>
+            <h3 style={sectionTitle}>Dados do lote</h3>
+            <div style={{ ...sectionSubtitle, marginTop: 2, marginBottom: space.tile }}>
+              {isTransferMode ? 'Preenchido uma vez para todos os tanques selecionados.' : 'Fornecedor é o único campo obrigatório — o resto é opcional.'}
+            </div>
+
+            {!isTransferMode && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+                <Input label="Fornecedor" value={form.supplier} onChange={(e) => setForm((current) => ({ ...current, supplier: e.target.value }))} />
+                <Input label="Lote / código" value={form.lotCode} onChange={(e) => setForm((current) => ({ ...current, lotCode: e.target.value }))} />
+                <Input
+                  label="Código genético"
+                  value={form.geneticCode}
+                  onChange={(e) => setForm((current) => ({ ...current, geneticCode: e.target.value }))}
+                  placeholder="Linhagem informada pela larvicultura"
+                />
+                <Input
+                  label="Geração (opcional)"
+                  type="number"
+                  min={1}
+                  step="1"
+                  placeholder="Ex: 4"
+                  value={form.geneticGeneration}
+                  onChange={(e) => setForm((current) => ({ ...current, geneticGeneration: e.target.value }))}
+                />
+                <Input
+                  label="Dia do estágio"
+                  type="number"
+                  min={1}
+                  step="1"
+                  placeholder={String(autoStageDay)}
+                  value={form.stageDayOverride}
+                  onChange={(e) => setForm((current) => ({ ...current, stageDayOverride: e.target.value }))}
+                />
+                <Input
+                  label="PL/grama (opcional)"
+                  type="number"
+                  min={0}
+                  step="1"
+                  placeholder="Pós-larvas por grama"
+                  value={form.plPerGram}
+                  onChange={(e) => setForm((current) => ({ ...current, plPerGram: e.target.value }))}
+                />
+                {mode === 'VIVEIRO' && (
+                  <Input
+                    label="Densidade (PL/m², opcional)"
+                    type="number"
+                    min={0}
+                    step="0.1"
+                    value={form.density}
+                    onChange={(e) => setForm((current) => ({ ...current, density: e.target.value }))}
+                  />
+                )}
+                <Input
+                  label="Biometria (opcional)"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={form.biometria}
+                  onChange={(e) => setForm((current) => ({ ...current, biometria: e.target.value }))}
+                />
+              </div>
+            )}
+
+            {isTransferMode && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+                <Input
+                  label="Densidade (PL/m², opcional)"
+                  type="number"
+                  min={0}
+                  step="0.1"
+                  value={form.density}
+                  onChange={(e) => setForm((current) => ({ ...current, density: e.target.value }))}
+                />
+                <Input
+                  label="Lote / código (opcional)"
+                  value={form.lotCode}
+                  onChange={(e) => setForm((current) => ({ ...current, lotCode: e.target.value }))}
+                />
+                <Input
+                  label="PL/grama (opcional)"
+                  type="number"
+                  min={0}
+                  step="1"
+                  placeholder="Pós-larvas por grama"
+                  value={form.plPerGram}
+                  onChange={(e) => setForm((current) => ({ ...current, plPerGram: e.target.value }))}
+                />
+              </div>
+            )}
+
+            {isTransferMode && (
+              <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 10 }}>
+                Fornecedor registrado automaticamente como "Transferência interna".
+                {plPerGram > 0 && ' O PL/grama informado vira uma biometria de fechamento no berçário de origem.'}
+              </div>
+            )}
+          </div>
+
           <details style={{ marginTop: space.section, borderTop: '1px solid var(--border)', paddingTop: space.tile }}>
             <summary style={{ cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Detalhes opcionais</summary>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: space.tile }}>
-              <Input label="Biometria opcional" type="number" min={0} step="0.01" value={form.biometria} onChange={(e) => setForm((current) => ({ ...current, biometria: e.target.value }))} />
-              <Input label="Transferência prevista opcional" type="date" value={form.transferDate} onChange={(e) => setForm((current) => ({ ...current, transferDate: e.target.value }))} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginTop: space.tile }}>
+              <Input label="Transferência prevista (opcional)" type="date" value={form.transferDate} onChange={(e) => setForm((current) => ({ ...current, transferDate: e.target.value }))} />
             </div>
             <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 6 }}>
               Estágio calculado automaticamente: dia {autoStageDay} desde o povoamento{form.transferDate ? ' (limitado pela transferência prevista)' : ''}.

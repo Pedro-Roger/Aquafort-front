@@ -41,17 +41,13 @@ beforeEach(() => {
 })
 
 describe('PovoamentoPage', () => {
-  it('shows operational shortcuts and defaults to the Berçário mode', () => {
+  it('defaults to the Berçário mode', () => {
     render(
       <MemoryRouter>
         <PovoamentoPage />
       </MemoryRouter>,
     )
 
-    expect(screen.getByText('Voltar ao painel')).toBeInTheDocument()
-    expect(screen.getByText('Viveiros')).toBeInTheDocument()
-    expect(screen.getByText('Ração')).toBeInTheDocument()
-    expect(screen.getByText('Biometrias')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Berçário' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Viveiro' })).toBeInTheDocument()
     expect(screen.getByText('Berçários disponíveis')).toBeInTheDocument()
@@ -149,7 +145,7 @@ describe('PovoamentoPage', () => {
   it('shows the PL/grama field in the transfer form (RF-13, previously absent)', () => {
     renderTransferWithOrigin()
 
-    expect(screen.getByLabelText('PL/grama opcional')).toBeInTheDocument()
+    expect(screen.getByLabelText('PL/grama (opcional)')).toBeInTheDocument()
   })
 
   it('does not render an "Amostras" field in the transfer form anymore (RF-14 revisado/RF-16)', () => {
@@ -161,7 +157,7 @@ describe('PovoamentoPage', () => {
   it('saves a transfer with PL/grama informed without requiring Amostras (RF-14 revisado)', async () => {
     renderTransferWithOrigin()
 
-    fireEvent.change(screen.getByLabelText('PL/grama opcional'), { target: { value: '250' } })
+    fireEvent.change(screen.getByLabelText('PL/grama (opcional)'), { target: { value: '250' } })
     fireEvent.click(screen.getByRole('button', { name: 'Salvar povoamento' }))
 
     await waitFor(() => expect(mutateAsyncMock).toHaveBeenCalledTimes(1))
@@ -171,7 +167,7 @@ describe('PovoamentoPage', () => {
   it('sends PL/grama on the destination cycle and creates a closing biometria on the origin cycle, with no sampleCount in the payload (RF-13/RF-14 revisado)', async () => {
     renderTransferWithOrigin()
 
-    fireEvent.change(screen.getByLabelText('PL/grama opcional'), { target: { value: '250' } })
+    fireEvent.change(screen.getByLabelText('PL/grama (opcional)'), { target: { value: '250' } })
     fireEvent.click(screen.getByRole('button', { name: 'Salvar povoamento' }))
 
     await waitFor(() => expect(mutateAsyncMock).toHaveBeenCalledTimes(1))
@@ -237,7 +233,7 @@ describe('PovoamentoPage', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByLabelText('Geração opcional')).toBeInTheDocument()
+    expect(screen.getByLabelText('Geração (opcional)')).toBeInTheDocument()
 
     fireEvent.click(screen.getByText('B-02'))
     fireEvent.click(screen.getByRole('button', { name: /Criar povoamento/ }))
@@ -257,7 +253,7 @@ describe('PovoamentoPage', () => {
       </MemoryRouter>,
     )
 
-    const geracaoInput = screen.getByLabelText('Geração opcional') as HTMLInputElement
+    const geracaoInput = screen.getByLabelText('Geração (opcional)') as HTMLInputElement
     expect(geracaoInput).toHaveAttribute('min', '1')
 
     fireEvent.change(screen.getByLabelText('Fornecedor'), { target: { value: 'Lavifort' } })
@@ -279,7 +275,7 @@ describe('PovoamentoPage', () => {
     )
 
     fireEvent.change(screen.getByLabelText('Código genético'), { target: { value: 'APQS' } })
-    fireEvent.change(screen.getByLabelText('Geração opcional'), { target: { value: '4' } })
+    fireEvent.change(screen.getByLabelText('Geração (opcional)'), { target: { value: '4' } })
     fireEvent.change(screen.getByLabelText('Fornecedor'), { target: { value: 'Lavifort' } })
     fireEvent.click(screen.getByText('B-02'))
     fireEvent.click(screen.getByRole('button', { name: /Criar povoamento/ }))
@@ -309,7 +305,7 @@ describe('PovoamentoPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Viveiro' }))
     fireEvent.click(screen.getByRole('button', { name: 'Transferência de berçário' }))
 
-    expect(screen.queryByLabelText('Geração opcional')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Geração (opcional)')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByText('V-01'))
     fireEvent.click(screen.getByRole('button', { name: /Criar povoamento/ }))
