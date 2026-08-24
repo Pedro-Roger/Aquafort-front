@@ -5,7 +5,6 @@ import {
   metricGrid,
   pageStack,
   radius,
-  sectionSubtitle,
   sectionTitle,
   space,
   workspaceCard,
@@ -315,8 +314,12 @@ export function TransferenciaPage() {
         ...(form.transferType !== 'AUTO' ? { closesOriginCycle: form.transferType === 'TOTAL' } : {}),
         ...(averageWeightG !== undefined ? { averageWeightG } : {}),
       });
-    } catch {
-      setError('Não foi possível salvar a transferência. Tente novamente.');
+    } catch (saveError: unknown) {
+      const errorMessage = typeof saveError === 'object' && saveError !== null && 'response' in saveError
+        ? (saveError as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      const fallbackMessage = saveError instanceof Error ? saveError.message : undefined;
+      setError(errorMessage ?? fallbackMessage ?? 'Não foi possível salvar a transferência. Tente novamente.');
       return;
     }
 
@@ -339,13 +342,6 @@ export function TransferenciaPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.section, flexWrap: 'wrap', alignItems: 'flex-start' }}>
           <div>
             <div style={workspaceEyebrow}>Transferência</div>
-            <h1 style={{ margin: '8px 0 0', fontSize: 22, fontWeight: 700, lineHeight: 1.25, color: 'var(--text-primary)' }}>
-              Movimente lotes entre viveiros — o ciclo de destino é garantido automaticamente.
-            </h1>
-            <p style={{ ...sectionSubtitle, marginTop: 6, maxWidth: 760 }}>
-              Registre a saída de um viveiro e a entrada em outro com origem, destino, quantidade e responsável. Se o
-              destino estiver vazio, um ciclo novo é criado para ele nesta mesma operação.
-            </p>
           </div>
           <div style={{ display: 'flex', gap: space.inline, alignItems: 'end', flexWrap: 'wrap' }}>
             <div style={{ minWidth: 170 }}>

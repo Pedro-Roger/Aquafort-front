@@ -98,9 +98,24 @@ describe('TransferenciaPage', () => {
     );
   });
 
-  it('surfaces an error when the API rejects the transfer', async () => {
+  it('surfaces the backend validation message when the API rejects the transfer', async () => {
     const user = userEvent.setup();
-    mutateAsync.mockRejectedValueOnce(new Error('boom'));
+    mutateAsync.mockRejectedValueOnce({
+      response: { data: { message: 'Quantidade excede a população restante do ciclo de origem (900 un)' } },
+    });
+    renderPage();
+
+    await user.selectOptions(screen.getByLabelText('Destino'), 'p2');
+    await user.type(screen.getByLabelText('Quantidade'), '10');
+    await user.type(screen.getByLabelText('Responsável'), 'Maria');
+    await user.click(screen.getByRole('button', { name: /Registrar transferência/i }));
+
+    expect(await screen.findByText(/Quantidade excede a população restante do ciclo de origem \(900 un\)/i)).toBeInTheDocument();
+  });
+
+  it('falls back to a generic error when the rejection has no message', async () => {
+    const user = userEvent.setup();
+    mutateAsync.mockRejectedValueOnce({});
     renderPage();
 
     await user.selectOptions(screen.getByLabelText('Destino'), 'p2');
