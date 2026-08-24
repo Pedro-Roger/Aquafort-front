@@ -10,6 +10,8 @@ import {
   Line,
   LineChart,
   ResponsiveContainer,
+  Scatter,
+  ScatterChart,
   Tooltip,
   XAxis,
   YAxis,
@@ -19,6 +21,7 @@ import {
   useDashboardMetrics,
   useDashboards,
   useDeleteDashboard,
+  useMetricScatter,
   useMetricSeries,
   useSaveDashboard,
 } from '../hooks/useDashboards';
@@ -51,12 +54,14 @@ const X_AXIS_OPTIONS: { value: DashboardXAxis; label: string }[] = [
   { value: 'date', label: 'Data' },
   { value: 'week', label: 'Semana de cultivo' },
   { value: 'pond', label: 'Comparar viveiros' },
+  { value: 'metric', label: 'Outra métrica (correlação)' },
 ];
 
 const X_AXIS_LABELS: Record<DashboardXAxis, string> = {
   date: 'por data',
   week: 'por semana de cultivo',
   pond: 'comparativo entre viveiros',
+  metric: 'correlação',
 };
 
 function formatXLabel(raw: string) {
@@ -69,18 +74,26 @@ function panelId() {
   return `panel-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-/** One saved chart: resolves its series and renders the picked chart type. */
-function PanelCard({
+/**
+ * One saved chart: resolves its series and renders the picked chart type.
+ * Reused as-is on the Painel operacional (home) to preview the most
+ * recently updated saved dashboard — `onRemove` omitted there, since
+ * deleting a panel from the home page would be a surprising side effect.
+ */
+export function PanelCard({
   panel,
   metrics,
   onRemove,
 }: {
   panel: DashboardPanel;
   metrics: DashboardMetric[];
-  onRemove: () => void;
+  onRemove?: () => void;
 }) {
-  const series = useMetricSeries(panel);
+  const isMetricAxis = (panel.xAxis ?? 'date') === 'metric';
+  const series = useMetricSeries(isMetricAxis ? null : panel);
+  const scatter = useMetricScatter(isMetricAxis ? panel : null);
   const metric = metrics.find((item) => item.key === panel.metric);
+  const xMetric = metrics.find((item) => item.key === panel.xMetric);
 
   const isPondAxis = (panel.xAxis ?? 'date') === 'pond';
 
@@ -99,7 +112,9 @@ function PanelCard({
     return rows.map(([, row]) => row);
   }, [series.data, isPondAxis]);
 
-  const pondCodes = (series.data ?? []).map((item) => item.pondCode);
+  const isLoading = isMetricAxis ? scatter.isLoading : series.isLoading;
+  const hasData = isMetricAxis ? (scatter.data ?? []).some((item) => item.points.length) : chartData.length > 0;
+  const pondCodes = isMetricAxis ? (scatter.data ?? []).map((item) => item.pondCode) : (series.data ?? []).map((item) => item.pondCode);
   // Com dezenas de viveiros a legenda deixa de informar e vira ruído.
   const showLegend = pondCodes.length > 1 && pondCodes.length <= 10;
 
@@ -167,31 +182,70 @@ function PanelCard({
     );
   }
 
+  /** Correlation mode: one point per day both metrics have a reading, one series per pond. */
+  function renderScatterChart() {
+    return (
+      <ScatterChart margin={{ top: 10, right: 12, left: -10, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.22)" />
+        <XAxis
+          type="number"
+          dataKey="x"
+          name={xMetric?.label ?? panel.xMetric}
+          tick={axisTick}
+          label={{ value: xMetric?.label ?? panel.xMetric, position: 'insideBottom', offset: -2, fontSize: 11, fill: 'var(--text-muted)' }}
+        />
+        <YAxis
+          type="number"
+          dataKey="y"
+          name={metric?.label ?? panel.metric}
+          tick={axisTick}
+          label={{ value: metric?.label ?? panel.metric, angle: -90, position: 'insideLeft', fontSize: 11, fill: 'var(--text-muted)' }}
+        />
+        <Tooltip contentStyle={tooltipStyle} cursor={{ strokeDasharray: '3 3' }} />
+        {showLegend ? <Legend wrapperStyle={{ fontSize: 12 }} /> : null}
+        {(scatter.data ?? []).map((pondSeries, index) => (
+          <Scatter
+            key={pondSeries.pondCode}
+            name={pondSeries.pondCode}
+            data={pondSeries.points}
+            fill={SERIES_COLORS[index % SERIES_COLORS.length]}
+          />
+        ))}
+      </ScatterChart>
+    );
+  }
+
   return (
     <div style={workspaceCard}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.inline, alignItems: 'baseline' }}>
         <div>
           <h3 style={sectionTitle}>{panel.title}</h3>
           <div style={{ ...sectionSubtitle, marginTop: 2 }}>
-            {metric?.label ?? panel.metric}
+            {isMetricAxis
+              ? `${metric?.label ?? panel.metric} × ${xMetric?.label ?? panel.xMetric}`
+              : metric?.label ?? panel.metric}
             {` · ${X_AXIS_LABELS[panel.xAxis ?? 'date']}`}
             {panel.from || panel.to ? ` · ${panel.from || '…'} → ${panel.to || 'hoje'}` : ' · todo o período'}
           </div>
         </div>
-        <Button variant="secondary" icon={<X size={14} />} onClick={onRemove} style={{ padding: '6px 10px' }}>
-          Remover
-        </Button>
+        {onRemove && (
+          <Button variant="secondary" icon={<X size={14} />} onClick={onRemove} style={{ padding: '6px 10px' }}>
+            Remover
+          </Button>
+        )}
       </div>
 
-      {series.isLoading ? (
+      {isLoading ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Carregando…</div>
-      ) : chartData.length === 0 ? (
+      ) : !hasData ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-          Sem dados para esta combinação de métrica, viveiros e período.
+          {isMetricAxis
+            ? 'Sem dias em que as duas métricas tenham leitura no mesmo período.'
+            : 'Sem dados para esta combinação de métrica, viveiros e período.'}
         </div>
       ) : (
         <div style={{ height: 280 }}>
-          <ResponsiveContainer>{renderChart()}</ResponsiveContainer>
+          <ResponsiveContainer>{isMetricAxis ? renderScatterChart() : renderChart()}</ResponsiveContainer>
         </div>
       )}
     </div>
@@ -214,6 +268,7 @@ export function CustomDashboardsPage() {
   const [draft, setDraft] = useState({
     title: '',
     metric: '',
+    xMetric: '',
     chartType: 'line' as DashboardChartType,
     xAxis: 'date' as DashboardXAxis,
     pondIds: [] as string[],
@@ -255,23 +310,25 @@ export function CustomDashboardsPage() {
 
   function addPanel() {
     if (!draft.metric) return;
+    if (draft.xAxis === 'metric' && !draft.xMetric) return;
     const metric = metrics.find((item) => item.key === draft.metric);
     setPanels((current) => [
       ...current,
       {
         id: panelId(),
         title: draft.title.trim() || metric?.label || draft.metric,
-        // Uma barra por viveiro é o desenho natural do comparativo.
+        // Uma barra por viveiro é o desenho natural do comparativo; correlação usa dispersão.
         chartType: draft.xAxis === 'pond' ? 'bar' : draft.chartType,
         metric: draft.metric,
         xAxis: draft.xAxis,
+        ...(draft.xAxis === 'metric' ? { xMetric: draft.xMetric } : {}),
         pondIds: draft.pondIds,
         from: draft.from || null,
         to: draft.to || null,
       },
     ]);
     setDirty(true);
-    setDraft({ title: '', metric: '', chartType: 'line', xAxis: 'date', pondIds: [], from: '', to: '' });
+    setDraft({ title: '', metric: '', xMetric: '', chartType: 'line', xAxis: 'date', pondIds: [], from: '', to: '' });
     setBuilderOpen(false);
   }
 
@@ -424,7 +481,37 @@ export function CustomDashboardsPage() {
             onChange={(e) => setDraft((current) => ({ ...current, xAxis: e.target.value as DashboardXAxis }))}
           />
 
-          {draft.xAxis !== 'pond' ? (
+          {draft.xAxis === 'metric' ? (
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                Eixo X (métrica)
+              </label>
+              <select
+                value={draft.xMetric}
+                onChange={(e) => setDraft((current) => ({ ...current, xMetric: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  borderRadius: 12,
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  fontSize: 14,
+                }}
+              >
+                <option value="">Selecione…</option>
+                {metricOptions.map(([group, items]) => (
+                  <optgroup key={group} label={group}>
+                    {items
+                      .filter((metric) => metric.key !== draft.metric)
+                      .map((metric) => (
+                        <option key={metric.key} value={metric.key}>{metric.label}</option>
+                      ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+          ) : draft.xAxis !== 'pond' ? (
             <Select
               label="Tipo de gráfico"
               options={CHART_TYPE_OPTIONS}
@@ -436,6 +523,12 @@ export function CustomDashboardsPage() {
               Comparativo entre viveiros usa barras — uma por tanque.
             </div>
           )}
+
+          {draft.xAxis === 'metric' ? (
+            <div style={{ gridColumn: '1 / -1', color: 'var(--text-muted)', fontSize: 12, marginTop: -6 }}>
+              Correlação usa dispersão (scatter): um ponto por dia em que as duas métricas têm leitura, uma cor por viveiro.
+            </div>
+          ) : null}
 
           <Input
             label="De (opcional)"
@@ -482,7 +575,7 @@ export function CustomDashboardsPage() {
 
           <div style={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 8 }}>
             <Button variant="secondary" onClick={() => setBuilderOpen(false)}>Cancelar</Button>
-            <Button onClick={addPanel} disabled={!draft.metric}>Adicionar ao painel</Button>
+            <Button onClick={addPanel} disabled={!draft.metric || (draft.xAxis === 'metric' && !draft.xMetric)}>Adicionar ao painel</Button>
           </div>
         </div>
       </Modal>

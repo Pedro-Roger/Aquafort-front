@@ -648,10 +648,17 @@ export interface MetricSeries {
   points: { date: string; value: number }[];
 }
 
+/** One point per day both metrics have a reading — see `DashboardXAxis: 'metric'`. */
+export interface ScatterSeries {
+  pondId: string;
+  pondCode: string;
+  points: { date: string; x: number; y: number }[];
+}
+
 export type DashboardChartType = 'line' | 'bar' | 'area';
 
-/** Eixo X do gráfico: tempo, semana de cultivo ou comparação entre viveiros. */
-export type DashboardXAxis = 'date' | 'week' | 'pond';
+/** Eixo X do gráfico: tempo, semana de cultivo, comparação entre viveiros, ou outra métrica (correlação). */
+export type DashboardXAxis = 'date' | 'week' | 'pond' | 'metric';
 
 /** Especificação de um gráfico salvo num dashboard customizável. */
 export interface DashboardPanel {
@@ -661,6 +668,8 @@ export interface DashboardPanel {
   metric: string;
   /** Ausente em painéis salvos antes do seletor de eixo X — tratar como 'date'. */
   xAxis?: DashboardXAxis;
+  /** Só usado quando xAxis === 'metric': a métrica do eixo X, correlacionada com `metric` no eixo Y. */
+  xMetric?: string;
   pondIds: string[];
   from?: string | null;
   to?: string | null;

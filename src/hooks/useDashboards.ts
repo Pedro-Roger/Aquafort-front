@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import type { DashboardConfig, DashboardMetric, DashboardPanel, MetricSeries } from '../types';
+import type { DashboardConfig, DashboardMetric, DashboardPanel, MetricSeries, ScatterSeries } from '../types';
 
 export function useDashboardMetrics() {
   return useQuery<DashboardMetric[]>({
@@ -25,6 +25,27 @@ export function useMetricSeries(panel: Pick<DashboardPanel, 'metric' | 'pondIds'
           from: panel!.from || undefined,
           to: panel!.to || undefined,
           xAxis: panel!.xAxis ?? 'date',
+        },
+      });
+      return data;
+    },
+  });
+}
+
+/** Correlates two metrics directly (xAxis === 'metric') instead of metric-vs-time. */
+export function useMetricScatter(panel: Pick<DashboardPanel, 'metric' | 'xMetric' | 'pondIds' | 'from' | 'to'> | null) {
+  return useQuery<ScatterSeries[]>({
+    queryKey: ['dashboards', 'scatter', panel],
+    enabled: Boolean(panel?.metric && panel?.xMetric),
+    queryFn: async () => {
+      const { data } = await api.get('/v1/dashboards/series', {
+        params: {
+          metric: panel!.metric,
+          xMetric: panel!.xMetric,
+          pondIds: panel!.pondIds.length ? panel!.pondIds.join(',') : undefined,
+          from: panel!.from || undefined,
+          to: panel!.to || undefined,
+          xAxis: 'metric',
         },
       });
       return data;
