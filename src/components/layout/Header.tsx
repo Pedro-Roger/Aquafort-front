@@ -44,8 +44,7 @@ export function Header() {
     <header
       style={{
         height: '64px',
-        backgroundColor: 'rgba(255,255,255,0.78)',
-        backdropFilter: 'blur(16px)',
+        backgroundColor: 'var(--bg-primary)',
         borderBottom: '1px solid var(--border)',
         display: 'flex',
         alignItems: 'center',
@@ -56,7 +55,7 @@ export function Header() {
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-        <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' }}>{current.title}</span>
+        <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{current.title}</span>
         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{current.subtitle}</span>
       </div>
 
@@ -71,7 +70,7 @@ export function Header() {
                   width: 30,
                   height: 30,
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)',
+                  backgroundColor: 'var(--accent)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -99,14 +98,14 @@ export function Header() {
                 padding: '7px 12px',
                 borderRadius: '999px',
                 border: 'none',
-                backgroundColor: 'rgba(2, 132, 199, 0.06)',
+                backgroundColor: 'rgba(37, 99, 235, 0.06)',
                 color: 'var(--text-secondary)',
                 cursor: 'pointer',
                 fontSize: '13px',
                 transition: 'background-color 0.15s, color 0.15s',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(2,132,199,0.10)'
+            e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.10)'
             e.currentTarget.style.color = 'var(--accent-dark)'
           }}
           onMouseLeave={(e) => {

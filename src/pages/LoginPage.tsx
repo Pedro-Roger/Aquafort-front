@@ -57,21 +57,20 @@ export function LoginPage() {
     <div
       style={{
         minHeight: '100vh',
-        background: 'radial-gradient(circle at top, #ffffff 0, #f4f8fc 38%, #eaf2f9 100%)',
+        backgroundColor: 'var(--bg-primary)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: '24px',
       }}
     >
-      {/* Background grid effect */}
+      {/* Background grid effect — Dub's dotted-canvas signature, in the neutral border tone. */}
       <div
         style={{
           position: 'fixed',
           inset: 0,
-          backgroundImage: 'linear-gradient(rgba(2,132,199,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(2,132,199,0.08) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-          opacity: 0.55,
+          backgroundImage: 'radial-gradient(rgba(163, 163, 163, 0.35) 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
           pointerEvents: 'none',
         }}
       />
@@ -91,12 +90,10 @@ export function LoginPage() {
         {/* Card */}
         <div
           style={{
-            backgroundColor: 'rgba(255,255,255,0.88)',
-            backdropFilter: 'blur(14px)',
-            borderRadius: '18px',
+            backgroundColor: 'var(--bg-card)',
+            borderRadius: 12,
             border: '1px solid var(--border)',
             padding: '32px',
-            boxShadow: '0 20px 60px rgba(15, 23, 42, 0.10)',
           }}
         >
           <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '24px' }}>

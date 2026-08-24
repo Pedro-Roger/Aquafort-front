@@ -13,19 +13,20 @@ import type { CSSProperties } from 'react';
 /** Corner radii. Cards and tiles nest, so the tile radius is deliberately smaller. */
 export const radius = {
   /** Page sections, panels, tables, modals. */
-  card: 16,
+  card: 12,
   /** Anything nested inside a card: metric tiles, list rows, info lines. */
-  tile: 12,
+  tile: 8,
   /** Inputs, selects, textareas and square buttons. */
-  control: 10,
+  control: 8,
   /** Pills: badges, chips, nav links, primary buttons. */
-  pill: 999,
+  pill: 9999,
 } as const;
 
-/** Two elevations only. Cards use `card`; things that float use `raised`. */
+/** Border-first elevation: cards carry no shadow, only things that float above
+ *  the page (modals, tooltips) get `raised`. */
 export const shadow = {
-  card: '0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 24px rgba(15, 23, 42, 0.05)',
-  raised: '0 4px 12px rgba(15, 23, 42, 0.06), 0 24px 56px rgba(15, 23, 42, 0.12)',
+  card: 'none',
+  raised: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
 } as const;
 
 /** Vertical/horizontal rhythm. Sections are 16 apart, tiles inside them 12. */
@@ -84,14 +85,14 @@ export const workspaceEyebrow: CSSProperties = {
   textTransform: 'uppercase',
   letterSpacing: '0.12em',
   color: 'var(--accent-dark)',
-  fontWeight: 700,
+  fontWeight: 600,
 };
 
 /** Section heading. One size for every "h2"-level title in the app. */
 export const sectionTitle: CSSProperties = {
   margin: 0,
   fontSize: 17,
-  fontWeight: 700,
+  fontWeight: 600,
   lineHeight: 1.3,
   color: 'var(--text-primary)',
 };
@@ -117,7 +118,7 @@ export const workspaceTileLabel: CSSProperties = {
 export const workspaceTileValue: CSSProperties = {
   marginTop: 6,
   fontSize: 20,
-  fontWeight: 800,
+  fontWeight: 600,
   lineHeight: 1.15,
   color: 'var(--text-primary)',
   fontVariantNumeric: 'tabular-nums',

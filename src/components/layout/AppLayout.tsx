@@ -37,7 +37,7 @@ export function AppLayout() {
             display: 'inline-block',
             width: 28,
             height: 28,
-            border: '3px solid var(--accent-dark, #b45309)',
+            border: '3px solid var(--accent-dark)',
             borderTopColor: 'transparent',
             borderRadius: '50%',
             animation: 'spin 0.7s linear infinite',
@@ -53,7 +53,7 @@ export function AppLayout() {
         display: 'flex',
         minHeight: '100svh',
         overflow: 'hidden',
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.32), rgba(255,255,255,0.08))',
+        backgroundColor: 'var(--bg-primary)',
       }}
     >
       <Sidebar />

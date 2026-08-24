@@ -1,6 +1,7 @@
 import type React from 'react';
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ArrowRightLeft, ClipboardList, Droplets, FileSpreadsheet, Fish, FlaskConical, LayoutDashboard, List, Settings2, Waves,
+import { ArrowRightLeft, ChevronLeft, ChevronRight, ClipboardList, Droplets, FileSpreadsheet, Fish, FlaskConical, LayoutDashboard, List, Settings2, Waves,
   Boxes,
   Cpu,
   Users,
@@ -10,8 +11,13 @@ import { ArrowRightLeft, ClipboardList, Droplets, FileSpreadsheet, Fish, FlaskCo
   BarChart3,
   Building2,
   ShieldCheck,
+  HelpCircle,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+
+const COLLAPSED_KEY = 'aquafort_sidebar_collapsed';
+const EXPANDED_WIDTH = 248;
+const COLLAPSED_WIDTH = 72;
 
 interface NavItem {
   to: string;
@@ -82,6 +88,7 @@ const navGroups: NavGroup[] = [
       { to: '/materiais', label: 'Materiais', icon: <Boxes size={18} /> },
       { to: '/relatorios-operacionais', label: 'Relatórios', icon: <FileSpreadsheet size={18} /> },
       { to: '/settings', label: 'Configurações', icon: <Settings2 size={18} /> },
+      { to: '/ajuda', label: 'Ajuda', icon: <HelpCircle size={18} /> },
     ],
   },
   {
@@ -95,31 +102,85 @@ const navGroups: NavGroup[] = [
 
 export function Sidebar() {
   const { isAdmin } = useAuth();
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === 'true');
+
+  function toggleCollapsed() {
+    setCollapsed((current) => {
+      const next = !current;
+      localStorage.setItem(COLLAPSED_KEY, String(next));
+      return next;
+    });
+  }
 
   return (
     <aside
       style={{
-        width: '248px',
-        minWidth: '248px',
-        background: 'linear-gradient(180deg, rgba(255,255,255,0.95), rgba(240,248,255,0.96))',
-        backdropFilter: 'blur(18px)',
+        width: collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH,
+        minWidth: collapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH,
+        backgroundColor: 'var(--bg-primary)',
         borderRight: '1px solid var(--border)',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
         overflow: 'hidden',
+        transition: 'width 0.15s ease, min-width 0.15s ease',
       }}
     >
-      {/* Logo */}
+      {/* Logo + collapse toggle share one compact header band. */}
       <div
         style={{
-          padding: '20px 18px 16px',
+          padding: collapsed ? '14px 0' : '14px 12px 14px 18px',
           borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: collapsed ? 'center' : 'space-between',
+          flexDirection: collapsed ? 'column' : 'row',
+          gap: collapsed ? 10 : 0,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src="/logo.png" alt="Aquafort" style={{ width: 122, height: 'auto', display: 'block' }} />
-        </div>
+        {collapsed ? (
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              backgroundColor: 'var(--accent)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+            title="Aquafort"
+          >
+            <Waves size={16} color="#fff" />
+          </div>
+        ) : (
+          <img src="/logo.png" alt="Aquafort" style={{ width: 104, height: 'auto', display: 'block' }} />
+        )}
+
+        <button
+          onClick={toggleCollapsed}
+          title={collapsed ? 'Expandir menu' : 'Recolher menu'}
+          aria-label={collapsed ? 'Expandir menu' : 'Recolher menu'}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 24,
+            height: 24,
+            flexShrink: 0,
+            padding: 0,
+            borderRadius: 6,
+            border: 'none',
+            background: 'transparent',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--bg-card-hover)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+        >
+          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
       </div>
 
       {/* Navigation */}
@@ -130,31 +191,35 @@ export function Sidebar() {
 
           return (
             <div key={group.title} style={{ marginBottom: 14 }}>
-              <div
-                style={{
-                  padding: '10px 14px 6px',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  letterSpacing: '0.08em',
-                  color: 'var(--text-muted)',
-                }}
-              >
-                {group.title}
-              </div>
+              {!collapsed && (
+                <div
+                  style={{
+                    padding: '10px 14px 6px',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    letterSpacing: '0.08em',
+                    color: 'var(--text-muted)',
+                  }}
+                >
+                  {group.title}
+                </div>
+              )}
               {items.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
+                  title={collapsed ? item.label : undefined}
                   style={({ isActive }) => ({
                     display: 'flex',
                     alignItems: 'center',
+                    justifyContent: collapsed ? 'center' : 'flex-start',
                     gap: '10px',
-                    padding: '10px 14px',
-                    borderRadius: '14px',
+                    padding: collapsed ? '10px' : '10px 14px',
+                    borderRadius: 8,
                     marginBottom: '6px',
                     color: isActive ? 'var(--accent-dark)' : 'var(--text-secondary)',
                     backgroundColor: isActive ? 'var(--accent-soft)' : 'transparent',
-                    fontWeight: isActive ? 700 : 500,
+                    fontWeight: isActive ? 600 : 500,
                     fontSize: '14px',
                     textDecoration: 'none',
                     transition: 'background-color 0.15s, color 0.15s, transform 0.15s',
@@ -162,7 +227,7 @@ export function Sidebar() {
                   onMouseEnter={(e) => {
                     const el = e.currentTarget;
                     if (!el.style.backgroundColor.includes('0.1')) {
-                      el.style.backgroundColor = 'rgba(2, 132, 199, 0.06)';
+                      el.style.backgroundColor = 'rgba(37, 99, 235, 0.06)';
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -173,7 +238,7 @@ export function Sidebar() {
                   }}
                 >
                   {item.icon}
-                  {item.label}
+                  {!collapsed && item.label}
                 </NavLink>
               ))}
             </div>
@@ -181,8 +246,10 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
-        <span style={{ fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '0.03em' }}>v1.0.0 · Aquafort</span>
+      <div style={{ padding: collapsed ? '12px 0' : '12px 16px', borderTop: '1px solid var(--border)', textAlign: collapsed ? 'center' : 'left' }}>
+        <span style={{ fontSize: '11px', color: 'var(--text-muted)', letterSpacing: '0.03em' }}>
+          {collapsed ? 'v1' : 'v1.0.0 · Aquafort'}
+        </span>
       </div>
     </aside>
   );

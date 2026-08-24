@@ -11,7 +11,7 @@ interface KPICardProps {
   style?: React.CSSProperties;
 }
 
-export function KPICard({ label, value, unit, icon, trend, color = '#0ea5e9', style }: KPICardProps) {
+export function KPICard({ label, value, unit, icon, trend, color = '#2563eb', style }: KPICardProps) {
   return (
     <div
       style={{
