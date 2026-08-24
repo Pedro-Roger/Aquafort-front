@@ -30,6 +30,45 @@ describe('api request interceptor · X-Farm-Id', () => {
   })
 })
 
+describe('api response interceptor · numeric-string revival', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.resetModules()
+  })
+
+  it('revives a Decimal-as-string field (areaHa) into a number', async () => {
+    const { api } = await import('./api')
+    const fulfilled = (api.interceptors.response as any).handlers[0].fulfilled
+
+    const response = fulfilled({ data: { areaHa: '1.85' } })
+
+    expect(response.data.areaHa).toBe(1.85)
+  })
+
+  it('never revives a "code" field, even when it is purely numeric (a pond coded "101" is not the number 101)', async () => {
+    const { api } = await import('./api')
+    const fulfilled = (api.interceptors.response as any).handlers[0].fulfilled
+
+    const response = fulfilled({
+      data: { code: '101', lotCode: '2026', larvaeLotCode: '100', name: 'Viveiro 101' },
+    })
+
+    expect(response.data).toEqual({ code: '101', lotCode: '2026', larvaeLotCode: '100', name: 'Viveiro 101' })
+  })
+
+  it('leaves a "code" field untouched inside nested objects and arrays too', async () => {
+    const { api } = await import('./api')
+    const fulfilled = (api.interceptors.response as any).handlers[0].fulfilled
+
+    const response = fulfilled({
+      data: [{ pond: { code: '235', areaHa: '15.8' } }],
+    })
+
+    expect(response.data[0].pond.code).toBe('235')
+    expect(response.data[0].pond.areaHa).toBe(15.8)
+  })
+})
+
 describe('api refresh interceptor', () => {
   beforeEach(() => {
     localStorage.clear()

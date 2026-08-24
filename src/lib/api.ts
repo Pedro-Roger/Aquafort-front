@@ -15,21 +15,36 @@ function isNumericString(value: string): boolean {
   return /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/.test(value.trim());
 }
 
-function reviveNumericStrings<T>(value: T): T {
+/**
+ * Domain identifiers, never Decimal-as-string values — must never be
+ * silently turned into a number just because they happen to look numeric
+ * (a pond coded "101" with no letter prefix, unlike "VB101", is a real,
+ * valid code — crashed every `.localeCompare()`/`.split()` on `pond.code`
+ * across the app, e.g. TransferenciaPage's priority sort, until this
+ * exclusion existed).
+ */
+const NEVER_REVIVE_KEYS = /code$/i;
+
+function reviveNumericStrings<T>(value: T, key?: string): T {
   if (Array.isArray(value)) {
     return value.map((item) => reviveNumericStrings(item)) as T;
   }
 
   if (value && typeof value === 'object') {
-    const entries = Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
-      key,
-      reviveNumericStrings(entry),
+    const entries = Object.entries(value as Record<string, unknown>).map(([entryKey, entry]) => [
+      entryKey,
+      reviveNumericStrings(entry, entryKey),
     ]);
 
     return Object.fromEntries(entries) as T;
   }
 
-  if (typeof value === 'string' && value.trim() !== '' && isNumericString(value)) {
+  if (
+    typeof value === 'string' &&
+    value.trim() !== '' &&
+    isNumericString(value) &&
+    !(key && NEVER_REVIVE_KEYS.test(key))
+  ) {
     return Number(value) as T;
   }
 
