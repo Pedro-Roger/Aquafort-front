@@ -36,6 +36,7 @@ export function BiometricsListEntry({ rows, date, onDateChange, onSave }: Biomet
   const [savingId, setSavingId] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [errorId, setErrorId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   async function handleSave(row: BiometricsListRow) {
     if (!row.cycleId) return;
@@ -54,8 +55,12 @@ export function BiometricsListEntry({ rows, date, onDateChange, onSave }: Biomet
         return next;
       });
       setTimeout(() => setSavedId((current) => (current === row.pondId ? null : current)), 2000);
-    } catch {
+    } catch (saveError: unknown) {
+      const backendMessage = typeof saveError === 'object' && saveError !== null && 'response' in saveError
+        ? (saveError as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
       setErrorId(row.pondId);
+      setErrorMessage(backendMessage ?? 'Não foi possível salvar essa leitura. Tente novamente.');
     } finally {
       setSavingId(null);
     }
@@ -194,7 +199,7 @@ export function BiometricsListEntry({ rows, date, onDateChange, onSave }: Biomet
 
                 {hasError && (
                   <div style={{ gridColumn: '1 / -1', color: 'var(--danger)', fontSize: 12 }}>
-                    Não foi possível salvar essa leitura. Tente novamente.
+                    {errorMessage}
                   </div>
                 )}
               </div>
