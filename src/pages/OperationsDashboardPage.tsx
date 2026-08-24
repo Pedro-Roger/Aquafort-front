@@ -1,5 +1,14 @@
 import { Link } from 'react-router-dom'
 import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import {
   Activity,
   ArrowRightLeft,
   ClipboardList,
@@ -7,12 +16,15 @@ import {
   LayoutDashboard,
   Package,
 } from 'lucide-react'
-import { useBiometricKpis, useBiometrics } from '../hooks/useBiometrics'
+import { useBiometrics } from '../hooks/useBiometrics'
 import { useCycles, useCyclesSummary } from '../hooks/useCycles'
+import { useDashboardMetrics, useDashboards } from '../hooks/useDashboards'
 import { useFeedingTable } from '../hooks/useFeeding'
 import { usePonds } from '../hooks/usePonds'
 import { useWaterQuality } from '../hooks/useWaterQuality'
 import { Table } from '../components/ui/Table'
+import { EmptyState } from '../components/ui/EmptyState'
+import { PanelCard } from './CustomDashboardsPage'
 import {
   metricGrid,
   pageStack,
@@ -29,7 +41,7 @@ import {
   workspaceTileLabel,
   workspaceTileValue,
 } from '../components/ui/surfaces'
-import type { FeedingTableRow, PondStatus, WaterQuality } from '../types'
+import type { FeedingTableRow, PondStatus } from '../types'
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10)
@@ -39,16 +51,6 @@ function fmt(value: number, digits = 0) {
   return value.toLocaleString('pt-BR', {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
-  })
-}
-
-function fmtDate(value?: string) {
-  if (!value) return '—'
-  return new Date(value).toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
   })
 }
 
@@ -67,15 +69,35 @@ export function OperationsDashboardPage() {
   const { data: cyclesSummary } = useCyclesSummary()
   const { data: feedingTable, isLoading: feedingLoading } = useFeedingTable({ date: today })
   const { data: biometrics = [] } = useBiometrics(activeCycles[0]?.id ?? null)
-  const { data: biometricKpis } = useBiometricKpis(activeCycles[0]?.id ?? null)
   const { data: waterQuality = [] } = useWaterQuality(activeCycles[0]?.id)
+  // The most recently updated saved dashboard (Painéis customizáveis) previews
+  // here — whatever the user configures there shows up on the home screen,
+  // instead of/alongside the fixed biometria+água shortcut below.
+  const { data: dashboards = [] } = useDashboards()
+  const { data: dashboardMetrics = [] } = useDashboardMetrics()
+  const featuredDashboard = dashboards[0]
 
   const rows = feedingTable?.rows ?? []
   const sortedRows = [...rows].sort((left, right) => right.dailyFeedKg - left.dailyFeedKg)
   const topConsumer = sortedRows[0]
+
+  // RF-07/pedido do Yorvi na reunião (16/06/2026): acompanhamento por
+  // gráfico em vez de linhas de "última leitura" estáticas. Fallback só para
+  // quem ainda não salvou nenhum painel em /paineis — ver `featuredDashboard`.
+  const biometricsChartData = [...biometrics]
+    .sort((left, right) => new Date(left.measuredAt).getTime() - new Date(right.measuredAt).getTime())
+    .map((point) => ({
+      date: new Date(point.measuredAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+      pesoMedioG: Number(point.averageWeightG),
+    }))
+  const waterQualityChartData = [...waterQuality]
+    .sort((left, right) => new Date(left.measuredAt).getTime() - new Date(right.measuredAt).getTime())
+    .map((point) => ({
+      date: new Date(point.measuredAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+      oxygenMgL: Number(point.oxygenMgL),
+      ph: Number(point.ph),
+    }))
   const zeroFeedCount = rows.filter((row) => row.dailyFeedKg === 0).length
-  const latestWaterQuality = waterQuality[0] as WaterQuality | undefined
-  const latestPond = activeCycles[0]?.pond
 
   const summaryCards = [
     { label: 'Viveiros', value: ponds.length, icon: <LayoutDashboard size={18} /> },
@@ -273,21 +295,44 @@ export function OperationsDashboardPage() {
           />
         </section>
 
-        <aside style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: space.page, alignItems: 'start' }}>
+        {featuredDashboard && featuredDashboard.panels.length > 0 ? (
+          <div style={{ display: 'grid', gap: space.page }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: space.page, alignItems: 'start' }}>
+              {featuredDashboard.panels.map((panel) => (
+                <PanelCard key={panel.id} panel={panel} metrics={dashboardMetrics} />
+              ))}
+            </div>
+            <Link to="/paineis" style={workspaceCardAction}>
+              Editar "{featuredDashboard.name}" em Painéis
+            </Link>
+          </div>
+        ) : (
+          <aside style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: space.page, alignItems: 'start' }}>
           <section style={workspaceSurface}>
             <div style={workspaceTileLabel}>
               Biometrias
             </div>
             <h2 style={{ ...sectionTitle, marginTop: 6 }}>
-              Base para definir a dieta
+              Peso médio ao longo do ciclo
             </h2>
-            <div style={{ marginTop: space.section, display: 'grid', gap: space.inline }}>
-              <InfoLine label="Lote ativo" value={activeCycles[0]?.lotCode ?? 'Sem lote ativo'} />
-              <InfoLine label="Peso médio" value={biometricKpis ? `${fmt(biometricKpis.pesoMedioG ?? 0, 1)} g` : '—'} />
-              <InfoLine label="Sobrevivência" value={biometricKpis?.survivalPct != null ? `${fmt(biometricKpis.survivalPct, 1)}%` : '—'} />
-              <InfoLine label="Biomassa atual" value={biometricKpis ? `${fmt(biometricKpis.biomassaAtualKg ?? 0, 1)} kg` : '—'} />
-              <InfoLine label="Biometrias registradas" value={fmt(biometrics.length, 0)} />
-            </div>
+            {biometricsChartData.length === 0 ? (
+              <EmptyState compact title="Sem biometria ainda." description="Registre uma leitura para desenhar o gráfico." />
+            ) : (
+              <div style={{ width: '100%', height: 200, marginTop: space.section }}>
+                <ResponsiveContainer>
+                  <LineChart data={biometricsChartData} margin={{ top: 0, right: 16, bottom: 0, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
+                    <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} width={40} />
+                    <Tooltip
+                      formatter={(value: unknown) => [`${fmt(Number(value), 2)} g`, 'Peso médio']}
+                      contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: radius.tile }}
+                    />
+                    <Line type="monotone" dataKey="pesoMedioG" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
             <Link
               to="/biometrias"
               style={{ ...workspaceCardAction, marginTop: space.section }}
@@ -301,15 +346,26 @@ export function OperationsDashboardPage() {
               Qualidade da água
             </div>
             <h2 style={{ ...sectionTitle, marginTop: 6 }}>
-              Último ponto do ciclo
+              Oxigênio e pH ao longo do ciclo
             </h2>
-            <div style={{ marginTop: space.section, display: 'grid', gap: space.inline }}>
-              <InfoLine label="Viveiro" value={latestPond?.code ?? '—'} />
-              <InfoLine label="Última leitura" value={fmtDate(latestWaterQuality?.measuredAt)} />
-              <InfoLine label="Oxigênio" value={latestWaterQuality ? `${fmt(latestWaterQuality.oxygenMgL, 1)} mg/L` : '—'} />
-              <InfoLine label="pH" value={latestWaterQuality ? fmt(latestWaterQuality.ph, 2) : '—'} />
-              <InfoLine label="Alertas" value={latestWaterQuality?.outOfRange ? latestWaterQuality.outOfRangeParams.join(', ') : 'Sem alerta'} />
-            </div>
+            {waterQualityChartData.length === 0 ? (
+              <EmptyState compact title="Sem medição ainda." description="Registre uma leitura para desenhar o gráfico." />
+            ) : (
+              <div style={{ width: '100%', height: 200, marginTop: space.section }}>
+                <ResponsiveContainer>
+                  <LineChart data={waterQualityChartData} margin={{ top: 0, right: 16, bottom: 0, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="date" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
+                    <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} width={40} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: radius.tile }}
+                    />
+                    <Line type="monotone" dataKey="oxygenMgL" name="Oxigênio (mg/L)" stroke="#2563eb" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="ph" name="pH" stroke="#7c3aed" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
             <Link
               to="/water-quality"
               style={{ ...workspaceCardAction, marginTop: space.section }}
@@ -317,26 +373,9 @@ export function OperationsDashboardPage() {
               Abrir qualidade
             </Link>
           </section>
-
-        </aside>
+          </aside>
+        )}
       </div>
-    </div>
-  )
-}
-
-function InfoLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      style={{
-        ...workspaceTile,
-        display: 'flex',
-        justifyContent: 'space-between',
-        gap: space.tile,
-        padding: '10px 12px',
-      }}
-    >
-      <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>{label}</span>
-      <span style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 700, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{value}</span>
     </div>
   )
 }
