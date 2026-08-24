@@ -19,6 +19,7 @@ import { MaterialsPage } from './pages/MaterialsPage';
 import { ConsumptionChartPage } from './pages/ConsumptionChartPage';
 import { AutoFeedersPage } from './pages/AutoFeedersPage';
 import { SettingsPage } from './pages/SettingsPage'
+import { HelpPage } from './pages/HelpPage'
 import { OperationalReportsPage } from './pages/OperationalReportsPage'
 import { MortalidadePage } from './pages/MortalidadePage'
 import { CustomDashboardsPage } from './pages/CustomDashboardsPage'
@@ -72,6 +73,7 @@ function App() {
           <Route path="/consumo" element={<ConsumptionChartPage />} />
           <Route path="/alimentadores" element={<AutoFeedersPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/ajuda" element={<HelpPage />} />
 
           {/* RN-04: admin global apenas — RequireAdmin redireciona quem não for. */}
           <Route element={<RequireAdmin />}>
