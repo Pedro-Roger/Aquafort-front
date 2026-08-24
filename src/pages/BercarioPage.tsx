@@ -10,6 +10,7 @@ import { useNurseryActivities, useCreateNurseryActivity } from '../hooks/useNurs
 import { PondType } from '../types';
 import { pageStack, radius, sectionSubtitle, sectionTitle, space, workspaceCard, workspaceEyebrow, workspaceSurface, workspaceTile, workspaceTileLabel, workspaceTileValue } from '../components/ui/surfaces';
 import { EmptyState } from '../components/ui/EmptyState';
+import { formatDateOnly } from '../lib/format';
 
 function fmt(value: number | null | undefined, digits = 2) {
   if (value === null || value === undefined || Number.isNaN(value)) return '-';
@@ -92,7 +93,7 @@ export function BercarioPage() {
     {
       key: 'measuredAt',
       header: 'Data',
-      render: (row: (typeof todayRecords)[number]) => new Date(row.measuredAt).toLocaleDateString('pt-BR'),
+      render: (row: (typeof todayRecords)[number]) => formatDateOnly(row.measuredAt),
     },
     {
       key: 'pond',

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useBiometrics, useCreateBiometric, useDeleteBiometric } from '../../hooks/useBiometrics';
+import { formatDateOnly } from '../../lib/format';
 
 interface Props {
   cycleId: string;
@@ -74,7 +75,7 @@ export function BiometricSection({ cycleId }: Props) {
         <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', backgroundColor: 'var(--bg-card)', borderRadius: 6, marginBottom: 4, fontSize: 12, border: '1px solid var(--border)' }}>
           <div>
             <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{Number(b.averageWeightG).toFixed(2)}g</div>
-            <div style={{ color: 'var(--text-muted)' }}>{new Date(b.measuredAt).toLocaleDateString('pt-BR')}{b.sampleCount != null ? ` · ${b.sampleCount} amostras` : ''}</div>
+            <div style={{ color: 'var(--text-muted)' }}>{formatDateOnly(b.measuredAt)}{b.sampleCount != null ? ` · ${b.sampleCount} amostras` : ''}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {b.survivalRatePct && <span style={{ color: '#0ea5e9' }}>{Number(b.survivalRatePct).toFixed(1)}% sobrev.</span>}

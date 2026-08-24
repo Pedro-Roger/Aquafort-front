@@ -6,6 +6,7 @@ import { useUpdatePond } from '../../hooks/usePonds';
 import { useUpdateGrowthTarget } from '../../hooks/useCycles';
 import type { Aerator, PondType, PondWithCanvas } from '../../types';
 import { POND_TYPE_LABELS, pondCodeTypeMismatch } from '../../lib/pondLabels';
+import { formatDateOnly } from '../../lib/format';
 
 const STATUS_LABELS: Record<string, string> = {
   VAZIO: 'Vazio', PREPARANDO: 'Preparando', POVOADO: 'Povoado', DESPESCANDO: 'Despescando', INATIVO: 'Inativo',
@@ -173,7 +174,7 @@ export function PondDrawer({ pond, onClose, onAeratorsChange }: Props) {
             {fieldEl('Código do lote', <div style={{ color: 'var(--text-primary)', fontSize: 13, fontFamily: 'monospace' }}>{activeCycle.larvaeLotCode ?? '—'}</div>)}
             {fieldEl('Estágio PL', <div style={{ color: 'var(--text-primary)', fontSize: 13 }}>{activeCycle.larvaeStage ?? '—'}</div>)}
             {fieldEl('Quantidade', <div style={{ color: 'var(--text-primary)', fontSize: 13 }}>{activeCycle.plCount.toLocaleString('pt-BR')} PLs <span style={{ color: 'var(--text-muted)' }}>({Number(activeCycle.density).toFixed(1)} PL/m²)</span></div>)}
-            {fieldEl('Povoamento', <div style={{ color: 'var(--text-primary)', fontSize: 13 }}>{new Date(activeCycle.stockDate).toLocaleDateString('pt-BR')}</div>)}
+            {fieldEl('Povoamento', <div style={{ color: 'var(--text-primary)', fontSize: 13 }}>{formatDateOnly(activeCycle.stockDate)}</div>)}
           </div>
         ) : (
           <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Sem ciclo ativo.</div>

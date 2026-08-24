@@ -34,6 +34,7 @@ import {
   workspaceTileValue,
 } from '../components/ui/surfaces';
 import type { MortalityTableRow } from '../types';
+import { formatDateOnly } from '../lib/format';
 
 function currentLocalDateTime() {
   const now = new Date();
@@ -146,7 +147,7 @@ export function MortalidadePage() {
       key: 'lastRecordAt',
       header: 'Últ. cadastro',
       render: (row: MortalityTableRow) =>
-        row.lastRecordAt ? new Date(row.lastRecordAt).toLocaleDateString('pt-BR') : '—',
+        row.lastRecordAt ? formatDateOnly(row.lastRecordAt) : '—',
     },
     {
       key: 'lastQuantity',

@@ -31,6 +31,10 @@ vi.mock('../hooks/usePonds', () => ({
   usePonds: (...args: unknown[]) => usePondsMock(...args),
 }))
 
+vi.mock('../hooks/useFeeding', () => ({
+  useFeedingAggregate: () => ({ data: { racaoAcumuladaKg: 0 } }),
+}))
+
 vi.mock('../hooks/useBiometrics', () => ({
   useBiometricKpis: () => ({ data: {} }),
   useBiometrics: () => ({

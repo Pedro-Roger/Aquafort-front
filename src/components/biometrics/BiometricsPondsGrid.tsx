@@ -1,6 +1,7 @@
 import { BarChart3, Plus } from 'lucide-react';
 import { EmptyState } from '../ui/EmptyState';
 import { radius, workspaceTileLabel, workspaceTileValue } from '../ui/surfaces';
+import { formatDateOnly } from '../../lib/format';
 import type { Pond } from '../../types';
 
 interface BiometricsPondsGridProps {
@@ -121,7 +122,7 @@ export function BiometricsPondsGrid({
               <div style={{ display: 'grid', gap: 6 }}>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                   Última leitura:{' '}
-                  {new Date(latest.measuredAt).toLocaleDateString('pt-BR')}
+                  {formatDateOnly(latest.measuredAt)}
                 </div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
                   Peso: {(latest.pesoMedioG ?? 0).toLocaleString('pt-BR', {

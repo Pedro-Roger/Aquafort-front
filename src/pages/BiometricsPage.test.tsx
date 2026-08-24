@@ -27,6 +27,10 @@ vi.mock('../hooks/usePonds', () => ({
   usePonds: (...args: unknown[]) => usePondsMock(...args),
 }))
 
+vi.mock('../hooks/useFeeding', () => ({
+  useFeedingAggregate: () => ({ data: { racaoAcumuladaKg: 120 } }),
+}))
+
 vi.mock('../hooks/useBiometrics', () => ({
   useBiometricKpis: () => ({ data: { pesoMedioG: 18.4, survivalPct: 91.2, biomassaAtualKg: 8400, racaoConsumidaKg: 1200, fca: 1.52 } }),
   useBiometrics: () => ({ data: [], isLoading: false }),
@@ -88,12 +92,6 @@ vi.mock('../pages/biometrias', async (importOriginal) => ({
     { label: 'FCA', value: '1.520', tone: 'green' },
   ],
   buildBiometriaPath: () => '/biometrias',
-  buildBiometriaQuickActions: () => [
-    { label: 'Nova leitura', description: '', kind: 'primary', action: 'focus-form' },
-    { label: 'Ver curva', description: '', kind: 'secondary', action: 'focus-chart' },
-    { label: 'Ir para Despesca', description: '', kind: 'ghost', action: 'navigate-despesca' },
-    { label: 'Voltar para Viveiros', description: '', kind: 'ghost', action: 'navigate-tanques' },
-  ],
   buildBiometriaSnapshot: () => [
     { label: 'Ciclo', value: 'V-01 · L-001', detail: 'referência ativa' },
     { label: 'Leituras', value: '1', detail: 'histórico salvo' },
@@ -119,21 +117,20 @@ vi.mock('../pages/despesca', () => ({
 }))
 
 describe('BiometricsPage', () => {
-  it('shows operational shortcuts and a direct entry path', () => {
+  it('lists each pond as an entry point for a new reading (Cartões view)', () => {
     render(
       <MemoryRouter>
         <BiometricsPage />
       </MemoryRouter>,
     )
 
-    expect(screen.getByText('Voltar ao painel')).toBeInTheDocument()
-    expect(screen.getByText('Viveiros')).toBeInTheDocument()
-    expect(screen.getByText('Povoamento')).toBeInTheDocument()
-    expect(screen.getByText('Ração')).toBeInTheDocument()
-    expect(screen.getByText('Qualidade')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Cartões'))
+
+    expect(screen.getByText('V-01')).toBeInTheDocument()
+    expect(screen.getByText(/Peso: 20,81 g/)).toBeInTheDocument()
   })
 
-  it('lists each pond as an entry point for a new reading', () => {
+  it('defaults to the Lista view, with each pond as its own row to enter today\'s biometria', () => {
     render(
       <MemoryRouter>
         <BiometricsPage />
@@ -141,7 +138,8 @@ describe('BiometricsPage', () => {
     )
 
     expect(screen.getByText('V-01')).toBeInTheDocument()
-    expect(screen.getByText(/Peso: 20,81 g/)).toBeInTheDocument()
+    expect(screen.getByText(/20,81/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Data da leitura')).toBeInTheDocument()
   })
 
   // The sidebar form these used to test (RF-10 field swap, RF-11 PL/g
@@ -168,6 +166,9 @@ describe('BiometricsPage', () => {
         </MemoryRouter>,
       )
 
+      // The pond-click modal is exercised from the Cartões view — Lista
+      // saves biometria inline (BiometricsListEntry) instead of opening it.
+      fireEvent.click(screen.getByText('Cartões'))
       fireEvent.click(screen.getByText('B-02'))
 
       // Bug 1: the modal must read PL/g for a bercario pond, not grams.
@@ -199,6 +200,7 @@ describe('BiometricsPage', () => {
         </MemoryRouter>,
       )
 
+      fireEvent.click(screen.getByText('Cartões'))
       fireEvent.click(screen.getByText('V-01'))
 
       expect(await screen.findByText('Nova leitura — V-01')).toBeInTheDocument()
@@ -228,6 +230,7 @@ describe('BiometricsPage', () => {
         </MemoryRouter>,
       )
 
+      fireEvent.click(screen.getByText('Cartões'))
       fireEvent.click(screen.getByText('B-03'))
 
       expect(await screen.findByText(/não tem ciclo ativo/)).toBeInTheDocument()

@@ -1,5 +1,32 @@
 import { describe, expect, it } from 'vitest';
-import { formatAreaHa, formatGeneticCode, formatNumberPtBr } from './format';
+import { formatAreaHa, formatDateOnly, formatGeneticCode, formatNumberPtBr } from './format';
+
+describe('formatDateOnly', () => {
+  // measuredAt/stockDate/lastRecordAt arrive as UTC-midnight ISO strings
+  // ("2026-08-24T00:00:00.000Z") because a date-only <input> has no time to
+  // send. `new Date(iso).toLocaleDateString()` would reconvert to the
+  // browser's local timezone — in one behind UTC (e.g. America/Fortaleza,
+  // UTC-3) midnight UTC on the 24th lands at 21h on the 23rd, showing the
+  // wrong day. Re-parsing the date part as local midnight (no "Z") keeps the
+  // same calendar day the operator actually picked, in any timezone.
+  it('keeps the same calendar day a UTC-midnight timestamp encodes', () => {
+    expect(formatDateOnly('2026-08-24T00:00:00.000Z')).toBe('24/08/2026');
+  });
+
+  it('works from just the date part too, with no time component at all', () => {
+    expect(formatDateOnly('2026-01-05')).toBe('05/01/2026');
+  });
+
+  it('is unaffected by a non-midnight time component (only the date part is read)', () => {
+    expect(formatDateOnly('2026-08-24T15:47:31.000Z')).toBe('24/08/2026');
+  });
+
+  it('returns a dash for null/undefined/empty input', () => {
+    expect(formatDateOnly(null)).toBe('—');
+    expect(formatDateOnly(undefined)).toBe('—');
+    expect(formatDateOnly('')).toBe('—');
+  });
+});
 
 describe('formatAreaHa', () => {
   it('uses a comma as the decimal separator (pt-BR), not a dot', () => {

@@ -17,6 +17,14 @@ interface FeedingTableParams {
   date?: string;
 }
 
+interface FeedingAggregate {
+  cycleId: string;
+  pondId: string | null;
+  racaoAcumuladaKg: number;
+  custoRacaoAcumulado: number;
+  custoMedioRacao: number | null;
+}
+
 interface CreateExpressFeedingDto {
   cycleId: string;
   pondId: string;
@@ -60,6 +68,27 @@ export function useFeedingList(params: FeedingListParams) {
     queryKey: ['feeding', 'list', params],
     queryFn: async () => {
       const { data } = await api.get('/v1/feeding', { params });
+      return data;
+    },
+  });
+}
+
+/**
+ * Feed consumed in a window, not since the start of the cycle — the
+ * lifetime-accumulated total (`useBiometricKpis`'s `racaoConsumidaKg`) is
+ * correct for FCA, but wrong as an input to a same-day reverse estimate
+ * (biomass from feed ÷ today's expected consumption rate): the rate falls a
+ * lot over a cycle, so dividing a multi-week total by today's low rate
+ * inflates the estimate the longer the cycle runs. Pass a short `from`/`to`
+ * window (e.g. the last 7 days) so the rate stays valid for the feed it's
+ * dividing.
+ */
+export function useFeedingAggregate(cycleId: string | null, params: { from?: string; to?: string } = {}) {
+  return useQuery<FeedingAggregate>({
+    queryKey: ['feeding', 'aggregate', cycleId, params],
+    enabled: Boolean(cycleId),
+    queryFn: async () => {
+      const { data } = await api.get('/v1/feeding/aggregate', { params: { cycleId, ...params } });
       return data;
     },
   });

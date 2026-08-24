@@ -9,11 +9,12 @@ import {
   YAxis,
   LineChart as RechartsLineChart,
 } from 'recharts';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useCycles } from '../hooks/useCycles';
 import { usePonds } from '../hooks/usePonds';
 import { useBiometricKpis, useBiometrics, useBiometricSeries, useCreateBiometric, useDeleteBiometric, useLatestBiometricsByPond } from '../hooks/useBiometrics';
+import { useFeedingAggregate } from '../hooks/useFeeding';
 import { useFarmBiometricsReference } from '../hooks/useFarmBiometricsReference';
 import { KPICard } from '../components/ui/KPICard';
 import { Table } from '../components/ui/Table';
@@ -23,7 +24,6 @@ import {
   sectionTitle,
   space,
   workspaceCard,
-  workspaceLink,
   workspaceSurface,
   workspaceTile,
   workspaceTileLabel,
@@ -32,13 +32,13 @@ import {
 import { EmptyState } from '../components/ui/EmptyState';
 import { CycleWorkspacePanel } from '../components/ponds/CycleWorkspacePanel';
 import { BiometricsPondsGrid } from '../components/biometrics/BiometricsPondsGrid';
+import { BiometricsListEntry, type BiometricsListRow } from '../components/biometrics/BiometricsListEntry';
 import { BiometricsModalForm } from '../components/biometrics/BiometricsModalForm';
 import type { Biometric, Pond } from '../types';
 import {
   averageWeightGToPlPerGram,
   buildBiometriaCards,
   buildBiometriaPath,
-  buildBiometriaQuickActions,
   buildBiometriaSnapshot,
   buildBiometricPayload,
   calculateBiometricsOperationalEstimate,
@@ -47,12 +47,19 @@ import {
   isBiometricFormValid,
   type BiometricFormValues,
 } from './biometrias';
-import { buildDespescaPath } from './despesca';
 import { calculateProductivity, daysSince } from '../lib/productivity';
+import { formatDateOnly } from '../lib/format';
 
 function fmt(value: number | null | undefined, digits = 1) {
   if (value == null) return '—';
   return value.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+
+/** ISO date `days` ago (0 = today), for a short feeding window — see `useFeedingAggregate`. */
+function isoDateDaysAgo(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().slice(0, 10);
 }
 
 export function BiometricsPage() {
@@ -70,6 +77,10 @@ export function BiometricsPage() {
   const isBercario = isBercarioPondType(selectedCycle?.pond?.type);
   const focusParam = searchParams.get('focus');
   const { reference } = useFarmBiometricsReference();
+  // Lançamento em lote (padrão) — a fazenda raramente é toda medida no mesmo
+  // dia, então a lista salva biometria por viveiro, independentemente.
+  const [viewMode, setViewMode] = useState<'lista' | 'cartoes'>('lista');
+  const [listDate, setListDate] = useState(() => isoDateDaysAgo(0));
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPond, setSelectedPond] = useState<Pond | null>(null);
   /** The active cycle of the pond that opened the modal — never the sidebar's selectedCycleId (bug: a click used to write into whatever cycle happened to be selected in the dropdown). */
@@ -80,6 +91,13 @@ export function BiometricsPage() {
   const biometrics = useBiometrics(selectedCycleId || null);
   const series = useBiometricSeries(selectedCycleId || null);
   const kpis = useBiometricKpis(selectedCycleId || null);
+  // The operational estimate below reverse-computes biomass from feed ÷
+  // today's expected consumption rate — valid only for feed given recently,
+  // not the lifetime-accumulated total (see useFeedingAggregate's comment).
+  const recentFeed = useFeedingAggregate(selectedCycleId || null, {
+    from: isoDateDaysAgo(6),
+    to: isoDateDaysAgo(0),
+  });
   const createBiometric = useCreateBiometric();
   const deleteBiometric = useDeleteBiometric();
 
@@ -98,6 +116,15 @@ export function BiometricsPage() {
     setModalOpen(false);
     setSelectedPond(null);
     setModalCycleId(null);
+  }
+
+  async function handleListSave(cycleId: string, weightG: number) {
+    await createBiometric.mutateAsync({
+      cycleId,
+      measuredAt: listDate,
+      averageWeightG: weightG,
+      responsibleId: user?.id,
+    });
   }
 
   function handlePondClick(pond: Pond) {
@@ -130,20 +157,12 @@ export function BiometricsPage() {
   const latestPoint = series.data?.points?.at(-1) ?? null;
   const operationalEstimate = calculateBiometricsOperationalEstimate({
     averageWeightG: latestPoint?.pesoMedioG ?? kpis.data?.pesoMedioG ?? 0,
-    racaoConsumidaKg: kpis.data?.racaoConsumidaKg ?? 0,
+    racaoConsumidaKg: recentFeed.data?.racaoAcumuladaKg ?? 0,
     plCount: selectedCycle?.plCount ?? 0,
     reference,
   });
   const operationalConsumptionPct = getConsumptionPctForWeight(operationalEstimate.weightG, reference);
   const selectedCycleLabel = cycleOptions.find((option) => option.value === selectedCycleId)?.label ?? '—';
-  const quickActions = buildBiometriaQuickActions();
-  const quickLinks = [
-    { to: '/dashboard', label: 'Voltar ao painel' },
-    { to: '/tanques', label: 'Viveiros' },
-    { to: '/povoamento', label: 'Povoamento' },
-    { to: '/nutrition', label: 'Ração' },
-    { to: '/water-quality', label: 'Qualidade' },
-  ];
   const snapshot = buildBiometriaSnapshot({
     cycleLabel: selectedCycleLabel,
     totalReadings: biometrics.data?.length ?? 0,
@@ -158,6 +177,17 @@ export function BiometricsPage() {
       { measuredAt: reading.measuredAt, pesoMedioG: reading.averageWeightG },
     ]),
   );
+  const listRows: BiometricsListRow[] = ponds.map((pond) => {
+    const activeCycle = cycles.find((cycle) => cycle.pondId === pond.id) ?? null;
+    const latest = latestBiometricsByPond[pond.id];
+    return {
+      pondId: pond.id,
+      pondCode: pond.code || pond.name || '—',
+      cycleId: activeCycle?.id ?? null,
+      previousWeightG: latest?.pesoMedioG ?? null,
+      previousDate: latest?.measuredAt ?? null,
+    };
+  });
 
   useEffect(() => {
     // The sidebar form this used to scroll to is gone — deep links with
@@ -177,7 +207,7 @@ export function BiometricsPage() {
     {
       key: 'measuredAt',
       header: 'Data',
-      render: (row: Biometric) => new Date(row.measuredAt).toLocaleDateString('pt-BR'),
+      render: (row: Biometric) => formatDateOnly(row.measuredAt),
     },
     {
       key: 'pond',
@@ -256,54 +286,65 @@ export function BiometricsPage() {
               navigate(buildBiometriaPath(nextCycleId, focusParam === 'chart' ? 'chart' : focusParam === 'form' ? 'form' : undefined), { replace: true });
             }}
             metrics={cyclePanelMetrics}
-            actions={quickActions.map((action) => ({
-              label: action.label,
-              kind: action.kind,
-              onClick: () => {
-                if (action.action === 'focus-form') {
-                  if (selectedCycle?.pond) handlePondClick(selectedCycle.pond as Pond);
-                  return;
-                }
-                if (action.action === 'focus-chart') {
-                  chartRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  return;
-                }
-                if (action.action === 'navigate-despesca') {
-                  navigate(buildDespescaPath(selectedCycleId, 'chart'));
-                  return;
-                }
-                if (action.action === 'navigate-tanques') {
-                  navigate('/tanques');
-                }
-              },
-            }))}
+            actions={[]}
           />
-        </div>
-
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: space.inline, marginTop: space.section }}>
-          {quickLinks.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              style={workspaceLink}
-            >
-              {item.label}
-            </Link>
-          ))}
         </div>
       </div>
 
       <section style={workspaceCard}>
-        <div>
-          <div style={workspaceTileLabel}>Leitura por viveiro</div>
-          <h2 style={{ ...sectionTitle, marginTop: 6 }}>Clique para registrar biometria</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: space.tile, flexWrap: 'wrap' }}>
+          <div>
+            <div style={workspaceTileLabel}>Leitura por viveiro</div>
+            <h2 style={{ ...sectionTitle, marginTop: 6 }}>
+              {viewMode === 'lista' ? 'Lance a biometria do dia, viveiro por viveiro' : 'Clique para registrar biometria'}
+            </h2>
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              type="button"
+              onClick={() => setViewMode('lista')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 8,
+                border: viewMode === 'lista' ? 'none' : '1px solid var(--border-strong)',
+                backgroundColor: viewMode === 'lista' ? 'var(--accent-fill)' : 'var(--bg-card)',
+                color: viewMode === 'lista' ? '#fff' : 'var(--text-primary)',
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
+              Lista
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('cartoes')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 8,
+                border: viewMode === 'cartoes' ? 'none' : '1px solid var(--border-strong)',
+                backgroundColor: viewMode === 'cartoes' ? 'var(--accent-fill)' : 'var(--bg-card)',
+                color: viewMode === 'cartoes' ? '#fff' : 'var(--text-primary)',
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
+              Cartões
+            </button>
+          </div>
         </div>
-        <BiometricsPondsGrid
-          ponds={ponds}
-          loading={pondsLoading}
-          onPondClick={handlePondClick}
-          latestBiometricsByPond={latestBiometricsByPond}
-        />
+
+        {viewMode === 'lista' ? (
+          <BiometricsListEntry rows={listRows} date={listDate} onDateChange={setListDate} onSave={handleListSave} />
+        ) : (
+          <BiometricsPondsGrid
+            ponds={ponds}
+            loading={pondsLoading}
+            onPondClick={handlePondClick}
+            latestBiometricsByPond={latestBiometricsByPond}
+          />
+        )}
       </section>
 
       <div style={metricGrid}>
@@ -323,7 +364,7 @@ export function BiometricsPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: space.tile, flexWrap: 'wrap', alignItems: 'baseline' }}>
           <div>
             <div style={workspaceTileLabel}>Estimativa operacional</div>
-            <h2 style={{ ...sectionTitle, marginTop: 6 }}>Biomassa e sobrevivência a partir da biometria</h2>
+            <h2 style={{ ...sectionTitle, marginTop: 6 }}>Biomassa a partir da biometria</h2>
           </div>
           <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>
             Base usada: {operationalConsumptionPct != null ? `${fmt(operationalConsumptionPct, 1)}% de consumo` : 'sem referência'}
@@ -334,18 +375,10 @@ export function BiometricsPage() {
           <InfoCard label="Peso médio usado" value={operationalEstimate.weightG > 0 ? `${fmt(operationalEstimate.weightG, 2)} g` : '—'} />
           <InfoCard label="Biomassa estimada" value={operationalEstimate.biomassKg != null ? `${fmt(operationalEstimate.biomassKg, 2)} kg` : '—'} />
           <InfoCard label="Camarões estimados" value={operationalEstimate.shrimpCount != null ? `${fmt(operationalEstimate.shrimpCount, 0)}` : '—'} />
-          <InfoCard label="Sobrevivência estimada" value={operationalEstimate.survivalPct != null ? `${fmt(operationalEstimate.survivalPct, 2)} %` : '—'} />
-        </div>
-
-        <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.55 }}>
-          A conta usa a tabela cadastrada em Configurações da fazenda. Exemplo prático: se o peso médio é 18g e o viveiro consome 120kg numa faixa de 1%,
-          então a biomassa estimada é 12.000kg. O número de camarões é essa biomassa convertida em gramas dividida pelo peso médio, e a sobrevivência vem da
-          comparação com o lote povoado.
         </div>
       </section>
 
-      <div style={{ display: 'grid', gap: space.page, minHeight: 0, flex: 1 }}>
-        <div style={{ display: 'grid', gridTemplateRows: '280px minmax(0, 1fr)', gap: space.page, minHeight: 0 }}>
+      <div style={{ display: 'grid', gap: space.page }}>
           <div ref={chartRef} style={workspaceCard}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: space.tile, flexWrap: 'wrap' }}>
               <div>
@@ -390,18 +423,17 @@ export function BiometricsPage() {
             )}
           </div>
 
-          <div style={{ ...workspaceCard, minHeight: 0 }}>
+          <div style={workspaceCard}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: space.tile, flexWrap: 'wrap' }}>
               <h2 style={sectionTitle}>Histórico</h2>
               <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-                {biometrics.data?.length ?? 0} registros{biometrics.data?.[0] ? ` · último em ${new Date(biometrics.data[0].measuredAt).toLocaleDateString('pt-BR')}` : ''}
+                {biometrics.data?.length ?? 0} registros{biometrics.data?.[0] ? ` · último em ${formatDateOnly(biometrics.data[0].measuredAt)}` : ''}
               </span>
             </div>
-            <div style={{ flex: 1, minHeight: 0 }}>
+            <div style={{ maxHeight: 420 }}>
               <Table columns={columns} data={biometrics.data ?? []} rowKey={(row) => row.id} loading={biometrics.isLoading || deleteBiometric.isPending} emptyMessage="Nenhuma biometria registrada" />
             </div>
           </div>
-        </div>
       </div>
 
       {selectedPond && (
