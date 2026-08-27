@@ -2,8 +2,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { PovoamentoPage } from './PovoamentoPage'
 
-const { mutateAsyncMock, createBiometricMutateAsync, useCyclesMock } = vi.hoisted(() => ({
+const { mutateAsyncMock, updateCycleMutateAsync, createBiometricMutateAsync, useCyclesMock } = vi.hoisted(() => ({
   mutateAsyncMock: vi.fn().mockResolvedValue({}),
+  updateCycleMutateAsync: vi.fn().mockResolvedValue({}),
   createBiometricMutateAsync: vi.fn().mockResolvedValue({}),
   useCyclesMock: vi.fn().mockReturnValue({ data: [], isLoading: false }),
 }))
@@ -20,6 +21,7 @@ vi.mock('../hooks/usePonds', () => ({
 
 vi.mock('../hooks/useCycles', () => ({
   useCreateCycle: () => ({ mutateAsync: mutateAsyncMock, isPending: false }),
+  useUpdateCycle: () => ({ mutateAsync: updateCycleMutateAsync, isPending: false }),
   useCycles: (...args: unknown[]) => useCyclesMock(...args),
 }))
 
@@ -34,6 +36,8 @@ vi.mock('../hooks/useAuth', () => ({
 beforeEach(() => {
   mutateAsyncMock.mockClear()
   mutateAsyncMock.mockResolvedValue({})
+  updateCycleMutateAsync.mockClear()
+  updateCycleMutateAsync.mockResolvedValue({})
   createBiometricMutateAsync.mockClear()
   createBiometricMutateAsync.mockResolvedValue({})
   useCyclesMock.mockReset()
@@ -388,5 +392,58 @@ describe('PovoamentoPage', () => {
 
     expect(screen.getByText(/Nutrimar/)).toBeInTheDocument()
     expect(screen.queryByText(/Lavifort/)).not.toBeInTheDocument()
+  })
+
+  it('loads a saved povoamento for editing and sends an update instead of creating another cycle', async () => {
+    useCyclesMock.mockImplementation((filter?: { status?: string; phase?: string }) => {
+      if (filter?.phase === 'BERCARIO') return { data: [], isLoading: false }
+      return {
+        data: [
+          {
+            id: 'c1',
+            pondId: 'p2',
+            pond: { code: 'B-02', type: 'BERCARIO' },
+            plCount: 100000,
+            supplier: 'Lavifort',
+            larvaeSupplier: 'Lavifort',
+            larvaeLotCode: 'L-1',
+            geneticCode: 'APQS',
+            geneticGeneration: 4,
+            phase: 'BERCARIO',
+            stockDate: '2026-08-01T00:00:00.000Z',
+            plPerGram: 250,
+          },
+        ],
+        isLoading: false,
+      }
+    })
+
+    render(
+      <MemoryRouter>
+        <PovoamentoPage />
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Editar' }))
+
+    expect(screen.getByText('Editar povoamento')).toBeInTheDocument()
+    expect(screen.getByLabelText('Fornecedor')).toHaveValue('Lavifort')
+    expect(screen.getByLabelText('Lote / código')).toHaveValue('L-1')
+    fireEvent.change(screen.getByLabelText('Quantidade'), { target: { value: '1432000' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar edição' }))
+
+    await waitFor(() => expect(updateCycleMutateAsync).toHaveBeenCalledTimes(1))
+    expect(updateCycleMutateAsync).toHaveBeenCalledWith({
+      id: 'c1',
+      dto: expect.objectContaining({
+        supplier: 'Lavifort',
+        plCount: 1432000,
+        geneticCode: 'APQS',
+        geneticGeneration: 4,
+        larvaeLotCode: 'L-1',
+        plPerGram: 250,
+      }),
+    })
+    expect(mutateAsyncMock).not.toHaveBeenCalled()
   })
 })

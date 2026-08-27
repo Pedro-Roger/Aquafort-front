@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
-import { ArrowRightLeft, Trash2 } from 'lucide-react';
+import { ArrowRightLeft, Pencil, Trash2, X } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { SearchableSelect } from '../components/ui/SearchableSelect';
 import { OriginPicker, type OriginOption } from '../components/povoamento/OriginPicker';
 import { QuantityWeightInput } from '../components/povoamento/QuantityWeightInput';
 import { SelectablePondChips } from '../components/povoamento/SelectablePondChips';
-import { useCreateCycle, useCycles } from '../hooks/useCycles';
+import { useCreateCycle, useCycles, useUpdateCycle } from '../hooks/useCycles';
 import { useCreateBiometric } from '../hooks/useBiometrics';
 import { usePonds } from '../hooks/usePonds';
 import { useAuth } from '../hooks/useAuth';
@@ -55,8 +55,7 @@ function fmt(value: number, digits = 0) {
 
 const BERCARIO_POND_TYPES = [PondType.PRE_BERCARIO, PondType.BERCARIO] as const;
 const VIVEIRO_POND_TYPES = [PondType.ENGORDA] as const;
-const ALL_STOCKING_POND_TYPES = [...BERCARIO_POND_TYPES, ...VIVEIRO_POND_TYPES] as const;
-type StockingPondType = (typeof ALL_STOCKING_POND_TYPES)[number];
+type StockingPondType = (typeof BERCARIO_POND_TYPES)[number] | (typeof VIVEIRO_POND_TYPES)[number];
 
 type StockingMode = 'BERCARIO' | 'VIVEIRO';
 type ViveiroSubMode = 'DIRETO' | 'TRANSFERENCIA';
@@ -94,6 +93,7 @@ export function PovoamentoPage() {
   const { user } = useAuth();
   const { data: ponds = [], isLoading } = usePonds();
   const createCycle = useCreateCycle();
+  const updateCycle = useUpdateCycle();
   const createBiometric = useCreateBiometric();
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<StockingMode>('BERCARIO');
@@ -113,6 +113,7 @@ export function PovoamentoPage() {
     stockDate: todayIsoDate(),
   });
   const [allocations, setAllocations] = useState<AllocationRowState[]>([]);
+  const [editingCycleId, setEditingCycleId] = useState<string | null>(null);
 
   const isTransferMode = mode === 'VIVEIRO' && viveiroSubMode === 'TRANSFERENCIA';
 
@@ -147,10 +148,15 @@ export function PovoamentoPage() {
       const pond = selectedPonds.get(cycle.pondId);
       return {
         pond: pond ? pondLabel(pond) : (cycle.pond?.code ?? cycle.pondId),
+        pondId: cycle.pondId,
+        id: cycle.id,
         quantity: cycle.plCount,
         geneticCode: cycle.geneticCode ?? '',
         geneticGeneration: cycle.geneticGeneration ?? null,
         supplier: cycle.larvaeSupplier ?? cycle.supplier,
+        lotCode: cycle.larvaeLotCode ?? cycle.lotCode ?? '',
+        stockDate: cycle.stockDate,
+        plPerGram: cycle.plPerGram ?? null,
       };
     });
 
@@ -189,6 +195,34 @@ export function PovoamentoPage() {
       const currentByPond = new Map(current.map((row) => [row.pondId, row]));
       return Array.from(selectedTankIds).map((pondId) => currentByPond.get(pondId) ?? makeRow(pondId));
     });
+    setError(null);
+  }
+
+  function startEditingCycle(cycle: (typeof recentPovoamentos)[number]) {
+    const pond = selectedPonds.get(cycle.pondId);
+    if (!pond) {
+      setError('Tanque do povoamento não encontrado.');
+      return;
+    }
+    setEditingCycleId(cycle.id);
+    setForm((current) => ({
+      ...current,
+      supplier: cycle.supplier ?? '',
+      lotCode: cycle.lotCode,
+      geneticCode: cycle.geneticCode,
+      geneticGeneration: cycle.geneticGeneration ? String(cycle.geneticGeneration) : '',
+      stockDate: cycle.stockDate.slice(0, 10),
+      plPerGram: cycle.plPerGram ? String(cycle.plPerGram) : '',
+    }));
+    setAllocations([{ ...makeRow(cycle.pondId), quantity: cycle.quantity }]);
+    setSelectedTankIds(new Set([cycle.pondId]));
+    setError(null);
+  }
+
+  function cancelEditing() {
+    setEditingCycleId(null);
+    setAllocations([]);
+    setSelectedTankIds(new Set());
     setError(null);
   }
 
@@ -250,8 +284,32 @@ export function PovoamentoPage() {
       // separately, onto a closing biometria for every berçário it drew from.
       const originCycleIds = isTransferMode ? collectTransferOriginCycleIds(allocations) : [];
 
-      await Promise.all([
-        ...allocations.map((row) => {
+      if (editingCycleId) {
+        const row = allocations[0];
+        if (!row) throw new Error('Selecione um tanque válido.');
+        const pond = selectedPonds.get(row.pondId);
+        if (!pond) throw new Error('Selecione um tanque válido.');
+
+        await updateCycle.mutateAsync({
+          id: editingCycleId,
+          dto: {
+            supplier: form.supplier.trim(),
+            stockDate: form.stockDate,
+            plCount: row.quantity,
+            initialPhase: getCyclePhaseForPondType(pond.type),
+            larvaeSupplier: form.supplier.trim() || null,
+            geneticCode: form.geneticCode.trim() || null,
+            geneticGeneration: form.geneticGeneration.trim() === '' ? null : Number(form.geneticGeneration),
+            larvaeLotCode: form.lotCode.trim() || null,
+            larvaeStage: 'PL',
+            stageDay: Number.isFinite(effectiveStageDay) && effectiveStageDay > 0 ? effectiveStageDay : undefined,
+            transferDate: form.transferDate || null,
+            plPerGram: plPerGram > 0 ? plPerGram : null,
+          },
+        });
+      } else {
+        await Promise.all([
+          ...allocations.map((row) => {
           const pond = selectedPonds.get(row.pondId);
           if (!pond) throw new Error('Selecione um tanque válido.');
 
@@ -288,7 +346,8 @@ export function PovoamentoPage() {
               }),
             )
           : []),
-      ]);
+        ]);
+      }
 
       // useCreateCycle já invalida a query ['cycles'] no onSuccess, então
       // recentPovoamentos (useCycles acima) revalida sozinho — sem estado local.
@@ -303,6 +362,7 @@ export function PovoamentoPage() {
       }));
       setAllocations([]);
       setSelectedTankIds(new Set());
+      setEditingCycleId(null);
     } catch (saveError: unknown) {
       const errorMessage = typeof saveError === 'object' && saveError !== null && 'response' in saveError
         ? (saveError as { response?: { data?: { message?: string } } }).response?.data?.message
@@ -370,11 +430,11 @@ export function PovoamentoPage() {
           <div>
             <h3 style={sectionTitle}>{mode === 'BERCARIO' ? 'Berçários' : 'Viveiros'} disponíveis</h3>
             <div style={{ ...sectionSubtitle, marginTop: 2, marginBottom: space.tile }}>
-              Selecione um ou mais tanques e clique em "Criar povoamento".
+              {editingCycleId ? 'Edição em andamento. Salve ou cancele antes de criar outro povoamento.' : 'Selecione um ou mais tanques e clique em "Criar povoamento".'}
             </div>
-            <SelectablePondChips ponds={targetPonds} selectedIds={selectedTankIds} onToggle={toggleTank} />
+            <SelectablePondChips ponds={targetPonds} selectedIds={selectedTankIds} onToggle={editingCycleId ? () => undefined : toggleTank} />
             <div style={{ marginTop: space.tile }}>
-              <Button variant="secondary" onClick={createRowsForSelection} disabled={selectedTankIds.size === 0}>
+              <Button variant="secondary" onClick={createRowsForSelection} disabled={selectedTankIds.size === 0 || !!editingCycleId}>
                 Criar povoamento ({selectedTankIds.size})
               </Button>
             </div>
@@ -384,7 +444,7 @@ export function PovoamentoPage() {
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: space.section, marginTop: space.section }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: space.tile, flexWrap: 'wrap', marginBottom: space.tile }}>
                 <div>
-                  <h3 style={sectionTitle}>Distribuição</h3>
+                  <h3 style={sectionTitle}>{editingCycleId ? 'Editar povoamento' : 'Distribuição'}</h3>
                   <div style={{ ...sectionSubtitle, marginTop: 2 }}>Ajuste cada tanque antes de salvar.</div>
                 </div>
                 <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
@@ -416,11 +476,11 @@ export function PovoamentoPage() {
                         />
                         <button
                           type="button"
-                          onClick={() => setAllocations((current) => current.filter((r) => r.id !== row.id))}
+                          onClick={() => (editingCycleId ? cancelEditing() : setAllocations((current) => current.filter((r) => r.id !== row.id)))}
                           style={{ height: controlHeight, borderRadius: radius.control, border: '1px solid var(--border)', backgroundColor: 'var(--bg-elevated)', color: 'var(--text-secondary)', cursor: 'pointer', flexShrink: 0 }}
-                          aria-label={`Remover ${pond?.code ?? 'tanque'}`}
+                          aria-label={`${editingCycleId ? 'Cancelar edição de' : 'Remover'} ${pond?.code ?? 'tanque'}`}
                         >
-                          <Trash2 size={16} />
+                          {editingCycleId ? <X size={16} /> : <Trash2 size={16} />}
                         </button>
                       </div>
 
@@ -456,11 +516,16 @@ export function PovoamentoPage() {
                   {validation.valid ? 'Pronto para salvar.' : validation.message}
                 </div>
                 <div style={{ display: 'flex', gap: space.inline }}>
-                  <Button variant="secondary" icon={<ArrowRightLeft size={16} />} onClick={() => setAllocations([])}>
+                  <Button variant="secondary" icon={<ArrowRightLeft size={16} />} onClick={() => (editingCycleId ? cancelEditing() : setAllocations([]))}>
                     Limpar distribuição
                   </Button>
-                  <Button loading={createCycle.isPending} onClick={handleSave} disabled={!validation.valid}>
-                    Salvar povoamento
+                  {editingCycleId && (
+                    <Button variant="secondary" icon={<X size={16} />} onClick={cancelEditing}>
+                      Cancelar edição
+                    </Button>
+                  )}
+                  <Button loading={createCycle.isPending || updateCycle.isPending} onClick={handleSave} disabled={!validation.valid}>
+                    {editingCycleId ? 'Salvar edição' : 'Salvar povoamento'}
                   </Button>
                 </div>
               </div>
@@ -596,12 +661,17 @@ export function PovoamentoPage() {
           <div style={workspaceCard}>
             <h2 style={sectionTitle}>Últimos povoamentos salvos</h2>
             <div style={{ display: 'grid', gap: space.inline }}>
-              {recentPovoamentos.length ? recentPovoamentos.map((item, index) => (
-                <div key={`${item.pond}-${index}`} style={{ ...workspaceTile, padding: 12 }}>
-                  <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{item.pond}</div>
-                  <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
-                    {formatGeneticCode(item.geneticCode, item.geneticGeneration) || 'Sem código genético'} · {item.supplier} · {fmt(item.quantity, 0)} PL
+              {recentPovoamentos.length ? recentPovoamentos.map((item) => (
+                <div key={item.id} style={{ ...workspaceTile, padding: 12, display: 'flex', justifyContent: 'space-between', gap: space.inline, alignItems: 'center' }}>
+                  <div>
+                    <div style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{item.pond}</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
+                      {formatGeneticCode(item.geneticCode, item.geneticGeneration) || 'Sem código genético'} · {item.supplier} · {fmt(item.quantity, 0)} PL
+                    </div>
                   </div>
+                  <Button size="sm" variant="secondary" icon={<Pencil size={14} />} onClick={() => startEditingCycle(item)}>
+                    Editar
+                  </Button>
                 </div>
               )) : (
                 <EmptyState

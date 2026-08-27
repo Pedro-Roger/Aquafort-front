@@ -42,7 +42,7 @@ export interface CreateCycleOriginInput {
   quantity: number;
 }
 
-interface CreateCycleDto {
+export interface CreateCycleDto {
   pondId: string;
   supplier: string;
   stockDate: string;
@@ -65,27 +65,57 @@ interface CreateCycleDto {
   origins?: CreateCycleOriginInput[];
 }
 
+export type UpdateCycleDto = Partial<
+  Omit<CreateCycleDto, 'larvaeSupplier' | 'larvaeLotCode' | 'geneticCode' | 'geneticGeneration' | 'transferDate' | 'plPerGram'>
+> & {
+  larvaeSupplier?: string | null;
+  larvaeLotCode?: string | null;
+  geneticCode?: string | null;
+  geneticGeneration?: number | null;
+  transferDate?: string | null;
+  plPerGram?: number | null;
+};
+
+export function toCyclePayload(dto: CreateCycleDto | UpdateCycleDto) {
+  return {
+    ...(dto.pondId ? { pondId: dto.pondId } : {}),
+    ...(dto.supplier ? { supplier: dto.supplier } : {}),
+    ...(dto.stockDate ? { stockDate: new Date(dto.stockDate).toISOString() } : {}),
+    ...(dto.plCount !== undefined ? { plCount: dto.plCount } : {}),
+    ...(dto.initialPhase ? { phase: dto.initialPhase } : {}),
+    ...(dto.larvaeSupplier !== undefined ? { larvaeSupplier: dto.larvaeSupplier } : {}),
+    ...(dto.larvaeLotCode !== undefined ? { larvaeLotCode: dto.larvaeLotCode } : {}),
+    ...(dto.larvaeStage !== undefined ? { larvaeStage: dto.larvaeStage } : {}),
+    ...(dto.geneticCode !== undefined ? { geneticCode: dto.geneticCode } : {}),
+    ...(dto.geneticGeneration !== undefined ? { geneticGeneration: dto.geneticGeneration } : {}),
+    ...(dto.stageDay !== undefined ? { stageDay: dto.stageDay } : {}),
+    ...(dto.transferDate !== undefined
+      ? { transferDate: dto.transferDate ? new Date(dto.transferDate).toISOString() : null }
+      : {}),
+    ...(dto.plPerGram !== undefined ? { plPerGram: dto.plPerGram } : {}),
+    ...(dto.origins && dto.origins.length > 0 ? { origins: dto.origins } : {}),
+  };
+}
+
 export function useCreateCycle() {
   const qc = useQueryClient();
   return useMutation<Cycle, Error, CreateCycleDto>({
     mutationFn: async (dto) => {
-      const payload = {
-        pondId: dto.pondId,
-        supplier: dto.supplier,
-        stockDate: new Date(dto.stockDate).toISOString(),
-        plCount: dto.plCount,
-        phase: dto.initialPhase,
-        ...(dto.larvaeSupplier ? { larvaeSupplier: dto.larvaeSupplier } : {}),
-        ...(dto.larvaeLotCode ? { larvaeLotCode: dto.larvaeLotCode } : {}),
-        ...(dto.larvaeStage ? { larvaeStage: dto.larvaeStage } : {}),
-        ...(dto.geneticCode ? { geneticCode: dto.geneticCode } : {}),
-        ...(dto.geneticGeneration ? { geneticGeneration: dto.geneticGeneration } : {}),
-        ...(dto.stageDay ? { stageDay: dto.stageDay } : {}),
-        ...(dto.transferDate ? { transferDate: new Date(dto.transferDate).toISOString() } : {}),
-        ...(dto.plPerGram ? { plPerGram: dto.plPerGram } : {}),
-        ...(dto.origins && dto.origins.length > 0 ? { origins: dto.origins } : {}),
-      };
-      const { data } = await api.post('/v1/cycles', payload);
+      const { data } = await api.post('/v1/cycles', toCyclePayload(dto));
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cycles'] });
+      qc.invalidateQueries({ queryKey: ['ponds'] });
+    },
+  });
+}
+
+export function useUpdateCycle() {
+  const qc = useQueryClient();
+  return useMutation<Cycle, Error, { id: string; dto: UpdateCycleDto }>({
+    mutationFn: async ({ id, dto }) => {
+      const { data } = await api.put(`/v1/cycles/${id}`, toCyclePayload(dto));
       return data;
     },
     onSuccess: () => {
