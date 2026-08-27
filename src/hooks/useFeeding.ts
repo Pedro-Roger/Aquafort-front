@@ -36,6 +36,10 @@ interface CreateExpressFeedingDto {
   observation?: string;
 }
 
+type UpdateFeedingDto = Partial<
+  Pick<CreateExpressFeedingDto, 'productId' | 'feedKg' | 'fedAt' | 'responsibleId' | 'feedCost' | 'observation'>
+>;
+
 interface CreateFeedProductDto {
   name: string
   priceKg?: number
@@ -116,6 +120,21 @@ export function useCreateExpressFeeding() {
       qc.invalidateQueries({ queryKey: ['feeding'] });
       qc.invalidateQueries({ queryKey: ['cycles'] });
       qc.invalidateQueries({ queryKey: ['biometrics', 'kpis', variables.cycleId] });
+    },
+  });
+}
+
+export function useUpdateFeeding() {
+  const qc = useQueryClient();
+  return useMutation<FeedingRecord, Error, { id: string; dto: UpdateFeedingDto }>({
+    mutationFn: async ({ id, dto }) => {
+      const { data } = await api.put(`/v1/feeding/${id}`, dto);
+      return data;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['feeding'] });
+      qc.invalidateQueries({ queryKey: ['cycles'] });
+      qc.invalidateQueries({ queryKey: ['biometrics', 'kpis', data.cycleId] });
     },
   });
 }

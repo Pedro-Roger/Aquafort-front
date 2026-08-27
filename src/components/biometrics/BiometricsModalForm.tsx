@@ -13,6 +13,13 @@ interface BiometricsModalFormProps {
   onClose: () => void;
   pondCode: string;
   loading?: boolean;
+  title?: string;
+  initialValues?: {
+    measuredAt: string;
+    averageWeightG: number;
+    survivalRatePct?: number | null;
+    estimatedBiomass?: number | null;
+  } | null;
   /** RF-10/RN-10: the pond clicked into this modal is bercario — same field swap as the sidebar form. */
   isBercario?: boolean;
   /** Set when the clicked pond has no active cycle to save into — blocks the submit instead of silently writing to the wrong cycle. */
@@ -42,6 +49,8 @@ export function BiometricsModalForm({
   loading = false,
   isBercario = false,
   disabledReason = null,
+  title,
+  initialValues = null,
   onSubmit,
 }: BiometricsModalFormProps) {
   const [form, setForm] = React.useState({
@@ -56,6 +65,17 @@ export function BiometricsModalForm({
   const [entryUnit, setEntryUnit] = React.useState<BercarioEntryUnit>(
     isBercario ? 'pl_per_gram' : 'grams',
   );
+
+  React.useEffect(() => {
+    if (!open) return;
+    setForm({
+      measuredAt: initialValues?.measuredAt?.slice(0, 10) ?? todayIsoDate(),
+      weightInput: initialValues ? formatConvertedValue(initialValues.averageWeightG) : '',
+      survivalRatePct: initialValues?.survivalRatePct != null ? String(initialValues.survivalRatePct) : '',
+      estimatedBiomass: initialValues?.estimatedBiomass != null ? String(initialValues.estimatedBiomass) : '',
+    });
+    setEntryUnit(initialValues ? 'grams' : isBercario ? 'pl_per_gram' : 'grams');
+  }, [initialValues, isBercario, open]);
 
   function handleUnitChange(nextUnit: BercarioEntryUnit) {
     if (nextUnit === entryUnit) return;
@@ -106,7 +126,7 @@ export function BiometricsModalForm({
     <Modal
       open={open}
       onClose={onClose}
-      title={`Nova leitura — ${pondCode}`}
+      title={title ?? `Nova leitura — ${pondCode}`}
       width={500}
     >
       <div style={{ display: 'grid', gap: 16 }}>

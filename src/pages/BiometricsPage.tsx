@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Activity, CalendarDays, LineChart, Waves } from 'lucide-react';
+import { Activity, CalendarDays, Edit3, LineChart, Trash2, Waves } from 'lucide-react';
 import {
   CartesianGrid,
   Line,
@@ -13,7 +13,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useCycles } from '../hooks/useCycles';
 import { usePonds } from '../hooks/usePonds';
-import { useBiometricKpis, useBiometrics, useBiometricSeries, useCreateBiometric, useDeleteBiometric, useLatestBiometricsByPond } from '../hooks/useBiometrics';
+import { useBiometricKpis, useBiometrics, useBiometricSeries, useCreateBiometric, useDeleteBiometric, useLatestBiometricsByPond, useUpdateBiometric } from '../hooks/useBiometrics';
 import { useFeedingAggregate } from '../hooks/useFeeding';
 import { useFarmBiometricsReference } from '../hooks/useFarmBiometricsReference';
 import { KPICard } from '../components/ui/KPICard';
@@ -83,6 +83,7 @@ export function BiometricsPage() {
   const [listDate, setListDate] = useState(() => isoDateDaysAgo(0));
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPond, setSelectedPond] = useState<Pond | null>(null);
+  const [editingBiometric, setEditingBiometric] = useState<Biometric | null>(null);
   /** The active cycle of the pond that opened the modal — never the sidebar's selectedCycleId (bug: a click used to write into whatever cycle happened to be selected in the dropdown). */
   const [modalCycleId, setModalCycleId] = useState<string | null>(null);
   /** RF-10/RN-10: the pond that opened the modal decides its unit, straight off the pond object — same rule as the sidebar, just a different pond. */
@@ -99,6 +100,7 @@ export function BiometricsPage() {
     to: isoDateDaysAgo(0),
   });
   const createBiometric = useCreateBiometric();
+  const updateBiometric = useUpdateBiometric();
   const deleteBiometric = useDeleteBiometric();
 
   async function submitBiometric(cycleId: string | null, values: BiometricFormValues) {
@@ -112,10 +114,18 @@ export function BiometricsPage() {
     // grams itself — PL/g vs. peso direto is now a per-submit toggle the
     // operator picks inside the modal (RN-12), not something derivable from
     // pond type alone, so no conversion happens again here.
-    await submitBiometric(modalCycleId, data);
+    if (editingBiometric) {
+      await updateBiometric.mutateAsync({
+        id: editingBiometric.id,
+        dto: { ...buildBiometricPayload(editingBiometric.cycleId, data, user?.id), cycleId: editingBiometric.cycleId },
+      });
+    } else {
+      await submitBiometric(modalCycleId, data);
+    }
     setModalOpen(false);
     setSelectedPond(null);
     setModalCycleId(null);
+    setEditingBiometric(null);
   }
 
   async function handleListSave(cycleId: string, weightG: number) {
@@ -133,6 +143,15 @@ export function BiometricsPage() {
     const activeCycle = cycles.find((cycle) => cycle.pondId === pond.id) ?? null;
     setSelectedPond(pond);
     setModalCycleId(activeCycle?.id ?? null);
+    setModalOpen(true);
+  }
+
+  function handleEditBiometric(row: Biometric) {
+    const pond = selectedCycle?.pond as Pond | undefined;
+    if (!pond) return;
+    setSelectedPond(pond);
+    setModalCycleId(row.cycleId);
+    setEditingBiometric(row);
     setModalOpen(true);
   }
 
@@ -257,12 +276,24 @@ export function BiometricsPage() {
       key: 'actions',
       header: '',
       render: (row: Biometric) => (
-        <button
-          onClick={() => deleteBiometric.mutate({ id: row.id, cycleId: selectedCycleId })}
-          style={{ border: 'none', background: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 12 }}
-        >
-          Excluir
-        </button>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={() => handleEditBiometric(row)}
+            title="Editar biometria"
+            style={{ border: 'none', background: 'none', color: 'var(--accent-dark)', cursor: 'pointer', display: 'inline-flex' }}
+          >
+            <Edit3 size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={() => deleteBiometric.mutate({ id: row.id, cycleId: selectedCycleId })}
+            title="Excluir biometria"
+            style={{ border: 'none', background: 'none', color: 'var(--danger)', cursor: 'pointer', display: 'inline-flex' }}
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
       ),
     },
   ];
@@ -443,9 +474,12 @@ export function BiometricsPage() {
             setModalOpen(false);
             setSelectedPond(null);
             setModalCycleId(null);
+            setEditingBiometric(null);
           }}
           pondCode={selectedPond.code || selectedPond.name || '—'}
-          loading={createBiometric.isPending}
+          loading={createBiometric.isPending || updateBiometric.isPending}
+          title={editingBiometric ? `Editar leitura — ${selectedPond.code || selectedPond.name || '—'}` : undefined}
+          initialValues={editingBiometric}
           isBercario={isModalBercario}
           disabledReason={modalCycleId ? null : 'Este viveiro não tem ciclo ativo — não é possível registrar biometria.'}
           onSubmit={handleModalSubmit}

@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Clock3,
   Download,
+  Edit3,
   History,
   Layers,
   Package,
@@ -22,7 +23,7 @@ import {
 } from 'recharts';
 import { useAuth } from '../hooks/useAuth';
 import { useCycles } from '../hooks/useCycles';
-import { useCreateExpressFeeding, useFcaSeries, useFeedingList, useFeedingTable, useFeedProducts } from '../hooks/useFeeding';
+import { useCreateExpressFeeding, useFcaSeries, useFeedingList, useFeedingTable, useFeedProducts, useUpdateFeeding } from '../hooks/useFeeding';
 import { useBiometricKpis } from '../hooks/useBiometrics';
 import { useFarmBiometricsReference } from '../hooks/useFarmBiometricsReference';
 import { calculateDailyRation } from '../lib/biometricsReference';
@@ -59,6 +60,12 @@ function currentLocalDateTime() {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
 
+function toLocalDateTimeInput(value: string) {
+  const date = new Date(value);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 function fmt(value: number, digits = 1) {
   return value.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
@@ -75,6 +82,7 @@ export function NutritionPage() {
   const [historyTo, setHistoryTo] = useState('');
   const [historyCycleId, setHistoryCycleId] = useState('');
   const [fcaCycleId, setFcaCycleId] = useState('');
+  const [editingFeeding, setEditingFeeding] = useState<FeedingRecord | null>(null);
   const [form, setForm] = useState({
     cycleId: '',
     productId: '',
@@ -87,6 +95,7 @@ export function NutritionPage() {
   const { reference } = useFarmBiometricsReference();
   const history = useFeedingList({ cycleId: cycleFilter || undefined, limit: 12 });
   const createFeeding = useCreateExpressFeeding();
+  const updateFeeding = useUpdateFeeding();
 
   const fcaSelectedCycleId = fcaCycleId || cycles[0]?.id || null;
   const fcaSeries = useFcaSeries(fcaSelectedCycleId);
@@ -163,23 +172,51 @@ export function NutritionPage() {
   async function handleLaunch() {
     if (!user?.id || !selectedCycle || !selectedProductId || !form.feedKg || !form.fedAt) return;
 
-    await createFeeding.mutateAsync({
-      cycleId: selectedCycle.id,
-      pondId: selectedCycle.pondId,
-      productId: selectedProductId,
-      feedKg: Number(form.feedKg),
-      fedAt: new Date(form.fedAt).toISOString(),
-      responsibleId: user.id,
-      observation: form.observation || undefined,
-    });
+    if (editingFeeding) {
+      await updateFeeding.mutateAsync({
+        id: editingFeeding.id,
+        dto: {
+          productId: selectedProductId,
+          feedKg: Number(form.feedKg),
+          fedAt: new Date(form.fedAt).toISOString(),
+          responsibleId: user.id,
+          observation: form.observation || undefined,
+        },
+      });
+    } else {
+      await createFeeding.mutateAsync({
+        cycleId: selectedCycle.id,
+        pondId: selectedCycle.pondId,
+        productId: selectedProductId,
+        feedKg: Number(form.feedKg),
+        fedAt: new Date(form.fedAt).toISOString(),
+        responsibleId: user.id,
+        observation: form.observation || undefined,
+      });
+    }
 
     setForm((current) => ({
       ...current,
+      cycleId: '',
+      productId: '',
       feedKg: '',
       fedAt: currentLocalDateTime(),
       observation: '',
     }));
+    setEditingFeeding(null);
     setLaunchOpen(false);
+  }
+
+  function handleEditFeeding(row: FeedingRecord) {
+    setEditingFeeding(row);
+    setForm({
+      cycleId: row.cycleId,
+      productId: row.product?.id ?? '',
+      feedKg: String(row.feedKg),
+      fedAt: toLocalDateTimeInput(row.fedAt),
+      observation: row.observation ?? '',
+    });
+    setLaunchOpen(true);
   }
 
   const cycleOptions = [
@@ -287,6 +324,21 @@ export function NutritionPage() {
       align: 'right' as const,
       render: (row: FeedingRecord) => fmt(row.feedKg, 2),
     },
+    {
+      key: 'actions',
+      header: '',
+      align: 'right' as const,
+      render: (row: FeedingRecord) => (
+        <button
+          type="button"
+          onClick={() => handleEditFeeding(row)}
+          title="Editar trato"
+          style={{ border: 'none', background: 'none', color: 'var(--accent-dark)', cursor: 'pointer', display: 'inline-flex' }}
+        >
+          <Edit3 size={15} />
+        </button>
+      ),
+    },
   ];
 
   const metrics = [
@@ -319,7 +371,17 @@ export function NutritionPage() {
               </Button>
               <Button
                 icon={<Plus size={16} />}
-                onClick={() => setLaunchOpen(true)}
+                onClick={() => {
+                  setEditingFeeding(null);
+                  setForm({
+                    cycleId: '',
+                    productId: '',
+                    feedKg: '',
+                    fedAt: currentLocalDateTime(),
+                    observation: '',
+                  });
+                  setLaunchOpen(true);
+                }}
                 style={{ whiteSpace: 'nowrap' }}
               >
                 Lancar trato
@@ -596,12 +658,21 @@ export function NutritionPage() {
         </div>
       </Modal>
 
-      <Modal open={launchOpen} onClose={() => setLaunchOpen(false)} title="Novo trato" width={560}>
+      <Modal
+        open={launchOpen}
+        onClose={() => {
+          setLaunchOpen(false);
+          setEditingFeeding(null);
+        }}
+        title={editingFeeding ? 'Editar trato' : 'Novo trato'}
+        width={560}
+      >
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <Select
             label="Viveiro / ciclo"
             options={launchOptions}
             value={selectedCycleId}
+            disabled={!!editingFeeding}
             onChange={(e) => setForm((current) => ({ ...current, cycleId: e.target.value }))}
           />
           <Select
@@ -673,9 +744,17 @@ export function NutritionPage() {
               Responsavel: {user?.name ?? 'Sem usuario'}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <Button variant="secondary" onClick={() => setLaunchOpen(false)}>Cancelar</Button>
-              <Button loading={createFeeding.isPending} onClick={handleLaunch} disabled={!user?.id || !selectedCycleId || !selectedProductId || !form.feedKg}>
-                Salvar trato
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setLaunchOpen(false);
+                  setEditingFeeding(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button loading={createFeeding.isPending || updateFeeding.isPending} onClick={handleLaunch} disabled={!user?.id || !selectedCycleId || !selectedProductId || !form.feedKg}>
+                {editingFeeding ? 'Salvar edição' : 'Salvar trato'}
               </Button>
             </div>
           </div>

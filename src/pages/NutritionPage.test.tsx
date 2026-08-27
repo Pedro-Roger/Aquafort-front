@@ -57,6 +57,7 @@ vi.mock('../hooks/useFeeding', () => ({
   useFeedingList: () => ({ data: { items: [] }, isLoading: false }),
   useFcaSeries: () => ({ data: { cycleId: 'c1', pondCode: 'V-01', points: [] }, isLoading: false }),
   useCreateExpressFeeding: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useUpdateFeeding: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
 
 describe('NutritionPage', () => {

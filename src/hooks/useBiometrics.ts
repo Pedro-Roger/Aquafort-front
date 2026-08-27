@@ -32,6 +32,8 @@ export interface CreateBiometricDto {
   responsibleId?: string;
 }
 
+export type UpdateBiometricDto = Partial<CreateBiometricDto>;
+
 export function useCreateBiometric() {
   const qc = useQueryClient();
   return useMutation<Biometric, Error, CreateBiometricDto>({
@@ -46,6 +48,23 @@ export function useCreateBiometric() {
       qc.invalidateQueries({ queryKey: ['cycles', data.cycleId, 'growth-chart'] });
       // Pond grid cards read from this query separately — missing this left
       // a card showing "Nenhuma leitura registrada" after a real save.
+      qc.invalidateQueries({ queryKey: ['biometrics', 'latest-by-pond'] });
+    },
+  });
+}
+
+export function useUpdateBiometric() {
+  const qc = useQueryClient();
+  return useMutation<Biometric, Error, { id: string; dto: UpdateBiometricDto }>({
+    mutationFn: async ({ id, dto }) => {
+      const { data } = await api.put(`/v1/biometrics/${id}`, dto);
+      return data;
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['biometrics', data.cycleId] });
+      qc.invalidateQueries({ queryKey: ['biometrics', 'series', data.cycleId] });
+      qc.invalidateQueries({ queryKey: ['biometrics', 'kpis', data.cycleId] });
+      qc.invalidateQueries({ queryKey: ['cycles', data.cycleId, 'growth-chart'] });
       qc.invalidateQueries({ queryKey: ['biometrics', 'latest-by-pond'] });
     },
   });

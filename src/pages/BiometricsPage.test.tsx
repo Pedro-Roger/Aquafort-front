@@ -36,6 +36,7 @@ vi.mock('../hooks/useBiometrics', () => ({
   useBiometrics: () => ({ data: [], isLoading: false }),
   useBiometricSeries: () => ({ data: { points: [] }, isLoading: false }),
   useCreateBiometric: () => ({ mutateAsync: createBiometricMutateAsync, isPending: false }),
+  useUpdateBiometric: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useDeleteBiometric: () => ({ mutate: vi.fn(), isPending: false }),
   useLatestBiometricsByPond: () => ({
     data: [
