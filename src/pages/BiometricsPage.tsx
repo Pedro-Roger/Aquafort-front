@@ -9,6 +9,7 @@ import {
   YAxis,
   LineChart as RechartsLineChart,
 } from 'recharts';
+import type { TooltipPayloadEntry } from 'recharts';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useCycles } from '../hooks/useCycles';
@@ -624,9 +625,9 @@ export function BiometricsPage() {
                     <XAxis dataKey="semana" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
                     <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
                     <Tooltip
-                      formatter={(value: unknown, name: unknown, props: any) => {
+                      formatter={(value: unknown, name: unknown, props: TooltipPayloadEntry) => {
                         const numericValue = typeof value === 'number' ? value : Number(value ?? 0);
-                        const dataKey = props.dataKey;
+                        const dataKey = String(props?.dataKey ?? '');
                         const isPrimary = dataKey.endsWith('_1');
                         const isWeight = dataKey.startsWith('pesoMedioG');
 
@@ -637,9 +638,9 @@ export function BiometricsPage() {
                           const weightLabel = isCycleBercario && numericValue > 0
                             ? `${fmt(numericValue, 2)} g (${fmt(averageWeightGToPlPerGram(numericValue), 0)} PL/g)`
                             : `${fmt(numericValue, 2)} g`;
-                          return [weightLabel, name];
+                          return [weightLabel, String(name)] as [string, string];
                         }
-                        return [`${fmt(numericValue, 2)} g`, name];
+                        return [`${fmt(numericValue, 2)} g`, String(name)] as [string, string];
                       }}
                       labelFormatter={(value) => `Semana ${value}`}
                     />
