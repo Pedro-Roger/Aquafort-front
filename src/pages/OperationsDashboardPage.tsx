@@ -84,13 +84,13 @@ export function OperationsDashboardPage() {
   // RF-07/pedido do Yorvi na reunião (16/06/2026): acompanhamento por
   // gráfico em vez de linhas de "última leitura" estáticas. Fallback só para
   // quem ainda não salvou nenhum painel em /paineis — ver `featuredDashboard`.
-  const biometricsChartData = [...biometrics]
+  const biometricsChartData = [...(biometrics ?? [])]
     .sort((left, right) => new Date(left.measuredAt).getTime() - new Date(right.measuredAt).getTime())
     .map((point) => ({
       date: new Date(point.measuredAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
       pesoMedioG: Number(point.averageWeightG),
     }))
-  const waterQualityChartData = [...waterQuality]
+  const waterQualityChartData = [...(waterQuality ?? [])]
     .sort((left, right) => new Date(left.measuredAt).getTime() - new Date(right.measuredAt).getTime())
     .map((point) => ({
       date: new Date(point.measuredAt).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
