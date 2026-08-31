@@ -14,6 +14,8 @@ import { ArrowRightLeft, ChevronLeft, ChevronRight, ClipboardList, Droplets, Fil
   HelpCircle,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useFarm } from '../../hooks/useFarm';
+import { useSidebarVisibility } from '../../hooks/useSidebarVisibility';
 
 const COLLAPSED_KEY = 'aquafort_sidebar_collapsed';
 const EXPANDED_WIDTH = 248;
@@ -96,12 +98,16 @@ const navGroups: NavGroup[] = [
     items: [
       { to: '/admin/fazendas', label: 'Fazendas', icon: <Building2 size={18} />, adminOnly: true },
       { to: '/admin/vinculos', label: 'Vínculos', icon: <ShieldCheck size={18} />, adminOnly: true },
+      { to: '/admin/sidebar', label: 'Sidebar', icon: <LayoutDashboard size={18} />, adminOnly: true },
     ],
   },
 ];
 
 export function Sidebar() {
   const { isAdmin } = useAuth();
+  const { activeFarmId } = useFarm();
+  const { data: visibility } = useSidebarVisibility(activeFarmId ?? null);
+  const hiddenModules = new Set(visibility?.hiddenModules ?? []);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === 'true');
 
   function toggleCollapsed() {
@@ -186,7 +192,9 @@ export function Sidebar() {
       {/* Navigation */}
       <nav style={{ padding: '8px', flex: 1, overflow: 'auto' }}>
         {navGroups.map((group) => {
-          const items = group.items.filter((item) => !item.hidden && (!item.adminOnly || isAdmin));
+          const items = group.items.filter(
+            (item) => !item.hidden && (!item.adminOnly || isAdmin) && !hiddenModules.has(item.to)
+          );
           if (!items.length) return null;
 
           return (

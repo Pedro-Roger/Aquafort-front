@@ -25,6 +25,7 @@ import { MortalidadePage } from './pages/MortalidadePage'
 import { CustomDashboardsPage } from './pages/CustomDashboardsPage'
 import { FarmsAdminPage } from './pages/FarmsAdminPage'
 import { UserFarmRolesPage } from './pages/UserFarmRolesPage'
+import { SidebarConfigPage } from './pages/admin/SidebarConfigPage'
 
 function RootRedirect() {
   const { isAuthenticated } = useAuth()
@@ -79,6 +80,7 @@ function App() {
           <Route element={<RequireAdmin />}>
             <Route path="/admin/fazendas" element={<FarmsAdminPage />} />
             <Route path="/admin/vinculos" element={<UserFarmRolesPage />} />
+            <Route path="/admin/sidebar" element={<SidebarConfigPage />} />
           </Route>
         </Route>
 
