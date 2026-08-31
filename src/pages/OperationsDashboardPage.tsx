@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   CartesianGrid,
@@ -15,6 +16,7 @@ import {
   Fish,
   LayoutDashboard,
   Package,
+  Waves,
 } from 'lucide-react'
 import { useBiometrics } from '../hooks/useBiometrics'
 import { useCycles, useCyclesSummary } from '../hooks/useCycles'
@@ -22,6 +24,7 @@ import { useDashboardMetrics, useDashboards } from '../hooks/useDashboards'
 import { useFeedingTable } from '../hooks/useFeeding'
 import { usePonds } from '../hooks/usePonds'
 import { useWaterQuality } from '../hooks/useWaterQuality'
+import { isBercarioPondType } from '../lib/plPerGram'
 import { Table } from '../components/ui/Table'
 import { EmptyState } from '../components/ui/EmptyState'
 import { PanelCard } from './CustomDashboardsPage'
@@ -41,7 +44,7 @@ import {
   workspaceTileLabel,
   workspaceTileValue,
 } from '../components/ui/surfaces'
-import type { FeedingTableRow, PondStatus } from '../types'
+import type { Cycle, FeedingTableRow, PondStatus } from '../types'
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10)
@@ -68,14 +71,31 @@ export function OperationsDashboardPage() {
   const { data: activeCycles = [] } = useCycles({ status: 'ativo' })
   const { data: cyclesSummary } = useCyclesSummary()
   const { data: feedingTable, isLoading: feedingLoading } = useFeedingTable({ date: today })
-  const { data: biometrics = [] } = useBiometrics(activeCycles[0]?.id ?? null)
-  const { data: waterQuality = [] } = useWaterQuality(activeCycles[0]?.id)
+  const [selectedCycleId, setSelectedCycleId] = useState<string>(activeCycles[0]?.id ?? '')
+  const selectedCycle = activeCycles.find((cycle) => cycle.id === selectedCycleId) ?? activeCycles[0]
+
+  const { data: biometrics = [] } = useBiometrics(selectedCycle?.id ?? null)
+  const { data: waterQuality = [] } = useWaterQuality(selectedCycle?.id)
   // The most recently updated saved dashboard (Painéis customizáveis) previews
   // here — whatever the user configures there shows up on the home screen,
   // instead of/alongside the fixed biometria+água shortcut below.
   const { data: dashboards = [] } = useDashboards()
   const { data: dashboardMetrics = [] } = useDashboardMetrics()
   const featuredDashboard = dashboards[0]
+
+  const cycleOptions = useMemo(() => {
+    const viveiros = activeCycles.filter((c) => !isBercarioPondType(c.pond?.type));
+    const bercarios = activeCycles.filter((c) => isBercarioPondType(c.pond?.type));
+    const label = (c: Cycle) => `${c.pond?.code ?? c.pondId}${c.lotCode ? ` · ${c.lotCode}` : ''}`;
+    const groups: { label: string; options: { value: string; label: string }[] }[] = [];
+    if (viveiros.length) {
+      groups.push({ label: 'Viveiros', options: viveiros.map((c) => ({ value: c.id, label: label(c) })) });
+    }
+    if (bercarios.length) {
+      groups.push({ label: 'Berçários', options: bercarios.map((c) => ({ value: c.id, label: label(c) })) });
+    }
+    return groups;
+  }, [activeCycles])
 
   const rows = feedingTable?.rows ?? []
   const sortedRows = [...rows].sort((left, right) => right.dailyFeedKg - left.dailyFeedKg)
@@ -308,6 +328,38 @@ export function OperationsDashboardPage() {
           </div>
         ) : (
           <aside style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: space.page, alignItems: 'start' }}>
+          {cycleOptions.length > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, ...workspaceSurface, gridColumn: '1 / -1' }}>
+              <Waves size={18} style={{ color: 'var(--text-muted)' }} />
+              <label htmlFor="dash-cycle" style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-muted)' }}>
+                Viveiro
+              </label>
+              <select
+                id="dash-cycle"
+                value={selectedCycleId}
+                onChange={(e) => setSelectedCycleId(e.target.value)}
+                style={{
+                  flex: 1,
+                  maxWidth: 280,
+                  padding: '8px 12px',
+                  borderRadius: radius.tile,
+                  border: '1px solid var(--border-strong)',
+                  backgroundColor: 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                {cycleOptions.map((group) => (
+                  <optgroup key={group.label} label={group.label}>
+                    {group.options.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+          )}
           <section style={workspaceSurface}>
             <div style={workspaceTileLabel}>
               Biometrias
