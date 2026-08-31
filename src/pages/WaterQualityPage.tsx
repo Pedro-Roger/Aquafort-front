@@ -119,7 +119,7 @@ export function WaterQualityPage() {
   const lastMeasurement = measurements[0];
 
   // Chart data (last 30 readings, oldest first)
-  const chartData = [...measurements]
+  const chartData = [...(measurements ?? [])]
     .slice(0, 30)
     .reverse()
     .map((m) => ({

@@ -93,7 +93,7 @@ function pondLabel(pond: Pond) {
  * uma ordem estável e previsível.
  */
 function sortPondsByPriorityType(ponds: Pond[], priorityType: PondType): Pond[] {
-  return [...ponds].sort((a, b) => {
+  return [...(ponds ?? [])].sort((a, b) => {
     const aPriority = a.type === priorityType ? 0 : 1;
     const bPriority = b.type === priorityType ? 0 : 1;
     if (aPriority !== bPriority) return aPriority - bPriority;
