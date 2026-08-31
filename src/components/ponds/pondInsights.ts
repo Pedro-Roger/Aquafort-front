@@ -36,8 +36,8 @@ export function buildBiometricFeedTimeline({
   feedings: FeedingRecord[]
   stockDate: string
 }): BiometricFeedTimelinePoint[] {
-  const sortedBiometrics = [...(biometrics ?? [])].sort((a, b) => new Date(a.measuredAt).getTime() - new Date(b.measuredAt).getTime())
-  const sortedFeedings = [...(feedings ?? [])].sort((a, b) => new Date(a.fedAt).getTime() - new Date(b.fedAt).getTime())
+  const sortedBiometrics = [...(Array.isArray(biometrics) ? biometrics : [])].sort((a, b) => new Date(a.measuredAt).getTime() - new Date(b.measuredAt).getTime())
+  const sortedFeedings = [...(Array.isArray(feedings) ? feedings : [])].sort((a, b) => new Date(a.fedAt).getTime() - new Date(b.fedAt).getTime())
   const stockAt = new Date(stockDate)
 
   let cumulativeFeedKg = 0

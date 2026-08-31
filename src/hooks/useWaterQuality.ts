@@ -33,7 +33,7 @@ export function useWaterQuality(cycleId?: string) {
     queryKey: ['water-quality', cycleId],
     queryFn: async () => {
       const { data } = await api.get('/v1/water-quality', { params: { cycleId } });
-      return data;
+      return (data as { data?: WaterQuality[] })?.data ?? [];
     },
     enabled: !!cycleId,
   });
