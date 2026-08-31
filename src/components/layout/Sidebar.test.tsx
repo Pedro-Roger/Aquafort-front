@@ -16,7 +16,7 @@ function renderSidebar(options: { isAdmin?: boolean; activeFarmId?: string } = {
       <QueryClientProvider client={queryClient}>
         <FarmContext.Provider
           value={{
-            farms: [{ farmId: 'farm-1', farmName: 'Fazenda Teste', role: 'ADMIN' }],
+            farms: [{ farmId: 'farm-1', farmName: 'Fazenda Teste', role: 'ADMIN', status: 'ACTIVE' }],
             farmsLoading: false,
             activeFarmId,
             activeFarmName: 'Fazenda Teste',
