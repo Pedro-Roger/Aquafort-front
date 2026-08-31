@@ -139,6 +139,20 @@ export function useUpdateFeeding() {
   });
 }
 
+export function useDeleteFeeding() {
+  const qc = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: async (id) => {
+      await api.delete(`/v1/feeding/${id}`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['feeding'] });
+      qc.invalidateQueries({ queryKey: ['cycles'] });
+    },
+  });
+}
+
+
 export function useCreateFeedProduct() {
   const qc = useQueryClient()
   return useMutation<FeedProduct, Error, CreateFeedProductDto>({

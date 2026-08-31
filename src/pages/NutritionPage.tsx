@@ -10,6 +10,7 @@ import {
   Layers,
   Package,
   Plus,
+  Trash2,
 } from 'lucide-react';
 import {
   Bar,
@@ -23,7 +24,7 @@ import {
 } from 'recharts';
 import { useAuth } from '../hooks/useAuth';
 import { useCycles } from '../hooks/useCycles';
-import { useCreateExpressFeeding, useFcaSeries, useFeedingList, useFeedingTable, useFeedProducts, useUpdateFeeding } from '../hooks/useFeeding';
+import { useCreateExpressFeeding, useDeleteFeeding, useFcaSeries, useFeedingList, useFeedingTable, useFeedProducts, useUpdateFeeding } from '../hooks/useFeeding';
 import { useBiometricKpis } from '../hooks/useBiometrics';
 import { useFarmBiometricsReference } from '../hooks/useFarmBiometricsReference';
 import { calculateDailyRation } from '../lib/biometricsReference';
@@ -96,6 +97,7 @@ export function NutritionPage() {
   const history = useFeedingList({ cycleId: cycleFilter || undefined, limit: 12 });
   const createFeeding = useCreateExpressFeeding();
   const updateFeeding = useUpdateFeeding();
+  const deleteFeeding = useDeleteFeeding();
 
   const fcaSelectedCycleId = fcaCycleId || cycles[0]?.id || null;
   const fcaSeries = useFcaSeries(fcaSelectedCycleId);
@@ -329,14 +331,28 @@ export function NutritionPage() {
       header: '',
       align: 'right' as const,
       render: (row: FeedingRecord) => (
-        <button
-          type="button"
-          onClick={() => handleEditFeeding(row)}
-          title="Editar trato"
-          style={{ border: 'none', background: 'none', color: 'var(--accent-dark)', cursor: 'pointer', display: 'inline-flex' }}
-        >
-          <Edit3 size={15} />
-        </button>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={() => handleEditFeeding(row)}
+            title="Editar trato"
+            style={{ border: 'none', background: 'none', color: 'var(--accent-dark)', cursor: 'pointer', display: 'inline-flex' }}
+          >
+            <Edit3 size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm('Tem certeza de que deseja excluir este lançamento de ração?')) {
+                deleteFeeding.mutate(row.id);
+              }
+            }}
+            title="Excluir trato"
+            style={{ border: 'none', background: 'none', color: 'var(--danger)', cursor: 'pointer', display: 'inline-flex' }}
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
       ),
     },
   ];
