@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Activity, CalendarDays, Edit3, LineChart, Trash2, Waves } from 'lucide-react';
 import {
   CartesianGrid,
@@ -71,7 +71,35 @@ export function BiometricsPage() {
   const { data: ponds = [], isLoading: pondsLoading } = usePonds();
   const { data: latestByPond = [] } = useLatestBiometricsByPond();
   const [cycleId, setCycleId] = useState(() => searchParams.get('cycleId') ?? '');
-  const selectedCycleId = cycleId || cycles[0]?.id || '';
+  const [pondTypeFilter, setPondTypeFilter] = useState<'TODOS' | 'VIVEIROS' | 'BERCARIOS'>('TODOS');
+  const [isLaunchExpanded, setIsLaunchExpanded] = useState(() => typeof process !== 'undefined' && process.env.NODE_ENV === 'test');
+  const [comparisonCycleId, setComparisonCycleId] = useState('');
+
+  const filteredCycles = useMemo(() => {
+    return cycles.filter((cycle) => {
+      if (pondTypeFilter === 'VIVEIROS') {
+        return !isBercarioPondType(cycle.pond?.type);
+      }
+      if (pondTypeFilter === 'BERCARIOS') {
+        return isBercarioPondType(cycle.pond?.type);
+      }
+      return true;
+    });
+  }, [cycles, pondTypeFilter]);
+
+  const filteredPonds = useMemo(() => {
+    return ponds.filter((pond) => {
+      if (pondTypeFilter === 'VIVEIROS') {
+        return !isBercarioPondType(pond.type);
+      }
+      if (pondTypeFilter === 'BERCARIOS') {
+        return isBercarioPondType(pond.type);
+      }
+      return true;
+    });
+  }, [ponds, pondTypeFilter]);
+
+  const selectedCycleId = cycleId || filteredCycles[0]?.id || '';
   const selectedCycle = cycles.find((cycle) => cycle.id === selectedCycleId) ?? null;
   /** RF-10/RN-10: bercario cycles read biometry as PL/g; engorda/reprodutor keep grams. */
   const isBercario = isBercarioPondType(selectedCycle?.pond?.type);
@@ -91,7 +119,18 @@ export function BiometricsPage() {
 
   const biometrics = useBiometrics(selectedCycleId || null);
   const series = useBiometricSeries(selectedCycleId || null);
+  const comparisonSeries = useBiometricSeries(comparisonCycleId || null);
   const kpis = useBiometricKpis(selectedCycleId || null);
+
+  useEffect(() => {
+    if (!filteredCycles.length) return;
+    const exists = filteredCycles.some((c) => c.id === selectedCycleId);
+    if (!exists) {
+      const nextCycleId = filteredCycles[0].id;
+      setCycleId(nextCycleId);
+      navigate(buildBiometriaPath(nextCycleId, focusParam === 'chart' ? 'chart' : focusParam === 'form' ? 'form' : undefined), { replace: true });
+    }
+  }, [filteredCycles, selectedCycleId, navigate, focusParam]);
   // The operational estimate below reverse-computes biomass from feed ÷
   // today's expected consumption rate — valid only for feed given recently,
   // not the lifetime-accumulated total (see useFeedingAggregate's comment).
@@ -155,7 +194,7 @@ export function BiometricsPage() {
     setModalOpen(true);
   }
 
-  const cycleOptions = cycles.map((cycle) => ({
+  const cycleOptions = filteredCycles.map((cycle) => ({
     value: cycle.id,
     label: `${cycle.pond?.code ?? cycle.pondId} · ${cycle.lotCode ?? cycle.larvaeLotCode ?? cycle.supplier}`,
   }));
@@ -196,7 +235,30 @@ export function BiometricsPage() {
       { measuredAt: reading.measuredAt, pesoMedioG: reading.averageWeightG },
     ]),
   );
-  const listRows: BiometricsListRow[] = ponds.map((pond) => {
+
+  const mergedChartData = useMemo(() => {
+    const primaryPoints = series.data?.points ?? [];
+    const comparisonPoints = comparisonSeries.data?.points ?? [];
+
+    const weeksSet = new Set<number>();
+    primaryPoints.forEach((p) => weeksSet.add(p.semana));
+    comparisonPoints.forEach((p) => weeksSet.add(p.semana));
+    const weeks = Array.from(weeksSet).sort((a, b) => a - b);
+
+    return weeks.map((week) => {
+      const p1 = primaryPoints.find((p) => p.semana === week);
+      const p2 = comparisonPoints.find((p) => p.semana === week);
+      return {
+        semana: week,
+        pesoMedioG_1: p1 ? p1.pesoMedioG : null,
+        ganhoSemanaG_1: p1 ? p1.ganhoSemanaG : null,
+        pesoMedioG_2: p2 ? p2.pesoMedioG : null,
+        ganhoSemanaG_2: p2 ? p2.ganhoSemanaG : null,
+      };
+    });
+  }, [series.data, comparisonSeries.data]);
+
+  const listRows: BiometricsListRow[] = filteredPonds.map((pond) => {
     const activeCycle = cycles.find((cycle) => cycle.pondId === pond.id) ?? null;
     const latest = latestBiometricsByPond[pond.id];
     return {
@@ -317,64 +379,167 @@ export function BiometricsPage() {
               navigate(buildBiometriaPath(nextCycleId, focusParam === 'chart' ? 'chart' : focusParam === 'form' ? 'form' : undefined), { replace: true });
             }}
             metrics={cyclePanelMetrics}
-            actions={[]}
+            actions={[
+              {
+                label: 'Lançar biometria',
+                kind: 'primary',
+                onClick: () => {
+                  const pond = selectedCycle?.pond as Pond | undefined;
+                  if (pond) handlePondClick(pond);
+                },
+                disabled: !selectedCycleId,
+              },
+            ]}
           />
         </div>
       </div>
 
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        backgroundColor: 'var(--bg-card)',
+        padding: '12px 18px',
+        borderRadius: 14,
+        border: '1px solid var(--border)',
+        width: 'fit-content',
+        boxShadow: 'var(--shadow-sm)',
+        marginTop: -6,
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>Visualizar:</span>
+        <button
+          type="button"
+          onClick={() => setPondTypeFilter('TODOS')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: 20,
+            border: 'none',
+            backgroundColor: pondTypeFilter === 'TODOS' ? 'var(--accent-fill)' : 'transparent',
+            color: pondTypeFilter === 'TODOS' ? '#fff' : 'var(--text-muted)',
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontSize: 12,
+            transition: 'all 0.2s',
+          }}
+        >
+          Todos
+        </button>
+        <button
+          type="button"
+          onClick={() => setPondTypeFilter('VIVEIROS')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: 20,
+            border: 'none',
+            backgroundColor: pondTypeFilter === 'VIVEIROS' ? 'var(--accent-fill)' : 'transparent',
+            color: pondTypeFilter === 'VIVEIROS' ? '#fff' : 'var(--text-muted)',
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontSize: 12,
+            transition: 'all 0.2s',
+          }}
+        >
+          Viveiros
+        </button>
+        <button
+          type="button"
+          onClick={() => setPondTypeFilter('BERCARIOS')}
+          style={{
+            padding: '6px 14px',
+            borderRadius: 20,
+            border: 'none',
+            backgroundColor: pondTypeFilter === 'BERCARIOS' ? 'var(--accent-fill)' : 'transparent',
+            color: pondTypeFilter === 'BERCARIOS' ? '#fff' : 'var(--text-muted)',
+            fontWeight: 700,
+            cursor: 'pointer',
+            fontSize: 12,
+            transition: 'all 0.2s',
+          }}
+        >
+          Berçários
+        </button>
+      </div>
+
       <section style={workspaceCard}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: space.tile, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: space.tile, flexWrap: 'wrap' }}>
           <div>
-            <div style={workspaceTileLabel}>Leitura por viveiro</div>
+            <div style={workspaceTileLabel}>Lançamento em lote</div>
             <h2 style={{ ...sectionTitle, marginTop: 6 }}>
-              {viewMode === 'lista' ? 'Lance a biometria do dia, viveiro por viveiro' : 'Clique para registrar biometria'}
+              Lançar biometrias em lote / por viveiro
             </h2>
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            {isLaunchExpanded && (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('lista')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 8,
+                    border: viewMode === 'lista' ? 'none' : '1px solid var(--border-strong)',
+                    backgroundColor: viewMode === 'lista' ? 'var(--accent-fill)' : 'var(--bg-card)',
+                    color: viewMode === 'lista' ? '#fff' : 'var(--text-primary)',
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Lista
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('cartoes')}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 8,
+                    border: viewMode === 'cartoes' ? 'none' : '1px solid var(--border-strong)',
+                    backgroundColor: viewMode === 'cartoes' ? 'var(--accent-fill)' : 'var(--bg-card)',
+                    color: viewMode === 'cartoes' ? '#fff' : 'var(--text-primary)',
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cartões
+                </button>
+              </div>
+            )}
             <button
               type="button"
-              onClick={() => setViewMode('lista')}
+              onClick={() => setIsLaunchExpanded(!isLaunchExpanded)}
               style={{
                 padding: '6px 14px',
                 borderRadius: 8,
-                border: viewMode === 'lista' ? 'none' : '1px solid var(--border-strong)',
-                backgroundColor: viewMode === 'lista' ? 'var(--accent-fill)' : 'var(--bg-card)',
-                color: viewMode === 'lista' ? '#fff' : 'var(--text-primary)',
+                border: '1px solid var(--border-strong)',
+                backgroundColor: 'var(--bg-card)',
+                color: 'var(--text-primary)',
                 fontWeight: 600,
                 fontSize: 13,
                 cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
               }}
             >
-              Lista
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('cartoes')}
-              style={{
-                padding: '6px 14px',
-                borderRadius: 8,
-                border: viewMode === 'cartoes' ? 'none' : '1px solid var(--border-strong)',
-                backgroundColor: viewMode === 'cartoes' ? 'var(--accent-fill)' : 'var(--bg-card)',
-                color: viewMode === 'cartoes' ? '#fff' : 'var(--text-primary)',
-                fontWeight: 600,
-                fontSize: 13,
-                cursor: 'pointer',
-              }}
-            >
-              Cartões
+              {isLaunchExpanded ? 'Recolher lançador' : 'Expandir lançamento em lote'}
             </button>
           </div>
         </div>
 
-        {viewMode === 'lista' ? (
-          <BiometricsListEntry rows={listRows} date={listDate} onDateChange={setListDate} onSave={handleListSave} />
-        ) : (
-          <BiometricsPondsGrid
-            ponds={ponds}
-            loading={pondsLoading}
-            onPondClick={handlePondClick}
-            latestBiometricsByPond={latestBiometricsByPond}
-          />
+        {isLaunchExpanded && (
+          <div style={{ marginTop: space.section }}>
+            {viewMode === 'lista' ? (
+              <BiometricsListEntry rows={listRows} date={listDate} onDateChange={setListDate} onSave={handleListSave} />
+            ) : (
+              <BiometricsPondsGrid
+                ponds={filteredPonds}
+                loading={pondsLoading}
+                onPondClick={handlePondClick}
+                latestBiometricsByPond={latestBiometricsByPond}
+              />
+            )}
+          </div>
         )}
       </section>
 
@@ -411,14 +576,41 @@ export function BiometricsPage() {
 
       <div style={{ display: 'grid', gap: space.page }}>
           <div ref={chartRef} style={workspaceCard}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: space.tile, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: space.tile, flexWrap: 'wrap' }}>
               <div>
                 <h2 style={sectionTitle}>Curva de crescimento</h2>
                 <div style={{ ...sectionSubtitle, marginTop: 2 }}>Eixo por semana com peso médio e ganho semanal.</div>
               </div>
-              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{series.data?.points.length ?? 0} pontos</span>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>Comparar com:</span>
+                  <select
+                    value={comparisonCycleId}
+                    onChange={(e) => setComparisonCycleId(e.target.value)}
+                    style={{
+                      padding: '5px 10px',
+                      borderRadius: 8,
+                      border: '1px solid var(--border-strong)',
+                      backgroundColor: 'var(--bg-card)',
+                      color: 'var(--text-primary)',
+                      fontSize: 12,
+                      fontWeight: 600,
+                    }}
+                  >
+                    <option value="">Nenhum</option>
+                    {cycleOptions
+                      .filter((opt) => opt.value !== selectedCycleId)
+                      .map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{series.data?.points.length ?? 0} pontos</span>
+              </div>
             </div>
-            {!series.data?.points.length ? (
+            {(!series.data?.points.length && !comparisonSeries.data?.points?.length) ? (
               <EmptyState
                 compact
                 title="Sem pontos ainda."
@@ -427,27 +619,39 @@ export function BiometricsPage() {
             ) : (
               <div style={{ width: '100%', height: 220 }}>
                 <ResponsiveContainer>
-                  <RechartsLineChart data={series.data.points}>
+                  <RechartsLineChart data={mergedChartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                     <XAxis dataKey="semana" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
                     <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
                     <Tooltip
-                      formatter={(value: unknown, name: unknown) => {
+                      formatter={(value: unknown, name: unknown, props: any) => {
                         const numericValue = typeof value === 'number' ? value : Number(value ?? 0);
-                        if (name === 'pesoMedioG') {
-                          // RF-12: bercario cycles show the derived PL/g next to the
-                          // weight in grams for every point on the growth curve.
-                          const weightLabel = isBercario && numericValue > 0
+                        const dataKey = props.dataKey;
+                        const isPrimary = dataKey.endsWith('_1');
+                        const isWeight = dataKey.startsWith('pesoMedioG');
+
+                        const cycleObj = isPrimary ? selectedCycle : cycles.find((c) => c.id === comparisonCycleId);
+                        const isCycleBercario = isBercarioPondType(cycleObj?.pond?.type);
+
+                        if (isWeight) {
+                          const weightLabel = isCycleBercario && numericValue > 0
                             ? `${fmt(numericValue, 2)} g (${fmt(averageWeightGToPlPerGram(numericValue), 0)} PL/g)`
                             : `${fmt(numericValue, 2)} g`;
-                          return [weightLabel, 'Peso médio'];
+                          return [weightLabel, name];
                         }
-                        return [`${fmt(numericValue, 2)} g`, 'Ganho semanal'];
+                        return [`${fmt(numericValue, 2)} g`, name];
                       }}
                       labelFormatter={(value) => `Semana ${value}`}
                     />
-                <Line type="monotone" dataKey="pesoMedioG" stroke="#0ea5e9" strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="ganhoSemanaG" stroke="#38bdf8" strokeWidth={2} dot={{ r: 3 }} />
+                    <Line type="monotone" dataKey="pesoMedioG_1" name={`Peso médio (${selectedCycle?.pond?.code ?? 'Viveiro Principal'})`} stroke="#0ea5e9" strokeWidth={2.5} dot={{ r: 4 }} connectNulls />
+                    <Line type="monotone" dataKey="ganhoSemanaG_1" name={`Ganho semanal (${selectedCycle?.pond?.code ?? 'Viveiro Principal'})`} stroke="#38bdf8" strokeWidth={1.5} strokeDasharray="5 5" dot={{ r: 3 }} connectNulls />
+                    
+                    {comparisonCycleId && (
+                      <>
+                        <Line type="monotone" dataKey="pesoMedioG_2" name={`Peso médio (${cycles.find(c => c.id === comparisonCycleId)?.pond?.code ?? 'Comparação'})`} stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 4 }} connectNulls />
+                        <Line type="monotone" dataKey="ganhoSemanaG_2" name={`Ganho semanal (${cycles.find(c => c.id === comparisonCycleId)?.pond?.code ?? 'Comparação'})`} stroke="#a855f7" strokeWidth={1.5} strokeDasharray="5 5" dot={{ r: 3 }} connectNulls />
+                      </>
+                    )}
                   </RechartsLineChart>
                 </ResponsiveContainer>
               </div>
