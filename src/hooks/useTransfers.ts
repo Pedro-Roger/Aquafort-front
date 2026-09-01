@@ -63,3 +63,16 @@ export function useDeleteTransfer() {
     },
   });
 }
+
+export function useUpdateTransfer() {
+  const qc = useQueryClient();
+  return useMutation<PondTransfer, Error, { id: string; dto: UpdateTransferDto }>({
+    mutationFn: async ({ id, dto }) => {
+      const { data } = await api.put(`/v1/transfers/${id}`, dto);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['transfers'] });
+    },
+  });
+}

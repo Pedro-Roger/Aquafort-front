@@ -477,6 +477,8 @@ export interface PondTransfer {
   createdAt: string;
   fromPond: Pick<Pond, 'id' | 'code' | 'name' | 'status'>;
   toPond: Pick<Pond, 'id' | 'code' | 'name' | 'status'>;
+  averageWeightG?: number | null;
+  closesOriginCycle?: boolean;
 }
 
 export type MaterialUnit = 'UN' | 'KG' | 'L' | 'SC';

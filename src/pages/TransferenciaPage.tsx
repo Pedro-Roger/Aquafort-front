@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { ArrowRightLeft, CornerDownRight, Plus, RotateCw, ShieldAlert, Truck } from 'lucide-react';
+import { ArrowRightLeft, CornerDownRight, Edit2, Plus, RotateCw, ShieldAlert, Truck } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import {
   metricGrid,
@@ -18,8 +18,9 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Table } from '../components/ui/Table';
 import { UnitToggle } from '../components/ui/UnitToggle';
+import { useAuth } from '../hooks/useAuth';
 import { usePonds } from '../hooks/usePonds';
-import { useCreateTransfer, useTransfers } from '../hooks/useTransfers';
+import { useCreateTransfer, useTransfers, useUpdateTransfer } from '../hooks/useTransfers';
 import { averageWeightGToPlPerGram, isBercarioPondType, plPerGramToAverageWeightG } from '../lib/plPerGram';
 import type { Pond, PondTransfer } from '../types';
 import { PondStatus, PondType } from '../types';
@@ -110,11 +111,26 @@ function statusLabel(status: PondStatus) {
 }
 
 export function TransferenciaPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const { data: ponds = [], isLoading } = usePonds();
   const { data: savedTransfers = [], isLoading: transfersLoading } = useTransfers();
   const createTransfer = useCreateTransfer();
+  const updateTransfer = useUpdateTransfer();
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<TransferForm>({
+    fromPondId: '',
+    toPondId: '',
+    quantity: '',
+    transferDate: todayIsoDate(),
+    responsible: '',
+    reason: '',
+    note: '',
+    weightInput: '',
+    transferType: 'AUTO',
+  });
+  const [editingTransfer, setEditingTransfer] = useState<PondTransfer | null>(null);
+  const [editForm, setEditForm] = useState<TransferForm>({
     fromPondId: '',
     toPondId: '',
     quantity: '',
@@ -257,6 +273,17 @@ export function TransferenciaPage() {
       header: 'Motivo',
       render: (row: PondTransfer) => row.reason ?? '—',
     },
+    ...(isAdmin
+      ? [
+          {
+            key: 'actions',
+            header: '',
+            render: (row: PondTransfer) => (
+              <Button icon={<Edit2 size={14} />} onClick={() => handleEditOpen(row)} variant="ghost" />
+            ),
+          },
+        ]
+      : []),
   ];
 
   async function handleSubmit() {
@@ -334,6 +361,69 @@ export function TransferenciaPage() {
       weightInput: '',
       transferType: 'AUTO',
     }));
+  }
+
+  function handleEditOpen(transfer: PondTransfer) {
+    setEditingTransfer(transfer);
+    setEditForm({
+      fromPondId: transfer.fromPondId,
+      toPondId: transfer.toPondId,
+      quantity: String(transfer.quantity),
+      transferDate: transfer.transferredAt.slice(0, 10),
+      responsible: transfer.responsible,
+      reason: transfer.reason ?? '',
+      note: transfer.note ?? '',
+      weightInput: transfer.averageWeightG != null ? String(transfer.averageWeightG) : '',
+      transferType: transfer.closesOriginCycle === undefined ? 'AUTO' : transfer.closesOriginCycle ? 'TOTAL' : 'PARTIAL',
+    });
+    setWeightUnit(isOriginBercario ? 'pl_per_gram' : 'grams');
+  }
+
+  function handleEditCancel() {
+    setEditingTransfer(null);
+  }
+
+  async function handleEditSubmit() {
+    if (!editingTransfer) return;
+    setError(null);
+
+    const quantity = Number(editForm.quantity || 0);
+    if (!editForm.fromPondId || !editForm.toPondId || !editForm.transferDate || !quantity) {
+      setError('Informe origem, destino, data e quantidade.');
+      return;
+    }
+    if (!editForm.responsible.trim()) {
+      setError('Informe o responsável pela transferência.');
+      return;
+    }
+
+    const rawWeight = Number(editForm.weightInput);
+    const averageWeightG = editForm.weightInput.trim() && Number.isFinite(rawWeight) && rawWeight > 0
+      ? (weightUnit === 'pl_per_gram' ? plPerGramToAverageWeightG(rawWeight) : rawWeight)
+      : undefined;
+
+    try {
+      await updateTransfer.mutateAsync({
+        id: editingTransfer.id,
+        dto: {
+          quantity,
+          transferredAt: new Date(`${editForm.transferDate}T12:00:00`).toISOString(),
+          responsible: editForm.responsible.trim(),
+          reason: editForm.reason.trim() || 'Transferência operacional',
+          note: editForm.note.trim() || undefined,
+          ...(editForm.transferType !== 'AUTO' ? { closesOriginCycle: editForm.transferType === 'TOTAL' } : {}),
+          ...(averageWeightG !== undefined ? { averageWeightG } : {}),
+        },
+      });
+      setEditingTransfer(null);
+    } catch (saveError: unknown) {
+      const errorMessage = typeof saveError === 'object' && saveError !== null && 'response' in saveError
+        ? (saveError as { response?: { data?: { message?: string } } }).response?.data?.message
+        : undefined;
+      const fallbackMessage = saveError instanceof Error ? saveError.message : undefined;
+      setError(errorMessage ?? fallbackMessage ?? 'Não foi possível atualizar a transferência. Tente novamente.');
+      return;
+    }
   }
 
   return (
@@ -445,6 +535,63 @@ export function TransferenciaPage() {
         </div>
       </div>
 
+      {editingTransfer && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+          onClick={handleEditCancel}
+        >
+          <div
+            style={{
+              ...workspaceCard,
+              width: 'min(560px, 90vw)',
+              maxHeight: '90vh',
+              overflow: 'auto',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: space.section }}>
+              <h2 style={sectionTitle}>Editar transferência</h2>
+              <Button icon={<Edit2 size={16} />} variant="ghost" onClick={handleEditCancel} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <Input label="Quantidade" type="number" min={0} step={1} value={editForm.quantity} onChange={(e) => setEditForm((current) => ({ ...current, quantity: e.target.value }))} />
+              <Input label="Data" type="date" value={editForm.transferDate} onChange={(e) => setEditForm((current) => ({ ...current, transferDate: e.target.value }))} />
+              <Input label="Responsável" value={editForm.responsible} onChange={(e) => setEditForm((current) => ({ ...current, responsible: e.target.value }))} placeholder="Nome de quem realizou" />
+              <Input label="Motivo" value={editForm.reason} onChange={(e) => setEditForm((current) => ({ ...current, reason: e.target.value }))} placeholder="Ajuste operacional, separação..." />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <Input label="Observação" value={editForm.note} onChange={(e) => setEditForm((current) => ({ ...current, note: e.target.value }))} placeholder="Detalhes adicionais da movimentação" />
+              <Select
+                label="Tipo de transferência"
+                options={[
+                  { value: 'AUTO', label: 'Automático (recomendado)' },
+                  { value: 'PARTIAL', label: 'Parcial' },
+                  { value: 'TOTAL', label: 'Total' },
+                ]}
+                value={editForm.transferType}
+                onChange={(e) => setEditForm((current) => ({ ...current, transferType: e.target.value as TransferType }))}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: space.inline, justifyContent: 'flex-end', marginTop: space.section, borderTop: '1px solid var(--border)', paddingTop: space.section }}>
+              <Button variant="ghost" onClick={handleEditCancel}>Cancelar</Button>
+              <Button icon={<Edit2 size={16} />} onClick={handleEditSubmit} loading={updateTransfer.isPending}>
+                Salvar alterações
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
