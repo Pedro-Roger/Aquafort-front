@@ -29,6 +29,8 @@ export interface CreateTransferDto {
   closesOriginCycle?: boolean;
 }
 
+export type UpdateTransferDto = Omit<CreateTransferDto, 'fromPondId' | 'toPondId'>;
+
 export function useTransfers(params: TransfersParams = {}) {
   return useQuery<PondTransfer[]>({
     queryKey: ['transfers', params],
