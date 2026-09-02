@@ -18,7 +18,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Table } from '../components/ui/Table';
 import { UnitToggle } from '../components/ui/UnitToggle';
-import { useAuth } from '../hooks/useAuth';
+
 import { usePonds } from '../hooks/usePonds';
 import { useCreateTransfer, useTransfers, useUpdateTransfer } from '../hooks/useTransfers';
 import { averageWeightGToPlPerGram, isBercarioPondType, plPerGramToAverageWeightG } from '../lib/plPerGram';
@@ -111,8 +111,7 @@ function statusLabel(status: PondStatus) {
 }
 
 export function TransferenciaPage() {
-  const { user } = useAuth();
-  const isAdmin = user?.role === 'ADMIN';
+  // user check removed
   const { data: ponds = [], isLoading } = usePonds();
   const { data: savedTransfers = [], isLoading: transfersLoading } = useTransfers();
   const createTransfer = useCreateTransfer();
