@@ -273,17 +273,13 @@ export function TransferenciaPage() {
       header: 'Motivo',
       render: (row: PondTransfer) => row.reason ?? '—',
     },
-    ...(isAdmin
-      ? [
-          {
-            key: 'actions',
-            header: '',
-            render: (row: PondTransfer) => (
-              <Button icon={<Edit2 size={14} />} onClick={() => handleEditOpen(row)} variant="ghost" />
-            ),
-          },
-        ]
-      : []),
+    {
+      key: 'actions',
+      header: '',
+      render: (row: PondTransfer) => (
+        <Button icon={<Edit2 size={14} />} onClick={() => handleEditOpen(row)} variant="ghost" />
+      ),
+    },
   ];
 
   async function handleSubmit() {
