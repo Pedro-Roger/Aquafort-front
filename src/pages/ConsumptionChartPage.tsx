@@ -27,7 +27,7 @@ import {
 } from '../components/ui/surfaces';
 import { useConsumptionSeries } from '../hooks/useConsumptionSeries';
 import { usePonds } from '../hooks/usePonds';
-import { accumulatedKey, buildChartRows, colorFor, summarise, weightKey } from './consumptionChart';
+import { accumulatedKey, buildChartRows, colorFor, dailyKey, summarise, weightKey } from './consumptionChart';
 
 function fmt(value: number | null | undefined, digits = 1) {
   if (value == null) return '—';
@@ -40,10 +40,13 @@ function shortDate(value: string) {
 }
 
 export function ConsumptionChartPage() {
-  const { data: ponds = [] } = usePonds();
+  const [onlyActive, setOnlyActive] = useState(true);
+  const { data: allPonds = [] } = usePonds();
+  const ponds = onlyActive ? allPonds.filter((p) => p.status === 'POVOADO') : allPonds;
   const [selected, setSelected] = useState<string[]>([]);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [chartMode, setChartMode] = useState<'accumulated' | 'daily'>('daily');
 
   // Start with the ponds that are stocked — the ones being fed right now.
   useEffect(() => {
@@ -58,7 +61,7 @@ export function ConsumptionChartPage() {
     to: to || undefined,
   });
 
-  const rows = useMemo(() => buildChartRows(series), [series]);
+  const rows = useMemo(() => buildChartRows(series, allPonds), [series, allPonds]);
   const summary = useMemo(() => summarise(series), [series]);
 
   function toggle(pondId: string) {
@@ -78,11 +81,41 @@ export function ConsumptionChartPage() {
             </p>
           </div>
           <div style={{ display: 'flex', gap: space.inline, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingBottom: 10 }}>
+              <input
+                type="checkbox"
+                id="onlyActive"
+                checked={onlyActive}
+                onChange={(e) => setOnlyActive(e.target.checked)}
+              />
+              <label htmlFor="onlyActive" style={{ fontSize: 13, color: 'var(--text-primary)', cursor: 'pointer' }}>
+                Em ciclo
+              </label>
+            </div>
             <div style={{ minWidth: 150 }}>
               <Input label="De" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
             </div>
             <div style={{ minWidth: 150 }}>
               <Input label="Até" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 10, marginLeft: 8 }}>
+              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Exibir:</span>
+              <select
+                value={chartMode}
+                onChange={(e) => setChartMode(e.target.value as 'accumulated' | 'daily')}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: radius.tile,
+                  border: '1px solid var(--border)',
+                  backgroundColor: 'var(--bg-card)',
+                  fontSize: 13,
+                  color: 'var(--text-primary)',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value="daily">Ração por ha/dia</option>
+                <option value="accumulated">Ração Acumulada</option>
+              </select>
             </div>
           </div>
         </div>
@@ -141,9 +174,11 @@ export function ConsumptionChartPage() {
 
       <section style={workspaceCard}>
         <div>
-          <h2 style={sectionTitle}>Ração acumulada x gramatura</h2>
+          <h2 style={sectionTitle}>{chartMode === 'daily' ? 'Ração diária (kg/ha) x gramatura' : 'Ração acumulada x gramatura'}</h2>
           <p style={{ ...sectionSubtitle, marginTop: 4 }}>
-            A linha cheia é a ração acumulada (kg, eixo da esquerda). Os pontos são o peso médio medido (g, eixo da direita).
+            {chartMode === 'daily' 
+              ? 'A linha cheia é o consumo diário por hectare (kg/ha, eixo da esquerda). Os pontos são o peso médio (g, eixo da direita).'
+              : 'A linha cheia é a ração acumulada (kg, eixo da esquerda). Os pontos são o peso médio medido (g, eixo da direita).'}
           </p>
         </div>
 
@@ -157,14 +192,16 @@ export function ConsumptionChartPage() {
               <ComposedChart data={rows} margin={{ top: 8, right: 12, left: -8, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="date" tickFormatter={shortDate} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} minTickGap={24} />
-                <YAxis yAxisId="kg" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickFormatter={(value) => `${value}kg`} />
+                <YAxis yAxisId="kg" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickFormatter={(value) => `${value}${chartMode === 'daily' ? 'kg/ha' : 'kg'}`} />
                 <YAxis yAxisId="g" orientation="right" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickFormatter={(value) => `${value}g`} />
                 <Tooltip
                   labelFormatter={(value) => new Date(`${value}T00:00:00`).toLocaleDateString('pt-BR')}
                   formatter={(value: unknown, name: unknown) => {
                     const numeric = typeof value === 'number' ? value : Number(value ?? 0);
                     const label = String(name);
-                    return [label.endsWith('peso') ? `${fmt(numeric, 2)} g` : `${fmt(numeric, 1)} kg`, label];
+                    if (label.endsWith('peso')) return [`${fmt(numeric, 2)} g`, label];
+                    if (label.endsWith('diário')) return [`${fmt(numeric, 1)} kg/ha/dia`, label];
+                    return [`${fmt(numeric, 1)} kg`, label];
                   }}
                   contentStyle={{
                     borderRadius: radius.tile,
@@ -178,7 +215,7 @@ export function ConsumptionChartPage() {
                     key={`${pond.pondId}-kg`}
                     yAxisId="kg"
                     type="monotone"
-                    dataKey={accumulatedKey(pond.pondCode)}
+                    dataKey={chartMode === 'daily' ? dailyKey(pond.pondCode) : accumulatedKey(pond.pondCode)}
                     stroke={colorFor(index)}
                     strokeWidth={2}
                     dot={false}

@@ -43,6 +43,7 @@ vi.mock('../hooks/useTransfers', () => ({
     isLoading: false,
   }),
   useCreateTransfer: () => ({ mutateAsync, isPending: false }),
+  useUpdateTransfer: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 function renderPage() {

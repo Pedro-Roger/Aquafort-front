@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { accumulatedKey, buildChartRows, colorFor, summarise, weightKey } from './consumptionChart';
 import type { ConsumptionSeries } from '../hooks/useConsumptionSeries';
+import type { Pond } from '../types';
+
+const mockPonds = [
+  { id: 'p1', code: 'VE-01', areaHa: 1 } as Pond,
+  { id: 'p2', code: 'VE-02', areaHa: 2 } as Pond,
+  { id: 'p3', code: 'VE-03', areaHa: 1 } as Pond,
+  { id: 'p4', code: 'VE-04', areaHa: 1 } as Pond,
+];
 
 const series: ConsumptionSeries[] = [
   {
@@ -20,7 +28,7 @@ const series: ConsumptionSeries[] = [
 
 describe('consumption chart', () => {
   it('puts every pond on the same date axis', () => {
-    const rows = buildChartRows(series);
+    const rows = buildChartRows(series, mockPonds);
 
     expect(rows.map((row) => row.date)).toEqual(['2026-07-01', '2026-07-02']);
     expect(rows[1][accumulatedKey('VE-01')]).toBe(50);
@@ -28,13 +36,13 @@ describe('consumption chart', () => {
   });
 
   it('keeps the dates in order even when a pond starts later', () => {
-    const rows = buildChartRows([series[1], series[0]]);
+    const rows = buildChartRows([series[1], series[0]], mockPonds);
 
     expect(rows.map((row) => row.date)).toEqual(['2026-07-01', '2026-07-02']);
   });
 
   it('leaves a gap on days with no reading instead of plotting a zero', () => {
-    const rows = buildChartRows(series);
+    const rows = buildChartRows(series, mockPonds);
 
     // a zero would draw the weight line to the floor and read as shrinkage
     expect(rows[0][weightKey('VE-01')]).toBeUndefined();
@@ -59,7 +67,7 @@ describe('consumption chart', () => {
   });
 
   it('handles a selected pond with no data at all', () => {
-    expect(buildChartRows([{ pondId: 'p4', pondCode: 'VE-04', points: [] }])).toEqual([]);
+    expect(buildChartRows([{ pondId: 'p4', pondCode: 'VE-04', points: [] }], mockPonds)).toEqual([]);
     expect(summarise([{ pondId: 'p4', pondCode: 'VE-04', points: [] }])[0].accumulatedKg).toBe(0);
   });
 
