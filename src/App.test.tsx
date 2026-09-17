@@ -72,7 +72,7 @@ describe('App routing', () => {
     expect(screen.getByLabelText('Data')).toBeInTheDocument();
   });
 
-  it('keeps /despesca routed and functional even though it is hidden from the sidebar', () => {
+  it('keeps /despesca routed and functional', () => {
     render(
       <QueryClientProvider client={queryClient}>
         <AuthContext.Provider

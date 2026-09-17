@@ -74,12 +74,10 @@ describe('Sidebar', () => {
     expect(screen.getByText('EQUIPE')).toBeInTheDocument()
   })
 
-  it('hides Despesca from the navigation without removing the other items', () => {
+  it('shows Despesca in the navigation with the other management modules', () => {
     renderSidebar({ isAdmin: false })
 
-    // Decisão do Pedro (2026-08-16): esconder, não remover — rota/lógica intactas.
-    expect(screen.queryByText('Despesca')).not.toBeInTheDocument()
-    // Vizinhos do mesmo grupo (MANEJO) continuam visíveis.
+    expect(screen.getByText('Despesca')).toBeInTheDocument()
     expect(screen.getByText('Biometrias')).toBeInTheDocument()
     expect(screen.getByText('Qualidade')).toBeInTheDocument()
   })

@@ -62,7 +62,7 @@ const navGroups: NavGroup[] = [
       { to: '/nutrition', label: 'Ração', icon: <ClipboardList size={18} /> },
       { to: '/biometrias', label: 'Biometrias', icon: <FlaskConical size={18} /> },
       { to: '/water-quality', label: 'Qualidade', icon: <Droplets size={18} /> },
-      { to: '/despesca', label: 'Despesca', icon: <Waves size={18} />, hidden: true },
+      { to: '/despesca', label: 'Despesca', icon: <Waves size={18} /> },
     ],
   },
   {

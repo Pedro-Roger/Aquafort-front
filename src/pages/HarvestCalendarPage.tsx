@@ -30,8 +30,9 @@ import {
   useUpdateHarvestSchedule,
   type HarvestScheduleParticipantInput,
 } from '../hooks/useHarvestSchedules';
+import { useCreateHarvestRecord } from '../hooks/useHarvestRecords';
 import { brDate, buildMonthGrid, dateKey, groupSchedulesByDay, summarizeMonthSchedules, timeKey } from './harvestCalendar';
-import type { HarvestSchedule, HarvestScheduleStatus } from '../types';
+import type { HarvestSchedule, HarvestScheduleStatus, HarvestType } from '../types';
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
@@ -65,15 +66,20 @@ const statusChipStyle: Record<HarvestScheduleStatus, CSSProperties> = {
 interface ScheduleForm {
   id: string | null;
   pondId: string;
+  cycleId?: string | null;
   date: string;
   time: string;
   status: HarvestScheduleStatus;
+  initialStatus: HarvestScheduleStatus | null;
   note: string;
   participants: HarvestScheduleParticipantInput[];
+  harvestType: HarvestType;
+  harvestedKg: string;
+  closesCycle: boolean;
 }
 
 function emptyForm(date: string): ScheduleForm {
-  return { id: null, pondId: '', date, time: '07:00', status: 'AGENDADA', note: '', participants: [] };
+  return { id: null, pondId: '', cycleId: null, date, time: '07:00', status: 'AGENDADA', initialStatus: null, note: '', participants: [], harvestType: 'TOTAL', harvestedKg: '', closesCycle: true };
 }
 
 export function HarvestCalendarPage() {
@@ -96,6 +102,7 @@ export function HarvestCalendarPage() {
   const createSchedule = useCreateHarvestSchedule();
   const updateSchedule = useUpdateHarvestSchedule();
   const deleteSchedule = useDeleteHarvestSchedule();
+  const createHarvestRecord = useCreateHarvestRecord();
 
   const pondOptions = ponds.map((pond) => ({ value: pond.id, label: `${pond.code} · ${pond.name}` }));
 
@@ -121,7 +128,12 @@ export function HarvestCalendarPage() {
     setError(null);
     setConfirmingDelete(false);
     setParticipantName('');
-    setForm({ ...emptyForm(key), pondId: pondFilter || ponds[0]?.id || '' });
+    const defaultPondId = pondFilter || ponds[0]?.id || '';
+    setForm({
+      ...emptyForm(key),
+      pondId: defaultPondId,
+      cycleId: ponds.find((p) => p.id === defaultPondId)?.activeCycleId ?? null
+    });
   }
 
   function openEdit(schedule: HarvestSchedule) {
@@ -132,9 +144,11 @@ export function HarvestCalendarPage() {
     setForm({
       id: schedule.id,
       pondId: schedule.pondId,
+      cycleId: schedule.cycleId ?? schedule.cycle?.id ?? ponds.find((p) => p.id === schedule.pondId)?.activeCycleId ?? null,
       date: dateKey(when),
       time: timeKey(when),
       status: schedule.status,
+      initialStatus: schedule.status,
       note: schedule.note ?? '',
       participants: schedule.participants.map((person) => ({
         name: person.name,
@@ -142,6 +156,9 @@ export function HarvestCalendarPage() {
         feederId: person.feederId ?? null,
         role: person.role ?? null,
       })),
+      harvestType: 'TOTAL',
+      harvestedKg: '',
+      closesCycle: true,
     });
   }
 
@@ -182,6 +199,24 @@ export function HarvestCalendarPage() {
       return;
     }
 
+    let cycleToClose = form.cycleId;
+    if (!cycleToClose) {
+      cycleToClose = ponds.find((p) => p.id === form.pondId)?.activeCycleId ?? null;
+    }
+
+    const isExecuting = form.status === 'CONCLUIDA' && form.initialStatus !== 'CONCLUIDA';
+
+    if (isExecuting) {
+      if (!cycleToClose) {
+        setError('O viveiro selecionado não possui um ciclo ativo para ser despescado.');
+        return;
+      }
+      if (!form.harvestedKg || isNaN(Number(form.harvestedKg))) {
+        setError('Informe a quantidade colhida (kg) para concluir a despesca.');
+        return;
+      }
+    }
+
     const scheduledAt = new Date(`${form.date}T${form.time}:00`).toISOString();
     const participants = form.participants.map((person) => ({
       name: person.name,
@@ -211,6 +246,18 @@ export function HarvestCalendarPage() {
           participants,
         });
       }
+
+      if (isExecuting && cycleToClose) {
+        await createHarvestRecord.mutateAsync({
+          cycleId: cycleToClose,
+          pondId: form.pondId,
+          harvestedKg: Number(form.harvestedKg),
+          harvestType: form.harvestType,
+          harvestedAt: scheduledAt,
+          closesCycle: form.closesCycle,
+          observation: form.note.trim() || undefined,
+        });
+      }
     } catch {
       setError('Não foi possível salvar o agendamento. Tente novamente.');
       return;
@@ -230,7 +277,7 @@ export function HarvestCalendarPage() {
     closeModal();
   }
 
-  const saving = createSchedule.isPending || updateSchedule.isPending;
+  const saving = createSchedule.isPending || updateSchedule.isPending || createHarvestRecord.isPending;
 
   return (
     <div style={pageStack}>
@@ -452,6 +499,42 @@ export function HarvestCalendarPage() {
                 onChange={(e) => patchForm({ note: e.target.value })}
                 placeholder="Ex.: iniciar pelo comporta norte"
               />
+              {form.status === 'CONCLUIDA' && form.initialStatus !== 'CONCLUIDA' && (
+                <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, padding: 14, backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: radius.control }}>
+                  <div style={{ gridColumn: '1 / -1', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Dados da Despesca (Baixa no Viveiro)</div>
+                  <Select
+                    label="Tipo de Despesca"
+                    options={[
+                      { value: 'TOTAL', label: 'Total (Esvaziar viveiro)' },
+                      { value: 'PARTIAL', label: 'Parcial (Despesca de raleio)' }
+                    ]}
+                    value={form.harvestType}
+                    onChange={(e) => {
+                       const type = e.target.value as HarvestType;
+                       patchForm({ harvestType: type, closesCycle: type === 'TOTAL' });
+                    }}
+                  />
+                  <Input
+                    label="Quilos Colhidos (kg)"
+                    type="number"
+                    placeholder="Ex: 2500"
+                    value={form.harvestedKg}
+                    onChange={(e) => patchForm({ harvestedKg: e.target.value })}
+                  />
+                  {form.harvestType === 'PARTIAL' && (
+                    <div style={{ gridColumn: '1 / -1' }}>
+                       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-secondary)' }}>
+                         <input
+                           type="checkbox"
+                           checked={form.closesCycle}
+                           onChange={(e) => patchForm({ closesCycle: e.target.checked })}
+                         />
+                         Encerrar ciclo (Mudar status do viveiro para Vazio)
+                       </label>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div style={{ ...workspaceTile, display: 'flex', flexDirection: 'column', gap: space.inline }}>

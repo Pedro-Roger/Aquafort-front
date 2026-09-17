@@ -553,7 +553,7 @@ export function NutritionPage() {
           <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>{table.data?.date ?? date}</div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 280px', gap: space.page, alignItems: 'start' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: space.page, alignItems: 'start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: space.tile, minWidth: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: space.inline, flexWrap: 'wrap' }}>
               <h3 style={sectionTitle}>Tabela principal</h3>

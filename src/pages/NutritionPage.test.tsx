@@ -62,6 +62,21 @@ vi.mock('../hooks/useFeeding', () => ({
 }))
 
 describe('NutritionPage', () => {
+  it('places the latest launches below the main feeding table', () => {
+    render(
+      <MemoryRouter>
+        <NutritionPage />
+      </MemoryRouter>,
+    )
+
+    const mainHeading = screen.getByRole('heading', { name: 'Tabela principal' })
+    const latestHeading = screen.getByRole('heading', { name: 'Ultimos lancamentos' })
+    const layout = mainHeading.parentElement?.parentElement?.parentElement
+
+    expect(layout).toBe(latestHeading.parentElement?.parentElement)
+    expect(layout).toHaveStyle({ gridTemplateColumns: '1fr' })
+  })
+
   it('opens with useful defaults and shows the quick links', async () => {
     const user = userEvent.setup()
 
